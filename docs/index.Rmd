@@ -1,0 +1,94 @@
+---
+title: "An integrated population model for chum salmon in the lower Columbia River"
+output:
+  html_document:
+    theme: cerulean
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    fig_caption: yes
+csl: chumIPM.csl
+bibliography: chumIPM.bib
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(tensorflow.one_based_extract = TRUE)
+```
+
+<br/>
+
+[__Kale Bentley__](Kale.Bentley@dfw.wa.gov)  
+_Fish Ecology and Life Cycle Monitoring Unit, Washington Department of Fish & Wildlife, Ridgefield, WA USA_
+
+[__Thomas Buehrens__](Thomas.Buehrens@dfw.wa.gov)  
+_Fish Ecology and Life Cycle Monitoring Unit, Washington Department of Fish & Wildlife, Ridgefield, WA USA_
+
+[__Mark D. Scheuerell__](https://faculty.washington.edu/scheuerl/)  
+_Northwest Fisheries Science Center, National Oceanic and Atmospheric Administration, Seattle, WA USA_
+
+***
+
+__DISCLAIMER__  
+
+This vignette is still in the testing and evaluating phase and should not be considered complete or error-free.
+
+This is version `r paste0('0.',format(Sys.time(), '%y.%m.%d'))`.
+
+***
+
+## Overview
+This model incorporates data on spawners (escapement), harvest, adult age composition, and fry into a retrospective run reconstruction and probabilistic forecast under a Bayesian framework. The general structure follows that of Fleischman et al. [-@fleischman2013], but it also allows for the inclusion of specific external drivers of productivity, both natural (e.g., climate variability) and anthropogenic (e.g., habitat alteration). The model is composed of two primary pieces: a process model that governs the true population dynamics, and an observation model that relates the data in hand to the true process.
+
+### Process component
+We begin with our process model that describes the true, but unknown production of offspring from their parents. In any given year _t_, spawning adults produce some number of surviving offspring, which follows a general Ricker model, such that
+	
+$$\log(F_t) = \log(S_t) + a_t \ – bS_t + w_t.$$
+	
+Here $F_t$ is the total number of subsequent fry born in year _t_; $S_t$ is the true, but unobserved, number of spawning adults; $a_t$ is the annual density-independent productivity; $b$ is the strength of density dependence; and $w_t$ is a process error representing environmental stochasticity, which is autocorrelated over time according to $w_t \sim \text{N}(\phi w_{t-1}, q_a)$.
+
+Previous applications of time-varying productivity [e.g., @peterman2003; @dorner2008] have used a Markov form where $a_t \sim \text{N}(a_{t-1}, \sigma_a)$, but we will model $(a_t)$ as a function of time-varying covariates. Specifically,
+
+$$a_t = \bar{a} + \sum_{i=1}^{M} c_{i,t} \ X_{i,t+h} $$
+
+Here $\bar{a}$ is the underlying mean productivity, and $c_{i,t}$ is the effect of covariate $i$ at time $t$, $X_{i,t+h}$. To allow for direct comparison of effect sizes, the covariates are typically standardized to have a zero mean and unit variance.
+
+The estimated number of fish of age $a$ returning in year $t$ $(N_{a,t})$ is then product of the total number of brood-year recruits in year $t – a$ and the proportion of mature fish from that brood year that returned to spawn at age $a$ $(p_{a,t-a})$, such that
+
+$$N_{a,t} = R_{t-a} \ p_{a,t-a}.$$
+
+The vector of age-specific return rates for brood year $t$ $(\mathbf{p}_t)$ has length $A$, which equals the number of adult age classes. That is, $\mathbf{p}_t$ is a combination of the probability of surviving to, and maturing in years $t + a_\min$ to $t + a_\max$. We modeled $(\mathbf{p}_t)$ as a random effect using a hierarchical form of the Dirichlet distribution, where
+
+$$\mathbf{p}_t \sim \text{Dirichlet}(\boldsymbol{\mu},\pi).$$
+
+In this formulation, the mean vector $\boldsymbol{\mu}$ is itself distributed as a Dirichlet, and therefore has a total of $A$ elements that are all greater than zero. The precision parameter $\pi$ affects each of the elements in $\boldsymbol{\mu}$, such that large values of $\pi$ results in values of $\mathbf{p}_t$ that are very close to $\boldsymbol{\mu}$.
+
+### Observation component
+
+Estimates of the number of spawning adults necessarily contain some sampling or observation errors due to incomplete censuses, mis-identification, etc. Therefore, we will assume that the estimates of escapement $(E_t)$ are log-normally distributed about the true number of spawners $(S_t)$
+
+$$\log(E_t) \sim \text{Normal}\left(\log(S_t), r_s\right).$$
+
+We do not have the ability to estimate the observation variances for both the escapement and harvest without any additional prior information. Therefore, we will assume the harvest is recorded without error and calculate $S_t$ as the difference between the estimated total run size $(N_t)$ and harvest $(H_t)$
+
+$$S_t = N_t - H_t.$$
+
+and $N_t$ is the sum of $N_{a,t}$ over all age classes.
+
+The age composition data include the number of fish in each age class $a$ in year $t$ $(O_{a,t})$. The age data are then modeled as a multinomial process with order $Y_t$ and proportion vector $\mathbf{d}_t$, such that
+
+$$\mathbf{O}_t \sim \text{Multinomial}(Y_t, \mathbf{d}_t).$$
+
+The order of the multinomial is simply the sum of the observed numbers of fish across all ages returning in year $t$:
+
+$$Y_t = \sum_{a=a_\min}^{a_\max} O_{a,t}$$
+
+The proportion vector $\mathbf{d}_t$ for the multinomial is based on the age-specific, model-derived estimates of adult returns in year $t$ $(N_{a,t})$, such that
+
+$$d_{a,t} = {N_{a,t} \over \displaystyle \sum_{a=a_\min}^{a_\max} N_{a,t}}.$$
+
+## Requirements
+
+
+# References
