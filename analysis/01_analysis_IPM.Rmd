@@ -37,29 +37,33 @@ This is version `r paste0('0.',format(Sys.time(), '%y.%m.%d'))`.
 
 # Requirements
 
-All analyses require the [R software](https://cran.r-project.org/) (v3.4+) for data retrieval, data processing, and summarizing model results, and the [Stan software](http://mc-stan.org/) (v2.17.1) for Hamiltonian Monte Carlo (HMC) simulation.
+All analyses require the [R software](https://cran.r-project.org/) (v3.4+) for data retrieval, data processing, and summarizing model results, and the [Stan software](http://mc-stan.org/) (v2.17.1+) for Hamiltonian Monte Carlo (HMC) simulation.
 
 We also need a few packages that are not included with the base installation of R, so we begin by installing them (if necessary) and then loading them.
 
 ```{r load_pkgs, message = FALSE, warning = FALSE}
+## for file management
 if(!require("here")) {
   install.packages("here")
   library("here")
 }
+## for reading
 if(!require("readr")) {
   install.packages("readr")
   library("readr")
 }
+## for analysis
 if(!require("rstan")) {
   install.packages("rstan")
   library("rstan")
 }
+## for model comparison
 if(!require("loo")) {
   install.packages("loo")
   library("loo")
 }
 ## set directory locations
 datadir <- here("data")
-analdir <- here("analysis")
+# standir <- here("exec")
 ```
 
