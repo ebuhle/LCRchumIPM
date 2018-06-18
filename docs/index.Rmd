@@ -39,9 +39,11 @@ This is version `r paste0('0.',format(Sys.time(), '%y.%m.%d'))`.
 ***
 
 # Overview
+
 This model incorporates data on spawners (escapement), harvest, adult age composition, and fry into a retrospective run reconstruction and probabilistic forecast under a Bayesian framework. The general structure follows that of Fleischman et al. [-@fleischman2013], but it also allows for the inclusion of specific external drivers of productivity, both natural (e.g., climate variability) and anthropogenic (e.g., habitat alteration). The model is composed of two primary pieces: a process model that governs the true population dynamics, and an observation model that relates the data in hand to the true process.
 
 ## Process component
+
 We begin with our process model that describes the true, but unknown production of offspring from their parents. In any given year _t_, spawning adults produce some number of surviving offspring, which follows a general Ricker model, such that
 	
 $$\log(F_t) = \log(S_t) + a_t \ – bS_t + w_t.$$
@@ -87,8 +89,5 @@ $$Y_t = \sum_{a=a_\min}^{a_\max} O_{a,t}$$
 The proportion vector $\mathbf{d}_t$ for the multinomial is based on the age-specific, model-derived estimates of adult returns in year $t$ $(N_{a,t})$, such that
 
 $$d_{a,t} = {N_{a,t} \over \displaystyle \sum_{a=a_\min}^{a_\max} N_{a,t}}.$$
-
-# Requirements
-
 
 # References
