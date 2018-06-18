@@ -38,10 +38,10 @@ This is version `r paste0('0.',format(Sys.time(), '%y.%m.%d'))`.
 
 ***
 
-## Overview
+# Overview
 This model incorporates data on spawners (escapement), harvest, adult age composition, and fry into a retrospective run reconstruction and probabilistic forecast under a Bayesian framework. The general structure follows that of Fleischman et al. [-@fleischman2013], but it also allows for the inclusion of specific external drivers of productivity, both natural (e.g., climate variability) and anthropogenic (e.g., habitat alteration). The model is composed of two primary pieces: a process model that governs the true population dynamics, and an observation model that relates the data in hand to the true process.
 
-### Process component
+## Process component
 We begin with our process model that describes the true, but unknown production of offspring from their parents. In any given year _t_, spawning adults produce some number of surviving offspring, which follows a general Ricker model, such that
 	
 $$\log(F_t) = \log(S_t) + a_t \ – bS_t + w_t.$$
@@ -64,7 +64,7 @@ $$\mathbf{p}_t \sim \text{Dirichlet}(\boldsymbol{\mu},\pi).$$
 
 In this formulation, the mean vector $\boldsymbol{\mu}$ is itself distributed as a Dirichlet, and therefore has a total of $A$ elements that are all greater than zero. The precision parameter $\pi$ affects each of the elements in $\boldsymbol{\mu}$, such that large values of $\pi$ results in values of $\mathbf{p}_t$ that are very close to $\boldsymbol{\mu}$.
 
-### Observation component
+## Observation component
 
 Estimates of the number of spawning adults necessarily contain some sampling or observation errors due to incomplete censuses, mis-identification, etc. Therefore, we will assume that the estimates of escapement $(E_t)$ are log-normally distributed about the true number of spawners $(S_t)$
 
@@ -88,7 +88,7 @@ The proportion vector $\mathbf{d}_t$ for the multinomial is based on the age-spe
 
 $$d_{a,t} = {N_{a,t} \over \displaystyle \sum_{a=a_\min}^{a_\max} N_{a,t}}.$$
 
-## Requirements
+# Requirements
 
 
 # References
