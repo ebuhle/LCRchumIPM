@@ -1,0 +1,82 @@
+model
+{
+	#-----------------
+	#Regression model
+	#----------------
+	for(i in 1:obs){
+		#predictions
+		fecundity_pred[i]<-global_mu+age_eff[age[i]]+basin_eff[basin[i]]+yr_eff[yr[i]]
+		#observation model
+		fecundity[i]~dnorm(fecundity_pred[i],tau_resid)
+		fecundity_lik[i]<-dnorm(fecundity[i],fecundity_pred[i],tau_resid)
+	}
+    
+    #------------------------
+    #priors for fixed effects and residual
+    #------------------------
+	#global mean
+	global_mu<-exp(log_global_mu)
+	log_global_mu~dnorm(0,0.1)
+
+	#age
+	for(a in 1:ages){
+		age_eff[a]~dnorm(0,0.00001) 
+	}
+     
+    #prior for residual
+    tau_resid<-pow(sigma_resid,-2)
+    sigma_resid~dunif(0,1000)
+    
+    #------------------------
+    #priors for random effects
+    #-------------------------
+    #basin random effect
+	for(b in 1:basins){
+		basin_eff[b]~dnorm(0,tau_basin)
+	}
+ 
+    #year random effect
+	for(y in 1:years){
+		yr_eff[y]~dnorm(0,tau_yr)
+	}
+
+	#hyperpriors basin effect
+	tau_basin<-pow(sigma_basin,-2)
+	sigma_basin~dunif(0,1000)
+
+	#hyperpriors year effect
+	tau_yr<-pow(sigma_yr,-2)
+	sigma_yr~dunif(0,1000)
+
+	#predictions for unknown basin, and year effect and unknown residual 
+	unknown_resid~dnorm(0,tau_resid)
+	unknown_basin_eff~dnorm(0,tau_basin)
+	unknown_year_eff~dnorm(0,tau_yr)
+
+	#-------------------------
+	#predictions
+    #-------------------------
+	#1) unknown basin in unknown year
+	for(a in 1:ages){
+		unk_basin_unknown_year_age[a]<-global_mu+age_eff[a]+unknown_basin_eff+unknown_year_eff+unknown_resid
+	}
+
+	#2) specific basins in unknown year (if you don't have data for that year)
+	for(b in 1: basins){
+		for(a in 1:ages){
+        	known_basin_unknown_year_unknown_resid_age[a,b]<-global_mu+age_eff[a]+basin_eff[b]+unknown_year_eff+unknown_resid
+    	}
+	}
+
+	#3 unknown basin in specific year
+	for(y in 1:years){
+		for(a in 1:ages){
+			unk_basin_specific_year_age[y,a]<-global_mu+age_eff[a]+unknown_basin_eff+yr_eff[y]+unknown_resid
+
+	#4) specific basins in specific year with a random residual (if you don't have data for that year in that basin)
+			for(b in 1: basins){
+        		known_basin_specific_year_unknown_resid_age[y,a,b]<-global_mu+age_eff[a]+basin_eff[b]+yr_eff[y]+unknown_resid
+			}
+		}
+	}
+}
