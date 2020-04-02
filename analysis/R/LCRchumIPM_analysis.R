@@ -25,6 +25,9 @@ location_pop <- read.csv(here("data","Location.Reach_Population.csv"), header = 
 disposition_HW <- read.csv(here("data","Disposition_HW.csv"), header = TRUE) %>% 
   rename(disposition = Disposition) %>% arrange(HW)
 
+# Start dates of hatcheries associated with populations
+hatchery_start_dates <- read.csv(here("data","Hatchery_Start_Dates.csv"), header = TRUE)
+
 # Spawner abundance data
 spawner_data <- read.csv(here("data","Data_ChumSpawnerAbundance_2019-12-12.csv"), header = TRUE) %>% 
   rename(species = Species, stage = LifeStage, year = Return.Yr., strata = Strata,
@@ -69,8 +72,16 @@ fish_data <- inner_join(spawner_data_agg, bio_data_age,
                         by = c("species","stage","year","strata","pop")) %>% 
   inner_join(bio_data_origin, by = c("species","stage","year","strata","pop")) %>% 
   rename_at(vars(contains("Age-")), funs(paste0(sub("Age-","n_age",.), "_obs"))) %>% 
-  rename(n_H_obs = H, n_W_obs = W) %>% mutate(A = 1, F_rate = 0) %>% 
-  select(species, stage, strata, pop, year, A, S_obs, n_age2_obs:n_W_obs, B_take_obs, F_rate)
+  rename(n_H_obs = H, n_W_obs = W) %>% mutate(A = 1, fit_p_HOS = NA, F_rate = 0) %>% 
+  select(species, stage, strata, pop, year, A, S_obs, n_age2_obs:n_W_obs, 
+         fit_p_HOS, B_take_obs, F_rate)
+
+for(i in 1:nrow(fish_data)) {
+  indx <- match(fish_data$pop[i], hatchery_start_dates$pop)
+  fish_data$fit_p_HOS[i] <- ifelse((!is.na(indx) & 
+                                     fish_data$year[i] >= hatchery_start_dates$start_brood_year[indx] + 2) |
+                                     fish_data$n_H_obs[i] > 0, 1, 0)
+}
 
 
 #----------------------
@@ -78,5 +89,30 @@ fish_data <- inner_join(spawner_data_agg, bio_data_age,
 #----------------------
 
 
+
+
+#===========================================================================
+# FIT RETROSPECTIVE MODELS
+#===========================================================================
+
+#--------------------------------------------------------------
+# Spawner-to-spawner IPM
+#--------------------------------------------------------------
+
+SS_BH <- salmonIPM(fish_data = fish_data, stan_model = "IPM_SS_pp", 
+                    pars = c("mu_alpha","sigma_alpha","alpha",
+                             "mu_Rmax","sigma_Rmax","Rmax","rho_alphaRmax",
+                             "sigma_phi","rho_phi","phi",
+                             "mu_p","sigma_gamma","R_gamma","gamma",
+                             "sigma_p","R_p","p",
+                             "p_HOS","sigma","tau","S","R","q","LL"),
+                    chains = 3, iter = 1500, warmup = 500,
+                    control = list(adapt_delta = 0.95, stepsize = 0.1, max_treedepth = 13))
+
+print(SS_BH, prob = c(0.025,0.5,0.975),
+      pars = c("alpha","Rmax","phi","p_HOS","q","gamma","p","S","R","LL"), 
+      include = FALSE, use_cache = FALSE)
+
+launch_shinystan(SS_BH)
 
 
