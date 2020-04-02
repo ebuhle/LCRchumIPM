@@ -74,7 +74,7 @@ fish_data <- inner_join(spawner_data_agg, bio_data_age,
   rename_at(vars(contains("Age-")), funs(paste0(sub("Age-","n_age",.), "_obs"))) %>% 
   rename(n_H_obs = H, n_W_obs = W) %>% mutate(A = 1, fit_p_HOS = NA, F_rate = 0) %>% 
   select(species, stage, strata, pop, year, A, S_obs, n_age2_obs:n_W_obs, 
-         fit_p_HOS, B_take_obs, F_rate)
+         fit_p_HOS, B_take_obs, F_rate) %>% arrange(strata, pop, year) 
 
 for(i in 1:nrow(fish_data)) {
   indx <- match(fish_data$pop[i], hatchery_start_dates$pop)
