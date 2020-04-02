@@ -32,15 +32,15 @@ hatchery_start_dates <- read.csv(here("data","Hatchery_Start_Dates.csv"), header
 spawner_data <- read.csv(here("data","Data_ChumSpawnerAbundance_2019-12-12.csv"), header = TRUE) %>% 
   rename(species = Species, stage = LifeStage, year = Return.Yr., strata = Strata,
          location = Location.Reach, disposition = Disposition, method = Method,
-         S = Abund.Mean, SD = Abund.SD) %>% 
+         S_obs = Abund.Mean, SD = Abund.SD) %>% 
   mutate(pop = location_pop$pop[match(location, location_pop$location)],
          disposition_HW = disposition_HW$HW[match(disposition, disposition_HW$disposition)]) %>% 
   select(species:location, pop, disposition, disposition_HW, method:SD) %>% 
   arrange(strata, location, year)
 
-spawner_data_agg <- aggregate(S ~ species + stage + year + strata + location + pop + disposition_HW,
-                              data = spawner_data, FUN = sum, na.rm = TRUE) %>% 
-  dcast(species + stage + year + strata + pop ~ disposition_HW, value.var = "S",
+spawner_data_agg <- aggregate(S_obs ~ species + stage + year + strata + location + pop + disposition_HW,
+                              data = spawner_data, FUN = sum, na.rm = TRUE, na.action = na.pass) %>% 
+  dcast(species + stage + year + strata + pop ~ disposition_HW, value.var = "S_obs",
         fun.aggregate = sum, na.rm = TRUE) %>% rename(S_obs = W, B_take_obs = H) %>% 
   arrange(strata, pop, year)
 
