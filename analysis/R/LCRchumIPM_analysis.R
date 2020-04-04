@@ -90,15 +90,6 @@ fish_data <- full_join(spawner_data_agg, bio_data_age,
          fit_p_HOS, B_take_obs, F_rate) %>% arrange(strata, pop, year) 
 
 # drop cases with initial NAs in S_obs, even if bio data is present
-
-# init_NA <- rep(NA, nrow(fish_data))
-# for(i in 1:nrow(fish_data))
-#   init_NA[i] <- with(fish_data,
-#                      ifelse(is.na(S_obs[i]) & year[i] < min(year[pop == pop[i] & !is.na(S_obs)]),
-#                             TRUE, FALSE))
-# 
-# fish_data <- fish_data[!init_NA,]
-
 init_NA <- function(x) { cumsum(!is.na(x)) > 0 }
 fish_data <- fish_data %>% group_by(pop) %>% filter(init_NA(S_obs)) %>% as.data.frame()
                                                                   
