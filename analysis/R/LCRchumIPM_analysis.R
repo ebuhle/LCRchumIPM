@@ -4,6 +4,7 @@ library(salmonIPM)
 library(rstan)
 library(shinystan)
 library(matrixStats)
+library(tibble)
 library(dplyr)
 library(reshape2)
 library(yarrr)
@@ -12,6 +13,9 @@ library(magicaxis)
 library(zoo)
 library(here)
 
+if(file.exists(here("analysis","results","LCRchumIPM.RData")))
+  load(here("analysis","results","LCRchumIPM.RData"))
+
 
 #===========================================================================
 # DATA
@@ -19,7 +23,7 @@ library(here)
 
 # Mapping of location to population
 location_pop <- read.csv(here("data","Location.Reach_Population.csv"), header = TRUE) %>% 
-  rename(strata = Strata, location = Location.Reach, pop = Population)
+  rename(strata = Strata, location = Location.Reach, pop1 = Population1, pop2 = Population2)
 
 # Mapping of disposition to hatchery vs. wild (i.e., broodstock vs. natural spawner)
 disposition_HW <- read.csv(here("data","Disposition_HW.csv"), header = TRUE) %>% 
@@ -29,37 +33,38 @@ disposition_HW <- read.csv(here("data","Disposition_HW.csv"), header = TRUE) %>%
 hatchery_start_dates <- read.csv(here("data","Hatchery_Start_Dates.csv"), header = TRUE)
 
 # Spawner abundance data
+# Assumptions:
+# (1) NAs in hatchery dispositions (incl. Duncan Channel) are really zeros
+# (2) NAs in Duncan Creek from 2004-present are really zeros
+# (3) All other NAs are real missing observations
 spawner_data <- read.csv(here("data","Data_ChumSpawnerAbundance_2019-12-12.csv"), header = TRUE) %>% 
   rename(species = Species, stage = LifeStage, year = Return.Yr., strata = Strata,
          location = Location.Reach, disposition = Disposition, method = Method,
          S_obs = Abund.Mean, SD = Abund.SD) %>% 
-  mutate(pop = location_pop$pop[match(location, location_pop$location)],
-         disposition_HW = disposition_HW$HW[match(disposition, disposition_HW$disposition)]) %>% 
+  mutate(pop = location_pop$pop2[match(location, location_pop$location)],
+         disposition_HW = disposition_HW$HW[match(disposition, disposition_HW$disposition)],
+         S_obs = replace(S_obs, is.na(S_obs) & disposition_HW == "H", 0),
+         S_obs = replace(S_obs, is.na(S_obs) & pop == "Duncan_Creek" & year >= 2004, 0)) %>% 
   select(species:location, pop, disposition, disposition_HW, method:SD) %>% 
   arrange(strata, location, year)
 
-# special sum function for use in aggregating S_obs
-sum.agg <- function(x) {
-  if(length(x) == 0) 0 
-  else if(all(is.na(x))) NA 
-  else sum(x, na.rm = TRUE)
-}
+names_S_obs <- disposition_HW$disposition
+names_B_take_obs <- disposition_HW$disposition[disposition_HW$HW == "H"]
 
-spawner_data_agg <- aggregate(S_obs ~ species + stage + year + strata + location + pop + disposition_HW,
-                              data = spawner_data, FUN = sum.agg, na.action = na.pass) %>%
-  dcast(species + stage + year + strata + pop ~ disposition_HW, value.var = "S_obs",
-        fun.aggregate = sum.agg) %>% rename(S_obs = W, B_take_obs = H) %>% 
-  mutate(B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0)) %>% 
-  arrange(strata, pop, year)
-
-spawner_data_agg$S_obs <- spawner_data_agg$S_obs + spawner_data_agg$B_take_obs
+spawner_data_agg <- aggregate(S_obs ~ species + stage + year + strata + pop + disposition,
+                              data = spawner_data, FUN = sum, na.action = na.pass) %>%
+  dcast(species + stage + year + strata + pop ~ disposition, value.var = "S_obs", 
+        fun.aggregate = identity, fill = 0) %>% 
+  add_column(S_obs = rowSums(select(., all_of(names_S_obs))),
+             B_take_obs = rowSums(select(., all_of(names_B_take_obs)))) %>% 
+  select(-all_of(names_S_obs)) %>% arrange(strata, pop, year)
 
 # Spawner age-, sex-, and origin-frequency (aka BioData)
 bio_data <- read.csv(here("data","Data_ChumSpawnerBioData_2019-12-12.csv"), header = TRUE) %>% 
   rename(species = Species, stage = LifeStage, year = Return.Yr., strata = Strata,
          location = Location.Reach, disposition = Disposition, origin = Origin,
          sex = Sex, age = Age, count = Count) %>% 
-  mutate(pop = location_pop$pop[match(location, location_pop$location)],
+  mutate(pop = location_pop$pop2[match(location, location_pop$location)],
          origin_HW = ifelse(origin == "Natural_spawner", "W", "H"),
          count = ifelse(is.na(count), 0, count)) %>% 
   select(species:location, pop, disposition, origin, origin_HW, sex:count) %>%
@@ -84,6 +89,19 @@ fish_data <- full_join(spawner_data_agg, bio_data_age,
   select(species, stage, strata, pop, year, A, S_obs, n_age2_obs:n_W_obs, 
          fit_p_HOS, B_take_obs, F_rate) %>% arrange(strata, pop, year) 
 
+# drop cases with initial NAs in S_obs, even if bio data is present
+
+# init_NA <- rep(NA, nrow(fish_data))
+# for(i in 1:nrow(fish_data))
+#   init_NA[i] <- with(fish_data,
+#                      ifelse(is.na(S_obs[i]) & year[i] < min(year[pop == pop[i] & !is.na(S_obs)]),
+#                             TRUE, FALSE))
+# 
+# fish_data <- fish_data[!init_NA,]
+
+init_NA <- function(x) { cumsum(!is.na(x)) > 0 }
+fish_data <- fish_data %>% group_by(pop) %>% filter(init_NA(S_obs)) %>% as.data.frame()
+                                                                  
 # fill in fit_p_HOS
 for(i in 1:nrow(fish_data)) {
   indx <- match(fish_data$pop[i], hatchery_start_dates$pop)
@@ -91,13 +109,6 @@ for(i in 1:nrow(fish_data)) {
                                      fish_data$year[i] >= hatchery_start_dates$start_brood_year[indx] + 2) |
                                      fish_data$n_H_obs[i] > 0, 1, 0)
 }
-
-
-#----------------------
-# Data Exploration
-#----------------------
-
-
 
 
 #===========================================================================
@@ -116,14 +127,13 @@ SS_exp <- salmonIPM(fish_data = fish_data, stan_model = "IPM_SS_pp", SR_fun = "e
                             "sigma_p","R_p","p",
                             "p_HOS","sigma","tau","S","R","q","LL"),
                    chains = 3, iter = 1500, warmup = 500,
-                   control = list(adapt_delta = 0.95, stepsize = 0.1, max_treedepth = 13))
+                   control = list(adapt_delta = 0.99, max_treedepth = 13))
 
 print(SS_exp, prob = c(0.025,0.5,0.975),
       pars = c("alpha","phi","p_HOS","q","gamma","p","S","R","LL"), 
       include = FALSE, use_cache = FALSE)
 
 launch_shinystan(SS_exp)
-
 
 # Beverton-Holt
 SS_BH <- salmonIPM(fish_data = fish_data, stan_model = "IPM_SS_pp", SR_fun = "BH",
@@ -134,14 +144,13 @@ SS_BH <- salmonIPM(fish_data = fish_data, stan_model = "IPM_SS_pp", SR_fun = "BH
                              "sigma_p","R_p","p",
                              "p_HOS","sigma","tau","S","R","q","LL"),
                     chains = 3, iter = 1500, warmup = 500,
-                    control = list(adapt_delta = 0.95, stepsize = 0.1, max_treedepth = 13))
+                    control = list(adapt_delta = 0.99, max_treedepth = 13))
 
 print(SS_BH, prob = c(0.025,0.5,0.975),
       pars = c("alpha","Rmax","phi","p_HOS","q","gamma","p","S","R","LL"), 
       include = FALSE, use_cache = FALSE)
 
 launch_shinystan(SS_BH)
-
 
 # Ricker
 SS_Ricker <- salmonIPM(fish_data = fish_data, stan_model = "IPM_SS_pp", SR_fun = "Ricker",
@@ -152,7 +161,7 @@ SS_Ricker <- salmonIPM(fish_data = fish_data, stan_model = "IPM_SS_pp", SR_fun =
                                 "sigma_p","R_p","p",
                                 "p_HOS","sigma","tau","S","R","q","LL"),
                        chains = 3, iter = 1500, warmup = 500,
-                       control = list(adapt_delta = 0.95, stepsize = 0.1, max_treedepth = 13))
+                       control = list(adapt_delta = 0.99, max_treedepth = 13))
 
 print(SS_Ricker, prob = c(0.025,0.5,0.975),
       pars = c("alpha","Rmax","phi","p_HOS","q","gamma","p","S","R","LL"), 
@@ -161,43 +170,128 @@ print(SS_Ricker, prob = c(0.025,0.5,0.975),
 launch_shinystan(SS_Ricker)
 
 
+#--------------------------------------------------------------
+# Save stanfit objects
+#--------------------------------------------------------------
+
+save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "stanfit"], 
+     file = here("analysis","results","LCRchumIPM.RData"))
+
+
 
 #===========================================================================
 # FIGURES
 #===========================================================================
 
-#--------------------------------------------------------------------------------
-# Time series of observed and fitted total spawners for each pop
-#--------------------------------------------------------------------------------
+#--------------------------------------------------------------------
+# S-R curves and posterior distributions of parameters
+#--------------------------------------------------------------------
 
-mod_name <- "SS_BH"
-dat <- fish_data
+mod_name <- "SS_Ricker"
 
-# dev.new(width=12,height=6)
-png(filename=here("analysis","results",paste0("S_fit_", mod_name, ".png")),
-    width=12*0.9, height=6*0.9, units="in", res=200, type="cairo-png")
+BH <- function(alpha, Rmax, S) 
+{
+  alpha*S/(1 + alpha*S/Rmax)
+}
 
-par(mfrow=c(2,4), mar=c(1,2.5,4.1,1), oma=c(4.1,3.1,0,0))
-
-S_IPM <- do.call(extract1, list(as.name(mod_name), "S"))
-tau <- do.call(extract1, list(as.name(mod_name), "tau"))
-S_obs_IPM <- S_IPM * rlnorm(length(S_IPM), 0, tau)
-init_NA <- dat$year
-for(i in levels(dat$pop))
-  init_NA[dat$pop==i] <- init_NA[dat$pop==i] - min(init_NA[dat$pop==i]) + 1
-init_NA <- is.na(dat$S_obs) & init_NA < 5
+mu_alpha <- as.vector(do.call(extract1, list(as.name(mod_name), "mu_alpha")))
+mu_Rmax <- as.vector(do.call(extract1, list(as.name(mod_name), "mu_Rmax")))
+S <- matrix(seq(0, quantile(fish_data$S_obs/fish_data$A, 0.9, na.rm = TRUE), length = 100),
+            nrow = length(mu_alpha), ncol = 100, byrow = TRUE)
+R_ESU_IPM <- BH(alpha = exp(mu_alpha), Rmax = exp(mu_Rmax), S = S)
+alpha <- do.call(extract1, list(as.name(mod_name), "alpha"))
+Rmax <- do.call(extract1, list(as.name(mod_name), "Rmax"))
+R_pop_IPM <- sapply(1:ncol(alpha), function(i) {
+  colMedians(BH(alpha = alpha[,i], Rmax = Rmax[,i], S = S))
+  })
 
 c1 <- "slategray4"
 c1t <- transparent(c1, trans.val = 0.5)
 c1tt <- transparent(c1, trans.val = 0.7)
 
-for(i in levels(dat$pop))
+# dev.new(width = 11, height = 3.5)
+png(filename=here("analysis","results",paste0("SR_",mod_name,".png")), 
+    width=11, height=3.5, units="in", res=200, type="cairo-png")
+
+par(mfrow = c(1,3), mar = c(5.1,5.1,1,1))
+
+# S-R curves
+plot(S[1,], colMedians(R_ESU_IPM), type = "l", lwd=3, col = c1, las = 1,
+     cex.axis = 1.2, xaxs = "i", yaxs = "i", ylim = range(R_pop_IPM),
+     xlab = "" , ylab = "")
+for(i in 1:ncol(R_pop_IPM))
+  lines(S[1,], R_pop_IPM[,i], col = c1t)
+polygon(c(S[1,], rev(S[1,])), 
+        c(colQuantiles(R_ESU_IPM, probs = 0.025), rev(colQuantiles(R_ESU_IPM, probs = 0.975))), 
+        col = c1tt, border = NA)
+title(xlab=bquote("Spawners"), ylab=bquote("Recruits"),
+      line = 3.5, cex.lab = 1.8)
+# text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "A", cex = 2)
+
+# Posterior densities of log(alpha)
+dd_IPM_ESU <- density(mu_alpha)
+dd_IPM_pop <- vector("list", length(levels(fish_data$pop)))
+for(i in 1:length(dd_IPM_pop))
+  dd_IPM_pop[[i]] <- density(log(alpha[,i]))
+
+plot(dd_IPM_ESU$x, dd_IPM_ESU$y, type = "l", lwd = 3, col = c1, las = 1, 
+     cex.axis = 1.2, xlab = "", ylab = "", xaxs = "i",
+     xlim = range(c(dd_IPM_ESU$x, sapply(dd_IPM_pop, function(m) m$x))),
+     ylim = range(c(dd_IPM_ESU$y, sapply(dd_IPM_pop, function(m) m$y))))
+for(i in 1:length(dd_IPM_pop))
+  lines(dd_IPM_pop[[i]]$x, dd_IPM_pop[[i]]$y, col = c1t)
+title(xlab = bquote(log(alpha)), ylab = "Probability density", line = 3.5, cex.lab = 1.8)
+# text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "B", cex = 2)
+
+# Posterior densities of log(Rmax)
+dd_IPM_ESU <- density(mu_Rmax)
+dd_IPM_pop <- vector("list", length(levels(fish_data$pop)))
+for(i in 1:length(dd_IPM_pop))
+  dd_IPM_pop[[i]] <- density(log(Rmax[,i]))
+
+plot(dd_IPM_ESU$x, dd_IPM_ESU$y, type = "l", lwd = 3, col = c1, las = 1, 
+     cex.axis = 1.2, xlab = "", ylab = "", xaxs = "i",
+     xlim = range(c(dd_IPM_ESU$x, sapply(dd_IPM_pop, function(m) m$x))),
+     ylim = range(c(dd_IPM_ESU$y, sapply(dd_IPM_pop, function(m) m$y))))
+for(i in 1:length(dd_IPM_pop))
+  lines(dd_IPM_pop[[i]]$x, dd_IPM_pop[[i]]$y, col = c1t)
+title(xlab = bquote(log(italic(R)[max])), ylab = "Probability density", 
+      line = 3.5, cex.lab = 1.8)
+# text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "C", cex = 2)
+
+rm(list=c("mu_alpha","mu_Rmax","S","R_ESU_IPM","BH","c1","c1t","c1tt",
+          "dd_IPM_ESU","dd_IPM_pop","alpha","Rmax","R_pop_IPM"))
+dev.off()
+
+
+#--------------------------------------------------------------------------------
+# Time series of observed and fitted total spawners for each pop
+#--------------------------------------------------------------------------------
+
+mod_name <- "SS_Ricker"
+dat <- fish_data
+
+# dev.new(width=12,height=8)
+png(filename=here("analysis","results",paste0("S_fit_", mod_name, ".png")),
+    width=12*0.9, height=8*0.9, units="in", res=200, type="cairo-png")
+
+par(mfrow=c(3,4), mar=c(1,2.5,4.1,1), oma=c(4.1,3.1,0,0))
+
+S_IPM <- do.call(extract1, list(as.name(mod_name), "S"))
+tau <- do.call(extract1, list(as.name(mod_name), "tau"))
+S_obs_IPM <- S_IPM * rlnorm(length(S_IPM), 0, tau)
+
+c1 <- "slategray4"
+c1t <- transparent(c1, trans.val = 0.5)
+c1tt <- transparent(c1, trans.val = 0.7)
+
+for(i in levels(fish_data$pop))
 {
-  y1 <- dat$year[dat$pop==i]
-  plot(y1, dat$S_obs[dat$pop==i], pch = "",
-       xlim = range(dat$year),
-       ylim = range(pmax(dat$S_obs[dat$pop==i], 1),
-                    apply(S_obs_IPM[,dat$pop==i & !init_NA], 2, quantile, c(0.025,0.975)), na.rm = T), 
+  y1 <- fish_data$year[fish_data$pop==i]
+  plot(y1, fish_data$S_obs[fish_data$pop==i], pch = "",
+       xlim = range(fish_data$year),
+       ylim = range(pmax(fish_data$S_obs[fish_data$pop==i], 1),
+                    colQuantiles(S_obs_IPM[,fish_data$pop==i], probs = c(0.025,0.975)), na.rm = T), 
        cex.axis = 1.5, las = 1, xaxt = "n", yaxs = "i", yaxt = "n", xlab = "", ylab = "", log = "y")
   axis(side = 1, at = y1[y1 %% 5 == 0], cex.axis = 1.2)
   rug(y1[y1 %% 5 != 0], ticksize = -0.02)
@@ -207,22 +301,21 @@ for(i in levels(dat$pop))
   mtext(i, side = 3, line = 0.5, cex = par("cex")*1.5)
   if(par("mfg")[2] == 1) 
     mtext("Spawners", side = 2, line = 3.5, cex = par("cex")*1.5)
-  if(par("mfg")[1] == 2) 
+  if(par("mfg")[1] == par("mfg")[3]) 
     mtext("Year", side = 1, line = 3, cex = par("cex")*1.5)
-  lines(y1, apply(S_IPM[,dat$pop==i], 2, median), col = c1, lwd = 2)
+  lines(y1, colMedians(S_IPM[,fish_data$pop==i]), col = c1, lwd = 3)
   polygon(c(y1, rev(y1)), 
-          c(apply(S_IPM[,dat$pop==i], 2, quantile, 0.025), 
-            rev(apply(S_IPM[,dat$pop==i], 2, quantile, 0.975))),
+          c(colQuantiles(S_IPM[,fish_data$pop==i], probs = 0.025), 
+            rev(colQuantiles(S_IPM[,fish_data$pop==i], probs = 0.975))),
           col = c1t, border = NA)
   polygon(c(y1, rev(y1)), 
-          c(apply(S_obs_IPM[,dat$pop==i], 2, quantile, 0.025), 
-            rev(apply(S_obs_IPM[,dat$pop==i], 2, quantile, 0.975))),
+          c(colQuantiles(S_obs_IPM[,fish_data$pop==i], probs = 0.025), 
+            rev(colQuantiles(S_obs_IPM[,fish_data$pop==i], probs = 0.975))),
           col = c1tt, border = NA)
-  points(y1, dat$S_obs[dat$pop==i], pch=16, cex = 1)
+  points(y1, fish_data$S_obs[fish_data$pop==i], pch=16, cex = 1.5)
 }
 
 dev.off()
-rm(list = c("mod_name","dat","S_IPM","S_obs_IPM","at",
-            "c1","c1t","c1tt","y1","init_NA","tau"))
+rm(list = c("mod_name","S_IPM","S_obs_IPM","at","c1","c1t","c1tt","y1","tau"))
 
 
