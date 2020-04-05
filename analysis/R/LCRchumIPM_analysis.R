@@ -1,4 +1,5 @@
-options(device = windows, mc.cores = 3)
+options(device = ifelse(.Platform$OS.type == "windows", "windows", "quartz"))
+options(mc.cores = parallel::detectCores(logical = FALSE) - 1)
 
 library(salmonIPM)
 library(rstan)
@@ -246,8 +247,7 @@ for(i in 1:ncol(R_pop_IPM))
 polygon(c(S[1,], rev(S[1,])), 
         c(colQuantiles(R_ESU_IPM, probs = 0.025), rev(colQuantiles(R_ESU_IPM, probs = 0.975))), 
         col = c1tt, border = NA)
-title(xlab=bquote("Spawners"), ylab=bquote("Recruits"),
-      line = 3.5, cex.lab = 1.8)
+title(xlab="Spawners", ylab="Recruits", line = 3.5, cex.lab = 1.8)
 # text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "A", cex = 2)
 
 # Posterior densities of log(alpha)
@@ -291,7 +291,6 @@ dev.off()
 #--------------------------------------------------------------------------------
 
 mod_name <- "SS_Ricker"
-dat <- fish_data
 
 # dev.new(width=12,height=8)
 png(filename=here("analysis","results",paste0("S_fit_", mod_name, ".png")),
@@ -309,14 +308,14 @@ c1tt <- transparent(c1, trans.val = 0.7)
 
 for(i in levels(fish_data$pop))
 {
-  y1 <- fish_data$year[fish_data$pop==i]
-  plot(y1, fish_data$S_obs[fish_data$pop==i], pch = "",
+  yi <- fish_data$year[fish_data$pop==i]
+  plot(yi, fish_data$S_obs[fish_data$pop==i], pch = "",
        xlim = range(fish_data$year),
        ylim = range(pmax(fish_data$S_obs[fish_data$pop==i], 1),
                     colQuantiles(S_obs_IPM[,fish_data$pop==i], probs = c(0.025,0.975)), na.rm = T), 
        cex.axis = 1.5, las = 1, xaxt = "n", yaxs = "i", yaxt = "n", xlab = "", ylab = "", log = "y")
-  axis(side = 1, at = y1[y1 %% 5 == 0], cex.axis = 1.2)
-  rug(y1[y1 %% 5 != 0], ticksize = -0.02)
+  axis(side = 1, at = yi[yi %% 5 == 0], cex.axis = 1.2)
+  rug(yi[yi %% 5 != 0], ticksize = -0.02)
   at <- maglab(10^par("usr")[3:4], log = T)
   axis(2, at$labat, cex.axis = 1.2, las = 1,
        labels = sapply(log10(at$labat), function(i) as.expression(bquote(10^ .(i)))))
@@ -325,19 +324,101 @@ for(i in levels(fish_data$pop))
     mtext("Spawners", side = 2, line = 3.5, cex = par("cex")*1.5)
   if(par("mfg")[1] == par("mfg")[3]) 
     mtext("Year", side = 1, line = 3, cex = par("cex")*1.5)
-  lines(y1, colMedians(S_IPM[,fish_data$pop==i]), col = c1, lwd = 3)
-  polygon(c(y1, rev(y1)), 
+  lines(yi, colMedians(S_IPM[,fish_data$pop==i]), col = c1, lwd = 3)
+  polygon(c(yi, rev(yi)), 
           c(colQuantiles(S_IPM[,fish_data$pop==i], probs = 0.025), 
             rev(colQuantiles(S_IPM[,fish_data$pop==i], probs = 0.975))),
           col = c1t, border = NA)
-  polygon(c(y1, rev(y1)), 
+  polygon(c(yi, rev(yi)), 
           c(colQuantiles(S_obs_IPM[,fish_data$pop==i], probs = 0.025), 
             rev(colQuantiles(S_obs_IPM[,fish_data$pop==i], probs = 0.975))),
           col = c1tt, border = NA)
-  points(y1, fish_data$S_obs[fish_data$pop==i], pch=16, cex = 1.5)
+  points(yi, fish_data$S_obs[fish_data$pop==i], pch=16, cex = 1.5)
 }
 
 dev.off()
-rm(list = c("mod_name","S_IPM","S_obs_IPM","at","c1","c1t","c1tt","y1","tau"))
+rm(list = c("mod_name","S_IPM","S_obs_IPM","at","c1","c1t","c1tt","yi","tau"))
+
+
+#--------------------------------------------------------------------------------
+# Shared process errors (brood year productivity anomalies)
+#--------------------------------------------------------------------------------
+
+mod_name <- "SS_Ricker"
+
+# dev.new(width=7,height=5)
+png(filename=here("analysis","results",paste0("phi_", mod_name, ".png")),
+    width=7, height=5, units="in", res=200, type="cairo-png")
+
+y <- sort(unique(fish_data$year))
+phi <- do.call(extract1, list(as.name(mod_name), "phi"))
+
+c1 <- "slategray4"
+c1t <- transparent(c1, trans.val = 0.5)
+
+par(oma = c(0,0.1,0,0))
+
+plot(y, colMedians(phi), type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
+     ylim = range(colQuantiles(phi, probs = c(0.025,0.975))), xaxs = "i", xaxt = "n",
+     xlab = "Brood year", ylab = "Productivity anomaly")
+abline(h = 0, col = "gray")
+polygon(c(y, rev(y)), 
+        c(colQuantiles(phi, probs = 0.025), rev(colQuantiles(phi, probs = 0.975))),
+        col = c1t, border = NA)
+lines(y, colMedians(phi), lwd = 3)
+axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
+rug(y[y %% 5 != 0], ticksize = -0.02)
+
+dev.off()
+rm(list = c("mod_name","y","phi","c1","c1t"))
+
+
+#--------------------------------------------------------------------------------
+# Posterior distributions of shared and unique recruitment process errors and 
+# spawner observation error
+#--------------------------------------------------------------------------------
+
+mod_name <- "SS_Ricker"
+
+# variance components
+sigma <- do.call(extract1, list(as.name(mod_name), "sigma"))
+sigma_phi <- do.call(extract1, list(as.name(mod_name), "sigma_phi"))
+rho_phi <- do.call(extract1, list(as.name(mod_name), "rho_phi"))
+sd_phi <- sqrt(sigma_phi^2 / sqrt(1 - rho_phi^2))
+sigma_tot <- sqrt(sigma^2 + sd_phi^2)
+tau <- do.call(extract1, list(as.name(mod_name), "tau"))
+
+# densities
+dd_sigma <- density(sigma)
+dd_sd_phi <- density(sd_phi)
+dd_sigma_tot <- density(sigma_tot)
+dd_tau <- density(tau)
+
+cols <- c("darkblue", "darkblue", "gray")
+
+# dev.new(width=7,height=7)
+png(filename=here("analysis","results",paste0("process_obs_SDs_", mod_name, ".png")),
+    width=7, height=7, units="in", res=200, type="cairo-png")
+
+par(oma = c(0,0.1,0,0))
+
+plot(dd_sigma$x, dd_sigma$y, type = "l", col = cols[1], 
+     las = 1, cex.axis = 1.2, cex.lab = 1.5, yaxs = "i",
+     xlim = range(c(dd_sigma$x, dd_sd_phi$x, dd_sigma_tot$x, dd_tau$x)),
+     ylim = range(c(dd_sigma$y, dd_sd_phi$y, dd_sigma_tot$y, dd_tau$y)),
+     xlab = "Error SD", ylab = "Probability density")
+# lines(dd_sd_phi$x, dd_sd_phi$y, col = cols[2])
+lines(dd_sigma_tot$x, dd_sigma_tot$y, lwd = 3, col = cols[2])
+lines(dd_tau$x, dd_tau$y, lwd = 3, col = cols[3])
+legend("topright", lwd = c(1,3,3), col = cols, 
+       legend = c(expression("unique " * italic(R) * " process error (" * sigma * ")"), 
+                  #expression(sigma[phi]), 
+                  expression("total " * italic(R) * " process error (" * sigma[tot] * ")"), 
+                  expression(italic(S) * " observation error (" * tau * ")")))
+
+dev.off()
+rm(list = c("mod_name","sigma","sigma_phi","rho_phi","sd_phi","sigma_tot","tau",
+            "dd_sigma","dd_sd_phi","dd_sigma_tot","dd_tau"))
+
 
 
