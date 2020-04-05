@@ -1,4 +1,4 @@
-options(device = windows)
+options(device = windows, mc.cores = 3)
 
 library(salmonIPM)
 library(rstan)
@@ -159,6 +159,37 @@ print(SS_Ricker, prob = c(0.025,0.5,0.975),
       include = FALSE, use_cache = FALSE)
 
 launch_shinystan(SS_Ricker)
+
+
+#--------------------------------------------------------------
+# Model selection using LOO
+#--------------------------------------------------------------
+
+# Observationwise log-likelihood of each fitted model
+# Here an observation is a row of fish_data, and the total likelihood includes 
+# components for spawner abundance, age-frequency, and hatchery/wild-frequency
+LL <- lapply(list(exp = SS_exp, BH = SS_BH, Ricker = SS_Ricker),
+             loo::extract_log_lik, parameter_name = "LL", merge_chains = FALSE)
+
+# Relative ESS of posterior draws of observationwise likelihood 
+r_eff <- lapply(LL, function(x) relative_eff(exp(x)))
+
+# PSIS-LOO
+LOO <- lapply(1:length(LL), function(i) loo(LL[[i]], r_eff = r_eff[[i]]))
+names(LOO) <- names(LL)
+
+## Compare all three models
+loo_compare(LOO)
+
+## Exponential vs. Ricker
+loo_compare(LOO[c("exp","Ricker")])
+
+## Exponential vs. Beverton-Holt
+loo_compare(LOO[c("exp","BH")])
+
+## Beverton-Holt vs. Ricker
+loo_compare(LOO[c("BH","Ricker")])
+
 
 
 #--------------------------------------------------------------
