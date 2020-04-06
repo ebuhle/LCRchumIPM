@@ -71,7 +71,8 @@ bio_data <- read.csv(here("data","Data_ChumSpawnerBioData_2019-12-12.csv"), head
   select(species:location, pop, disposition, origin, origin_HW, sex:count) %>%
   arrange(strata, location, year, origin, age, sex)
 
-bio_data_age <- bio_data %>% 
+# age of wild spawners only
+bio_data_age <- bio_data %>% filter(origin_HW == "W") %>%  
   dcast(species + stage + year + strata + pop ~ age, value.var = "count", 
         fun.aggregate = sum)
 
@@ -101,6 +102,17 @@ for(i in 1:nrow(fish_data)) {
                                      fish_data$year[i] >= hatchery_start_dates$start_brood_year[indx] + 2) |
                                      fish_data$n_H_obs[i] > 0, 1, 0)
 }
+
+#--------------------------------------------------------------
+# Data exploration
+#--------------------------------------------------------------
+
+# Histogram of spawner age by sex and H/W origin
+windows()
+bio_data %>% mutate(age = substring(age,5,5)) %>% group_by(origin_HW, sex, age) %>% 
+  summarize(n = sum(count)) %>% mutate(prop = n/sum(n)) %>% 
+  ggplot(aes(x = age, y = prop)) + geom_bar(stat = "identity") + 
+  facet_wrap(vars(origin_HW, sex), nrow = 2, ncol = 2) + theme_bw()
 
 
 #===========================================================================
@@ -212,20 +224,25 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 
 mod_name <- "SS_Ricker"
 
-BH <- function(alpha, Rmax, S) 
+SR_eval <- function(alpha, Rmax = NULL, S, SR_fun = "BH") 
 {
-  alpha*S/(1 + alpha*S/Rmax)
+  switch(SR_fun,
+         exp = alpha*S,
+         BH = alpha*S/(1 + alpha*S/Rmax),
+         Ricker = alpha*S*exp(-alpha*S/(exp(1)*Rmax)))
 }
 
 mu_alpha <- as.vector(do.call(extract1, list(as.name(mod_name), "mu_alpha")))
 mu_Rmax <- as.vector(do.call(extract1, list(as.name(mod_name), "mu_Rmax")))
 S <- matrix(seq(0, quantile(fish_data$S_obs/fish_data$A, 0.9, na.rm = TRUE), length = 100),
             nrow = length(mu_alpha), ncol = 100, byrow = TRUE)
-R_ESU_IPM <- BH(alpha = exp(mu_alpha), Rmax = exp(mu_Rmax), S = S)
+R_ESU_IPM <- SR_eval(alpha = exp(mu_alpha), Rmax = exp(mu_Rmax), S = S, 
+                     SR_fun = substring(mod_name, 4))
 alpha <- do.call(extract1, list(as.name(mod_name), "alpha"))
 Rmax <- do.call(extract1, list(as.name(mod_name), "Rmax"))
 R_pop_IPM <- sapply(1:ncol(alpha), function(i) {
-  colMedians(BH(alpha = alpha[,i], Rmax = Rmax[,i], S = S))
+  colMedians(SR_eval(alpha = alpha[,i], Rmax = Rmax[,i], S = S,
+                     SR_fun = substring(mod_name, 4)))
   })
 
 c1 <- "slategray4"
@@ -281,7 +298,7 @@ title(xlab = bquote(log(italic(R)[max])), ylab = "Probability density",
       line = 3.5, cex.lab = 1.8)
 # text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "C", cex = 2)
 
-rm(list=c("mu_alpha","mu_Rmax","S","R_ESU_IPM","BH","c1","c1t","c1tt",
+rm(list=c("mu_alpha","mu_Rmax","S","R_ESU_IPM","c1","c1t","c1tt",
           "dd_IPM_ESU","dd_IPM_pop","alpha","Rmax","R_pop_IPM"))
 dev.off()
 
