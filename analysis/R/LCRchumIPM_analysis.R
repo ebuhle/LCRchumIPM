@@ -269,7 +269,7 @@ title(ylab="Recruits", line = 3.5, cex.lab = 1.8)
 
 # log(recruits/spawner) vs. spawners
 plot(S[1,], colMedians(log(R_ESU_IPM/S)), type = "l", lwd=3, col = c1, las = 1,
-     cex.axis = 1.2, cex.lab = 1.8, xlim = range(S[S > 0]), xaxs = "i", xlab="Spawners", 
+     cex.axis = 1.2, cex.lab = 1.8, xaxs = "i", xlab="Spawners", 
      ylim = range(colQuantiles(log(R_ESU_IPM/S), probs = c(0.025,0.975)), na.rm = TRUE), 
      yaxs = "i", ylab="log(recruits/spawner)")
 for(i in 1:ncol(R_pop_IPM))
