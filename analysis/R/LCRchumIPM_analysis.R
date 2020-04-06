@@ -257,28 +257,27 @@ par(mfrow = c(2,2), mar = c(5.1,5.1,1,1))
 
 # Recruits vs. spawners
 plot(S[1,], colMedians(R_ESU_IPM), type = "l", lwd=3, col = c1, las = 1,
-     cex.axis = 1.2, xaxs = "i", yaxs = "i", ylim = range(R_pop_IPM),
-     xlab = "" , ylab = "")
+     cex.axis = 1.2, cex.lab = 1.8, xaxs = "i", yaxs = "i", ylim = range(R_pop_IPM),
+     xlab="Spawners", ylab = "")
 for(i in 1:ncol(R_pop_IPM))
   lines(S[1,], R_pop_IPM[,i], col = c1t)
 polygon(c(S[1,], rev(S[1,])), 
         c(colQuantiles(R_ESU_IPM, probs = 0.025), rev(colQuantiles(R_ESU_IPM, probs = 0.975))), 
         col = c1tt, border = NA)
-title(xlab="Spawners", ylab="Recruits", line = 3.5, cex.lab = 1.8)
+title(ylab="Recruits", line = 3.5, cex.lab = 1.8)
 # text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "A", cex = 2)
 
-# Recruits/spawner vs. spawners
-plot(S[1,], colMedians(R_ESU_IPM)/S[1,], type = "l", lwd=3, col = c1, las = 1,
-     cex.axis = 1.2, xlim = range(S[S > 0]), xaxs = "i", xlab = "" , 
-     ylim = range(colQuantiles(R_ESU_IPM[,-1]/S[1,-1], probs = c(0.025,0.975))), 
-     yaxs = "i", ylab = "")
+# log(recruits/spawner) vs. spawners
+plot(S[1,], colMedians(log(R_ESU_IPM/S)), type = "l", lwd=3, col = c1, las = 1,
+     cex.axis = 1.2, cex.lab = 1.8, xlim = range(S[S > 0]), xaxs = "i", xlab="Spawners", 
+     ylim = range(colQuantiles(log(R_ESU_IPM/S), probs = c(0.025,0.975)), na.rm = TRUE), 
+     yaxs = "i", ylab="log(recruits/spawner)")
 for(i in 1:ncol(R_pop_IPM))
-  lines(S[1,], R_pop_IPM[,i]/S[1,], col = c1t)
-polygon(c(S[1,-1], rev(S[1,-1])),
-        c(colQuantiles(R_ESU_IPM[,-1]/S[1,-1], probs = 0.025),
-          rev(colQuantiles(R_ESU_IPM[,-1]/S[1,-1], probs = 0.975))),
+  lines(S[1,], log(R_pop_IPM[,i]/S[1,]), col = c1t)
+polygon(c(S[1,], rev(S[1,])),
+        c(colQuantiles(log(R_ESU_IPM/S), probs = 0.025),
+          rev(colQuantiles(log(R_ESU_IPM/S), probs = 0.975))),
         col = c1tt, border = NA)
-title(xlab="Spawners", ylab="Recruits / spawner", line = 3.5, cex.lab = 1.8)
 # text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "B", cex = 2)
 
 # Posterior densities of log(alpha)
