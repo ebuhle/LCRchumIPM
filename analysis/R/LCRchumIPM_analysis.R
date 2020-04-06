@@ -232,9 +232,12 @@ SR_eval <- function(alpha, Rmax = NULL, S, SR_fun = "BH")
          Ricker = alpha*S*exp(-alpha*S/(exp(1)*Rmax)))
 }
 
+S_IPM <- colMedians(do.call(extract1, list(as.name(mod_name), "S")))
 mu_alpha <- as.vector(do.call(extract1, list(as.name(mod_name), "mu_alpha")))
 mu_Rmax <- as.vector(do.call(extract1, list(as.name(mod_name), "mu_Rmax")))
-S <- matrix(seq(0, quantile(fish_data$S_obs/fish_data$A, 0.9, na.rm = TRUE), length = 100),
+# S <- matrix(seq(0, quantile(fish_data$S_obs/fish_data$A, 0.9, na.rm = TRUE), length = 100),
+#             nrow = length(mu_alpha), ncol = 100, byrow = TRUE)
+S <- matrix(seq(0, quantile(S_IPM/fish_data$A, 0.9, na.rm = TRUE), length = 100),
             nrow = length(mu_alpha), ncol = 100, byrow = TRUE)
 R_ESU_IPM <- SR_eval(alpha = exp(mu_alpha), Rmax = exp(mu_Rmax), S = S, 
                      SR_fun = substring(mod_name, 4))
@@ -264,6 +267,7 @@ for(i in 1:ncol(R_pop_IPM))
 polygon(c(S[1,], rev(S[1,])), 
         c(colQuantiles(R_ESU_IPM, probs = 0.025), rev(colQuantiles(R_ESU_IPM, probs = 0.975))), 
         col = c1tt, border = NA)
+rug(S_IPM, col = c1)
 title(ylab="Recruits", line = 3.5, cex.lab = 1.8)
 # text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "A", cex = 2)
 
@@ -278,6 +282,7 @@ polygon(c(S[1,], rev(S[1,])),
         c(colQuantiles(log(R_ESU_IPM/S), probs = 0.025),
           rev(colQuantiles(log(R_ESU_IPM/S), probs = 0.975))),
         col = c1tt, border = NA)
+rug(S_IPM, col = c1)
 # text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "B", cex = 2)
 
 # Posterior densities of log(alpha)
@@ -312,7 +317,7 @@ title(xlab = bquote(log(italic(R)[max])), ylab = "Probability density",
 # text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "D", cex = 2)
 
 rm(list=c("mu_alpha","mu_Rmax","S","R_ESU_IPM","c1","c1t","c1tt",
-          "dd_IPM_ESU","dd_IPM_pop","alpha","Rmax","R_pop_IPM"))
+          "dd_IPM_ESU","dd_IPM_pop","alpha","Rmax","R_pop_IPM","S_IPM"))
 dev.off()
 
 
