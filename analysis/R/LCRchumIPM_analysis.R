@@ -249,13 +249,13 @@ c1 <- "slategray4"
 c1t <- transparent(c1, trans.val = 0.5)
 c1tt <- transparent(c1, trans.val = 0.7)
 
-# dev.new(width = 11, height = 3.5)
+# dev.new(width = 7, height = 7)
 png(filename=here("analysis","results",paste0("SR_",mod_name,".png")), 
-    width=11, height=3.5, units="in", res=200, type="cairo-png")
+    width=7, height=7, units="in", res=200, type="cairo-png")
 
-par(mfrow = c(1,3), mar = c(5.1,5.1,1,1))
+par(mfrow = c(2,2), mar = c(5.1,5.1,1,1))
 
-# S-R curves
+# Recruits vs. spawners
 plot(S[1,], colMedians(R_ESU_IPM), type = "l", lwd=3, col = c1, las = 1,
      cex.axis = 1.2, xaxs = "i", yaxs = "i", ylim = range(R_pop_IPM),
      xlab = "" , ylab = "")
@@ -266,6 +266,20 @@ polygon(c(S[1,], rev(S[1,])),
         col = c1tt, border = NA)
 title(xlab="Spawners", ylab="Recruits", line = 3.5, cex.lab = 1.8)
 # text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "A", cex = 2)
+
+# Recruits/spawner vs. spawners
+plot(S[1,], colMedians(R_ESU_IPM)/S[1,], type = "l", lwd=3, col = c1, las = 1,
+     cex.axis = 1.2, xlim = range(S[S > 0]), xaxs = "i", xlab = "" , 
+     ylim = range(colQuantiles(R_ESU_IPM[,-1]/S[1,-1], probs = c(0.025,0.975))), 
+     yaxs = "i", ylab = "")
+for(i in 1:ncol(R_pop_IPM))
+  lines(S[1,], R_pop_IPM[,i]/S[1,], col = c1t)
+polygon(c(S[1,-1], rev(S[1,-1])),
+        c(colQuantiles(R_ESU_IPM[,-1]/S[1,-1], probs = 0.025),
+          rev(colQuantiles(R_ESU_IPM[,-1]/S[1,-1], probs = 0.975))),
+        col = c1tt, border = NA)
+title(xlab="Spawners", ylab="Recruits / spawner", line = 3.5, cex.lab = 1.8)
+# text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "B", cex = 2)
 
 # Posterior densities of log(alpha)
 dd_IPM_ESU <- density(mu_alpha)
@@ -280,7 +294,7 @@ plot(dd_IPM_ESU$x, dd_IPM_ESU$y, type = "l", lwd = 3, col = c1, las = 1,
 for(i in 1:length(dd_IPM_pop))
   lines(dd_IPM_pop[[i]]$x, dd_IPM_pop[[i]]$y, col = c1t)
 title(xlab = bquote(log(alpha)), ylab = "Probability density", line = 3.5, cex.lab = 1.8)
-# text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "B", cex = 2)
+# text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "C", cex = 2)
 
 # Posterior densities of log(Rmax)
 dd_IPM_ESU <- density(mu_Rmax)
@@ -296,7 +310,7 @@ for(i in 1:length(dd_IPM_pop))
   lines(dd_IPM_pop[[i]]$x, dd_IPM_pop[[i]]$y, col = c1t)
 title(xlab = bquote(log(italic(R)[max])), ylab = "Probability density", 
       line = 3.5, cex.lab = 1.8)
-# text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "C", cex = 2)
+# text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "D", cex = 2)
 
 rm(list=c("mu_alpha","mu_Rmax","S","R_ESU_IPM","c1","c1t","c1tt",
           "dd_IPM_ESU","dd_IPM_pop","alpha","Rmax","R_pop_IPM"))
