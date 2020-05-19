@@ -23,22 +23,22 @@ if(file.exists(here("analysis","results","LCRchumIPM.RData")))
 #===========================================================================
 
 # Mapping of location to population
-location_pop <- read.csv(here("data","Location.Reach_Population.csv"), header = TRUE) %>% 
+location_pop <- read.csv(here("data","Location.Reach_Population.csv"), header = TRUE, stringsAsFactors = TRUE) %>% 
   rename(strata = Strata, location = Location.Reach, pop1 = Population1, pop2 = Population2)
 
 # Mapping of disposition to hatchery vs. wild (i.e., broodstock vs. natural spawner)
-disposition_HW <- read.csv(here("data","Disposition_HW.csv"), header = TRUE) %>% 
+disposition_HW <- read.csv(here("data","Disposition_HW.csv"), header = TRUE, stringsAsFactors = TRUE) %>% 
   rename(disposition = Disposition) %>% arrange(HW)
 
 # Start dates of hatcheries associated with populations
-hatchery_start_dates <- read.csv(here("data","Hatchery_Start_Dates.csv"), header = TRUE)
+hatchery_start_dates <- read.csv(here("data","Hatchery_Start_Dates.csv"), header = TRUE, stringsAsFactors = TRUE)
 
 # Spawner abundance data
 # Assumptions:
 # (1) NAs in hatchery dispositions (incl. Duncan Channel) are really zeros
 # (2) NAs in Duncan Creek from 2004-present are really zeros
 # (3) All other NAs are real missing observations
-spawner_data <- read.csv(here("data","Data_ChumSpawnerAbundance_2019-12-12.csv"), header = TRUE) %>% 
+spawner_data <- read.csv(here("data","Data_ChumSpawnerAbundance_2019-12-12.csv"), header = TRUE, stringsAsFactors = TRUE) %>% 
   rename(species = Species, stage = LifeStage, year = Return.Yr., strata = Strata,
          location = Location.Reach, disposition = Disposition, method = Method,
          S_obs = Abund.Mean, SD = Abund.SD) %>% 
@@ -61,7 +61,7 @@ spawner_data_agg <- aggregate(S_obs ~ species + stage + year + strata + pop + di
   select(-all_of(names_S_obs)) %>% arrange(strata, pop, year)
 
 # Spawner age-, sex-, and origin-frequency (aka BioData)
-bio_data <- read.csv(here("data","Data_ChumSpawnerBioData_2019-12-12.csv"), header = TRUE) %>% 
+bio_data <- read.csv(here("data","Data_ChumSpawnerBioData_2019-12-12.csv"), header = TRUE, stringsAsFactors = TRUE) %>% 
   rename(species = Species, stage = LifeStage, year = Return.Yr., strata = Strata,
          location = Location.Reach, disposition = Disposition, origin = Origin,
          sex = Sex, age = Age, count = Count) %>% 
@@ -327,9 +327,9 @@ dev.off()
 
 mod_name <- "SS_Ricker"
 
-# dev.new(width=12,height=8)
-png(filename=here("analysis","results",paste0("S_fit_", mod_name, ".png")),
-    width=12*0.9, height=8*0.9, units="in", res=200, type="cairo-png")
+dev.new(width=12,height=8)
+# png(filename=here("analysis","results",paste0("S_fit_", mod_name, ".png")),
+#     width=12*0.9, height=8*0.9, units="in", res=200, type="cairo-png")
 
 par(mfrow=c(3,4), mar=c(1,2.5,4.1,1), oma=c(4.1,3.1,0,0))
 
@@ -371,7 +371,7 @@ for(i in levels(fish_data$pop))
   points(yi, fish_data$S_obs[fish_data$pop==i], pch=16, cex = 1.5)
 }
 
-dev.off()
+# dev.off()
 rm(list = c("mod_name","S_IPM","S_obs_IPM","at","c1","c1t","c1tt","yi","tau"))
 
 
