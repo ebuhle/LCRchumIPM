@@ -108,7 +108,7 @@ fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("year","strata","p
   full_join(bio_data_origin, by = c("year","strata","pop")) %>% 
   full_join(juv_data_incl, by = c("year","strata","pop")) %>%
   mutate(B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0)) %>% 
-  rename_at(vars(contains("Age-")), funs(paste0(sub("Age-","n_age",.), "_obs"))) %>% 
+  rename_at(vars(contains("Age-")), list(~ paste0(sub("Age-","n_age",.), "_obs"))) %>% 
   rename(n_H_obs = H, n_W_obs = W) %>% mutate(A = 1, fit_p_HOS = NA, F_rate = 0) %>% 
   mutate_at(vars(contains("n_")), list(~ replace(., is.na(.), 0))) %>% 
   select(strata, pop, year, A, S_obs, M_obs, n_age2_obs:n_W_obs, 
