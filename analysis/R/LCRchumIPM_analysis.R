@@ -86,12 +86,12 @@ bio_data_origin <- bio_data %>%
 #     in Duncan Creek (hence Duncan_Channel -> Duncan_Creek in location_pop)
 # (2) Duncan_North + Duncan_South = Duncan_Channel, so the former two are redundant 
 #     (not really an assumption, although the equality isn't perfect in all years)
-juv_data <- read.csv(here("data", "Data_ChumJuvenileAbundance_2019-12-12.csv"), 
+juv_data <- read.csv(here("data", "Data_ChumJuvenileAbundance_2020-06-09.csv"), 
                      header = TRUE, stringsAsFactors = TRUE) %>% 
   rename(brood_year = Brood.Year, year = Outmigration.Year, strata = Strata, 
          location = Location.Reach, origin = Origin, trap_type = TrapType, 
          analysis = Analysis, partial_spawners = Partial.Spawners, raw_catch = RawCatch,
-         M_obs = Abund_Median, SD = Abund_SD, L95 = Abund_L95, U95 = Abund_U95, CV = Abund_CV,
+         M_obs = Abund_Mean, SD = Abund_SD, L95 = Abund_L95, U95 = Abund_U95, CV = Abund_CV,
          comments = Comments) %>% 
   mutate(pop = location_pop$pop2[match(location, location_pop$location)]) %>% 
   select(brood_year:location, pop, origin:comments) %>% arrange(strata, location, year)
@@ -103,15 +103,17 @@ juv_data_incl <- juv_data %>% filter(pop %in% spawner_data$pop) %>%
   group_by(pop) %>% filter(head_noNA(M_obs) & rev(head_noNA(rev(M_obs)))) %>% as.data.frame()
 
 # Fish data formatted for salmonIPM
+# Drop age-2 and age-6 samples (each is < 0.1% of aged spawners)
 # Use A = 1 for now (so Rmax in units of spawners)
 fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("year","strata","pop")) %>% 
   full_join(bio_data_origin, by = c("year","strata","pop")) %>% 
   full_join(juv_data_incl, by = c("year","strata","pop")) %>%
   mutate(B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0)) %>% 
   rename_at(vars(contains("Age-")), list(~ paste0(sub("Age-","n_age",.), "_obs"))) %>% 
+  select(-c(n_age2_obs, n_age6_obs)) %>% 
   rename(n_H_obs = H, n_W_obs = W) %>% mutate(A = 1, fit_p_HOS = NA, F_rate = 0) %>% 
   mutate_at(vars(contains("n_")), list(~ replace(., is.na(.), 0))) %>% 
-  select(strata, pop, year, A, S_obs, M_obs, n_age2_obs:n_W_obs, 
+  select(strata, pop, year, A, S_obs, M_obs, n_age3_obs:n_W_obs, 
          fit_p_HOS, B_take_obs, F_rate) %>% arrange(strata, pop, year) 
 
 # fill in fit_p_HOS
