@@ -1,3 +1,4 @@
+## @knitr getting_started
 options(device = ifelse(.Platform$OS.type == "windows", "windows", "quartz"))
 options(mc.cores = parallel::detectCores(logical = FALSE) - 1)
 
@@ -16,11 +17,14 @@ library(here)
 
 if(file.exists(here("analysis","results","LCRchumIPM.RData")))
   load(here("analysis","results","LCRchumIPM.RData"))
+## @knitr
 
 
 #===========================================================================
 # DATA
 #===========================================================================
+
+## @knitr data
 
 # Mapping of location to population
 location_pop <- read.csv(here("data","Location.Reach_Population.csv"), 
@@ -138,6 +142,8 @@ fish_data_SS <- fish_data %>% group_by(pop) %>% filter(head_noNA(S_obs)) %>% as.
 fish_data_SMS <- fish_data %>% group_by(pop) %>% 
   filter(head_noNA(S_obs) | head_noNA(M_obs)) %>% as.data.frame()
 
+## @knitr
+
 #--------------------------------------------------------------
 # Data exploration
 #--------------------------------------------------------------
@@ -159,6 +165,7 @@ bio_data %>% mutate(age = substring(age,5,5)) %>% group_by(origin_HW, sex, age) 
 #--------------------------------------------------------------
 
 # Density-independent
+## @knitr fit_SS_exp
 SS_exp <- salmonIPM(fish_data = fish_data_SS, stan_model = "IPM_SS_pp", SR_fun = "exp",
                    pars = c("mu_alpha","sigma_alpha","alpha",
                             "sigma_phi","rho_phi","phi",
@@ -168,13 +175,16 @@ SS_exp <- salmonIPM(fish_data = fish_data_SS, stan_model = "IPM_SS_pp", SR_fun =
                    chains = 3, iter = 1500, warmup = 500,
                    control = list(adapt_delta = 0.99, max_treedepth = 13))
 
+## @knitr print_SS_exp
 print(SS_exp, prob = c(0.025,0.5,0.975),
       pars = c("alpha","phi","p_HOS","q","gamma","p","S","R","LL"), 
       include = FALSE, use_cache = FALSE)
+## @knitr
 
 launch_shinystan(SS_exp)
 
 # Beverton-Holt
+## @knitr fit_SS_BH
 SS_BH <- salmonIPM(fish_data = fish_data_SS, stan_model = "IPM_SS_pp", SR_fun = "BH",
                     pars = c("mu_alpha","sigma_alpha","alpha",
                              "mu_Rmax","sigma_Rmax","Rmax","rho_alphaRmax",
@@ -185,13 +195,16 @@ SS_BH <- salmonIPM(fish_data = fish_data_SS, stan_model = "IPM_SS_pp", SR_fun = 
                     chains = 3, iter = 1500, warmup = 500,
                     control = list(adapt_delta = 0.99, max_treedepth = 13))
 
+## @knitr print_SS_BH
 print(SS_BH, prob = c(0.025,0.5,0.975),
       pars = c("alpha","Rmax","phi","p_HOS","q","gamma","p","S","R","LL"), 
       include = FALSE, use_cache = FALSE)
+## @knitr
 
 launch_shinystan(SS_BH)
 
 # Ricker
+## @knitr fit_SS_Ricker
 SS_Ricker <- salmonIPM(fish_data = fish_data_SS, stan_model = "IPM_SS_pp", SR_fun = "Ricker",
                        pars = c("mu_alpha","sigma_alpha","alpha",
                                 "mu_Rmax","sigma_Rmax","Rmax","rho_alphaRmax",
@@ -202,9 +215,11 @@ SS_Ricker <- salmonIPM(fish_data = fish_data_SS, stan_model = "IPM_SS_pp", SR_fu
                        chains = 3, iter = 1500, warmup = 500,
                        control = list(adapt_delta = 0.99, max_treedepth = 13))
 
+## @knitr print_SS_Ricker
 print(SS_Ricker, prob = c(0.025,0.5,0.975),
       pars = c("alpha","Rmax","phi","p_HOS","q","gamma","p","S","R","LL"), 
       include = FALSE, use_cache = FALSE)
+## @knitr
 
 launch_shinystan(SS_Ricker)
 
@@ -215,27 +230,29 @@ launch_shinystan(SS_Ricker)
 # Observationwise log-likelihood of each fitted model
 # Here an observation is a row of fish_data, and the total likelihood includes 
 # components for spawner abundance, age-frequency, and hatchery/wild-frequency
-LL <- lapply(list(exp = SS_exp, BH = SS_BH, Ricker = SS_Ricker),
-             loo::extract_log_lik, parameter_name = "LL", merge_chains = FALSE)
+## @knitr loo_SS
+LL_SS <- lapply(list(exp = SS_exp, BH = SS_BH, Ricker = SS_Ricker),
+                loo::extract_log_lik, parameter_name = "LL", merge_chains = FALSE)
 
 # Relative ESS of posterior draws of observationwise likelihood 
-r_eff <- lapply(LL, function(x) relative_eff(exp(x)))
+r_eff_SS <- lapply(LL_SS, function(x) relative_eff(exp(x)))
 
 # PSIS-LOO
-LOO <- lapply(1:length(LL), function(i) loo(LL[[i]], r_eff = r_eff[[i]]))
-names(LOO) <- names(LL)
+LOO_SS <- lapply(1:length(LL_SS), function(i) loo(LL_SS[[i]], r_eff = r_eff_SS[[i]]))
+names(LOO_SS) <- names(LL_SS)
 
 ## Compare all three models
-loo_compare(LOO)
+loo_compare(LOO_SS)
 
 ## Exponential vs. Ricker
-loo_compare(LOO[c("exp","Ricker")])
+loo_compare(LOO_SS[c("exp","Ricker")])
 
 ## Exponential vs. Beverton-Holt
-loo_compare(LOO[c("exp","BH")])
+loo_compare(LOO_SS[c("exp","BH")])
 
 ## Beverton-Holt vs. Ricker
-loo_compare(LOO[c("BH","Ricker")])
+loo_compare(LOO_SS[c("BH","Ricker")])
+## @knitr
 
 
 #--------------------------------------------------------------
@@ -243,6 +260,7 @@ loo_compare(LOO[c("BH","Ricker")])
 #--------------------------------------------------------------
 
 # Density-independent
+## @knitr fit_SMS_exp
 SMS_exp <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
                      stan_model = "IPM_SMS_pp", SR_fun = "exp",
                      pars = c("mu_alpha","sigma_alpha","alpha",
@@ -255,13 +273,16 @@ SMS_exp <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
                      chains = 3, iter = 1500, warmup = 500,
                      control = list(adapt_delta = 0.99, max_treedepth = 13))
 
+## @knitr print_SMS_exp
 print(SMS_exp, prob = c(0.025,0.5,0.975),
       pars = c("alpha","Rmax","phi_M","phi_MS","p","p_HOS","S","M","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
+## @knitr
 
 launch_shinystan(SMS_exp)
 
 # Beverton-Holt
+## @knitr fit_SMS_BH
 SMS_BH <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
                     stan_model = "IPM_SMS_pp", SR_fun = "BH",
                     pars = c("mu_alpha","sigma_alpha","alpha",
@@ -274,13 +295,16 @@ SMS_BH <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
                     chains = 3, iter = 1500, warmup = 500,
                     control = list(adapt_delta = 0.99, max_treedepth = 13))
 
+## @knitr print_SMS_BH
 print(SMS_BH, prob = c(0.025,0.5,0.975),
       pars = c("alpha","Rmax","phi_M","phi_MS","p","p_HOS","S","M","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
+## @knitr
 
 launch_shinystan(SMS_BH)
 
 # Ricker
+## @knitr fit_SMS_Ricker
 SMS_Ricker <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
                         stan_model = "IPM_SMS_pp", SR_fun = "Ricker",
                         pars = c("mu_alpha","sigma_alpha","alpha",
@@ -293,11 +317,45 @@ SMS_Ricker <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
                         chains = 3, iter = 1500, warmup = 500,
                         control = list(adapt_delta = 0.99, max_treedepth = 13))
 
+## @knitr print_SMS_Ricker
 print(SMS_Ricker, prob = c(0.025,0.5,0.975),
       pars = c("alpha","Rmax","phi_M","phi_MS","p","p_HOS","S","M","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
+## @knitr
 
 launch_shinystan(SMS_Ricker)
+
+
+#--------------------------------------------------------------
+# Model selection using LOO
+#--------------------------------------------------------------
+
+# Observationwise log-likelihood of each fitted model
+# Here an observation is a row of fish_data, and the total likelihood includes 
+# components for smolt abundance, spawner abundance, age-frequency, and H/W-frequency
+## @knitr loo_SMS
+LL_SMS <- lapply(list(exp = SMS_exp, BH = SMS_BH, Ricker = SMS_Ricker),
+             loo::extract_log_lik, parameter_name = "LL", merge_chains = FALSE)
+
+# Relative ESS of posterior draws of observationwise likelihood 
+r_eff_SMS <- lapply(LL_SMS, function(x) relative_eff(exp(x)))
+
+# PSIS-LOO
+LOO_SMS <- lapply(1:length(LL_SMS), function(i) loo(LL_SMS[[i]], r_eff = r_eff_SMS[[i]]))
+names(LOO_SMS) <- names(LL_SMS)
+
+## Compare all three models
+loo_compare(LOO_SMS)
+
+## Exponential vs. Ricker
+loo_compare(LOO_SMS[c("exp","Ricker")])
+
+## Exponential vs. Beverton-Holt
+loo_compare(LOO_SMS[c("exp","BH")])
+
+## Beverton-Holt vs. Ricker
+loo_compare(LOO_SMS[c("BH","Ricker")])
+## @knitr
 
 
 #--------------------------------------------------------------
@@ -317,8 +375,12 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 # S-R curves and posterior distributions of parameters
 #--------------------------------------------------------------------
 
-mod_name <- "SMS_BH"
+mod_name <- "SMS_Ricker"
+# dev.new(width = 7, height = 7)
+png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
+    width=7, height=7, units="in", res=200, type="cairo-png")
 
+## @knitr plot_SR_params
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
 dat <- switch(life_cycle, SS = fish_data_SS, SMS = fish_data_SMS)
 SR_fun <- unlist(strsplit(mod_name, "_"))[2]
@@ -348,10 +410,6 @@ R_pop_IPM <- sapply(1:ncol(alpha), function(i) {
 c1 <- "slategray4"
 c1t <- transparent(c1, trans.val = 0.5)
 c1tt <- transparent(c1, trans.val = 0.7)
-
-# dev.new(width = 7, height = 7)
-png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
-    width=7, height=7, units="in", res=200, type="cairo-png")
 
 par(mfrow = c(2,2), mar = c(5.1,5.1,1,1))
 
@@ -419,6 +477,7 @@ title(xlab = bquote(log(italic(R)[max])), ylab = "Probability density",
 
 rm(list=c("mod_name","life_cycle","SR_fun","mu_alpha","mu_Rmax","S","R_ESU_IPM","tck",
           "c1","c1t","c1tt","dd_IPM_ESU","dd_IPM_pop","alpha","Rmax","R_pop_IPM","S_IPM"))
+## @knitr
 dev.off()
 
 
@@ -429,13 +488,14 @@ dev.off()
 mod_name <- "SMS_Ricker"
 life_stage <- "S"   # "S" = spawners, "M" = smolts
 
-life_cycle <- unlist(strsplit(mod_name, "_"))[1]
-dat <- switch(life_cycle, SS = fish_data_SS, SMS = fish_data_SMS)
-SR_fun <- unlist(strsplit(mod_name, "_"))[2]
-
 # dev.new(width=13,height=8)
 png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
     width=13*0.9, height=8*0.9, units="in", res=200, type="cairo-png")
+
+## @knitr plot_spawner_smolt_ts
+life_cycle <- unlist(strsplit(mod_name, "_"))[1]
+dat <- switch(life_cycle, SS = fish_data_SS, SMS = fish_data_SMS)
+SR_fun <- unlist(strsplit(mod_name, "_"))[2]
 
 par(mfrow=c(3,4), mar=c(1,3,4.1,1), oma=c(4.1,3.1,0,0))
 
@@ -481,9 +541,10 @@ for(i in levels(dat$pop))
   points(yi, N_obs[dat$pop==i], pch=16, cex = 1.5)
 }
 
-dev.off()
 rm(list = c("mod_name","life_stage","life_cycle","dat","SR_fun",
             "N_IPM","N_obs_IPM","N_obs","c1","c1t","c1tt","yi","tau"))
+## @knitr
+dev.off()
 
 
 #--------------------------------------------------------------------------------
@@ -491,13 +552,13 @@ rm(list = c("mod_name","life_stage","life_cycle","dat","SR_fun",
 # Shared recruitment process errors (brood year productivity anomalies)
 #--------------------------------------------------------------------------------
 
-mod_name <- "SS_Ricker"
+mod_name <- "SS_BH"
 
 # dev.new(width=7,height=5)
 png(filename=here("analysis","results",paste0("phi_", mod_name, ".png")),
     width=7, height=5, units="in", res=200, type="cairo-png")
 
-y <- sort(unique(fish_data$year))
+y <- sort(unique(fish_data_SS$year))
 phi <- do.call(extract1, list(as.name(mod_name), "phi"))
 
 c1 <- "slategray4"
@@ -525,13 +586,14 @@ rm(list = c("mod_name","y","phi","c1","c1t"))
 # Shared recruitment and SAR process errors (brood year productivity anomalies)
 #--------------------------------------------------------------------------------
 
-mod_name <- "SMS_Ricker"
+mod_name <- "SMS_BH"
 
 # dev.new(width=6,height=8)
 png(filename=here("analysis","results",paste0("phi_", mod_name, ".png")),
     width=6, height=8, units="in", res=200, type="cairo-png")
 
-y <- sort(unique(fish_data$year))
+## @knitr plot_phi
+y <- sort(unique(fish_data_SMS$year))
 phi_M <- do.call(extract1, list(as.name(mod_name), "phi_M"))
 phi_MS <- do.call(extract1, list(as.name(mod_name), "phi_MS"))
 
@@ -564,8 +626,9 @@ lines(y, colMedians(phi_MS), lwd = 3)
 axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
 rug(y[y %% 5 != 0], ticksize = -0.02)
 
-dev.off()
 rm(list = c("mod_name","y","phi_M","phi_MS","c1","c1t"))
+## @knitr
+dev.off()
 
 
 #--------------------------------------------------------------------------------

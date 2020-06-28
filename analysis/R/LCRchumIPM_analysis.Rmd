@@ -1,0 +1,125 @@
+---
+title: 'Fitting Integrated Population Models to Lower Columbia River Chum Salmon Monitoring Data'
+author: "Eric Buhle, Kale Bentley, Thomas Buehrens, Mark Scheuerell, Todd Hillson, and ..."
+date: "June 25, 2020"
+output:
+  html_document:
+    keep_md: true
+    df_print: paged
+    fig_caption: true
+    toc: true
+    toc_float: true
+  word_document:
+    toc: true
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(tidy = FALSE, highlight = TRUE, comment = NA, 
+                      dev = "png", dev.args = list(type = "cairo-png"), dpi = 200,
+                      out.width = "50%", fig.align = "center")
+
+if(!require(captioner))
+  devtools::install_github("adletaw/captioner")
+library(captioner)
+fig_nums <- captioner("Figure", suffix = ": ", auto_space = FALSE, style = "b", style_prefix = TRUE)
+```
+```{r width, include=FALSE}
+options(width = 130)
+```
+```{r read_chunks, echo = FALSE}
+knitr::read_chunk("LCRchumIPM_analysis.R")
+```
+
+# Overview
+
+Background on IPMs, outline of **salmonIPM**...
+
+# Setup and data
+
+Load the packages we'll need...
+
+```{r getting_started, message = FALSE, warning = FALSE}
+```
+
+Read in and manipulate the data...
+
+```{r data}
+```
+
+
+# Retrospective models
+
+Fit two-stage spawner-smolt-spawner models and explore output...
+
+Density-independent
+
+```{r fit_SMS_exp, eval = FALSE}
+```
+```{r print_SMS_exp}
+```
+
+
+Beverton-Holt
+
+```{r fit_SMS_BH, eval = FALSE}
+```
+```{r print_SMS_BH}
+```
+
+Ricker
+
+```{r fit_SMS_Ricker, eval = FALSE}
+```
+```{r print_SMS_Ricker}
+```
+
+Model comparison based on LOO (unhelpful because Pareto ks are too high)
+
+```{r loo_SMS, warning = TRUE}
+```
+
+Plot estimated spawner-smolt production curves and parameters for the Beverton-Holt model.
+
+```{r, echo = FALSE}
+mod_name <- "SMS_BH"
+```
+```{r plot_SR_params, echo = FALSE, warning = FALSE, fig.height = 5, fig.width = 5}
+```
+
+Now do the same for the Ricker model.
+
+```{r, echo = FALSE}
+mod_name <- "SMS_Ricker"
+```
+```{r plot_SR_params, echo = FALSE, warning = FALSE, fig.height = 5, fig.width = 5}
+```
+
+The Ricker model is more biologically plausible, so let's proceed with that model for now. Here are the fits to the spawner data:
+
+```{r, echo = FALSE}
+mod_name <- "SMS_Ricker"
+life_stage <- "S"
+```
+```{r plot_spawner_smolt_ts, echo = FALSE, fig.width=12, fig.height=7, out.width="90%"}
+```
+
+And here are the fits to the much sparser smolt data:
+
+```{r, echo = FALSE}
+mod_name <- "SMS_Ricker"
+life_stage <- "M"
+```
+```{r plot_spawner_smolt_ts, echo = FALSE, fig.width=12, fig.height=7, out.width="90%"}
+```
+
+We can examine how the model partitions shared interannual fluctuations between the two life-stage transitions...
+
+```{r, echo = FALSE}
+mod_name <- "SMS_Ricker"
+```
+```{r plot_phi, echo = FALSE, fig.width = 6, fig.height = 8}
+```
+
+
