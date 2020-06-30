@@ -180,12 +180,23 @@ fish_data_SMS_fore <- fish_data_SMS %>% group_by(pop) %>%
   mutate(year = (unique(year) + 1):(max(fish_data_SMS$year) + 5),
          S_obs = NA, M_obs = NA, fit_p_HOS = 0, B_take_obs = 0, F_rate = 0) %>% 
   mutate_at(vars(starts_with("n_")), ~ 0) %>% 
-  full_join(fish_data_SMS) %>% arrange(pop, year) %>% as.data.frame()
+  full_join(fish_data_SMS) %>% arrange(pop, year) %>% 
+  mutate(forecast = year > max(fish_data_SMS$year)) %>% 
+  select(strata:year, forecast, A:F_rate) %>% as.data.frame()
 ```
 
+Let's look at the first few rows of `fish_data` to see the format **salmonIPM** expects...
+
+
+```r
+head(fish_data_SMS)
 ```
-Joining, by = c("strata", "pop", "year", "A", "S_obs", "M_obs", "n_age3_obs", "n_age4_obs", "n_age5_obs", "n_H_obs", "n_W_obs", "fit_p_HOS", "B_take_obs", "F_rate")
-```
+
+<div data-pagedtable="false">
+  <script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["strata"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["pop"],"name":[2],"type":["fctr"],"align":["left"]},{"label":["year"],"name":[3],"type":["int"],"align":["right"]},{"label":["A"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["S_obs"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["M_obs"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["n_age3_obs"],"name":[7],"type":["dbl"],"align":["right"]},{"label":["n_age4_obs"],"name":[8],"type":["dbl"],"align":["right"]},{"label":["n_age5_obs"],"name":[9],"type":["dbl"],"align":["right"]},{"label":["n_H_obs"],"name":[10],"type":["dbl"],"align":["right"]},{"label":["n_W_obs"],"name":[11],"type":["dbl"],"align":["right"]},{"label":["fit_p_HOS"],"name":[12],"type":["dbl"],"align":["right"]},{"label":["B_take_obs"],"name":[13],"type":["dbl"],"align":["right"]},{"label":["F_rate"],"name":[14],"type":["dbl"],"align":["right"]}],"data":[{"1":"Cascade","2":"Cascade_MS","3":"2002","4":"1","5":"3160","6":"NA","7":"101","8":"114","9":"7","10":"0","11":"222","12":"0","13":"15","14":"0","_rn_":"1"},{"1":"Cascade","2":"Cascade_MS","3":"2003","4":"1","5":"2866","6":"NA","7":"19","8":"448","9":"26","10":"0","11":"493","12":"0","13":"0","14":"0","_rn_":"2"},{"1":"Cascade","2":"Cascade_MS","3":"2004","4":"1","5":"2324","6":"NA","7":"75","8":"203","9":"50","10":"0","11":"328","12":"0","13":"0","14":"0","_rn_":"3"},{"1":"Cascade","2":"Cascade_MS","3":"2005","4":"1","5":"923","6":"NA","7":"4","8":"38","9":"0","10":"1","11":"42","12":"1","13":"0","14":"0","_rn_":"4"},{"1":"Cascade","2":"Cascade_MS","3":"2006","4":"1","5":"869","6":"NA","7":"1","8":"41","9":"0","10":"0","11":"42","12":"0","13":"0","14":"0","_rn_":"5"},{"1":"Cascade","2":"Cascade_MS","3":"2007","4":"1","5":"576","6":"NA","7":"32","8":"115","9":"43","10":"0","11":"190","12":"0","13":"0","14":"0","_rn_":"6"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
 
 
 # Retrospective models
@@ -448,21 +459,31 @@ Plot estimated spawner-smolt production curves and parameters for the Beverton-H
 
 <img src="LCRchumIPM_analysis_files/figure-html/plot_SR_SMS_BH-1.png" width="50%" style="display: block; margin: auto;" />
 
+**Figure 1: **Estimated Beverton-Holt spawner-recruit relationship (A, B) and intrinsic productivity (C) and capacity (D) parameters for the multi-population IPM. Thin lines correspond to each of 12 populations of Lower Columbia chum salmon; thick lines represent hyper-means across populations. In (A, B), each curve is a posterior median and the shaded region represents the 90% credible interval of the hyper-mean curve (uncertainty around the population-specific curves is omitted for clarity).
+
 Now do the same for the Ricker model.
 
 <img src="LCRchumIPM_analysis_files/figure-html/plot_SR_SMS_Ricker-1.png" width="50%" style="display: block; margin: auto;" />
+
+**Figure 2: **Estimated Ricker spawner-recruit relationship (A, B) and intrinsic productivity (C) and capacity (D) parameters for the multi-population IPM. Thin lines correspond to each of 12 populations of Lower Columbia River chum salmon; thick lines represent hyper-means across populations. In (A, B), each curve is a posterior median and the shaded region represents the 90% credible interval of the hyper-mean curve (uncertainty around the population-specific curves is omitted for clarity).
 
 The Ricker model is more biologically plausible, so let's proceed with that model for now. Here are the fits to the spawner data:
 
 <img src="LCRchumIPM_analysis_files/figure-html/plot_spawners_SMS_Ricker-1.png" width="100%" style="display: block; margin: auto;" />
 
+**Figure 3: **Observed (points) and estimated spawner abundance for Lower Columbia River chum salmon populations. The posterior median (solid gray line) is from the multi-population IPM. Posterior 90% credible intervals indicate process (dark shading) and observation (light shading) uncertainty.
+
 And here are the fits to the much sparser smolt data:
 
 <img src="LCRchumIPM_analysis_files/figure-html/plot_smolts_SMS_Ricker-1.png" width="100%" style="display: block; margin: auto;" />
 
+**Figure 4: **Observed (points) and estimated smolt abundance for Lower Columbia River chum salmon populations. The posterior median (solid gray line) is from the multi-population IPM. Posterior 90% credible intervals indicate process (dark shading) and observation (light shading) uncertainty.
+
 We can examine how the model partitions shared interannual fluctuations between the two life-stage transitions...
 
 <img src="LCRchumIPM_analysis_files/figure-html/plot_phi_SMS_Ricker-1.png" width="50%" style="display: block; margin: auto;" />
+
+**Figure 5: **Estimates of shared (ESU-level) process errors from the multi-population IPM fitted to Lower Columbia River chum salmon data. The top panel shows the shared anomalies around the Ricker spawner recruit function, and the bottom panel shows the average SAR.
 
 
 # Forecasts
@@ -470,4 +491,73 @@ We can examine how the model partitions shared interannual fluctuations between 
 It is straightforward to use the IPM to generate forecasts of population dynamics...
 
 <img src="LCRchumIPM_analysis_files/figure-html/plot_spawners_SMS_Ricker_fore-1.png" width="100%" style="display: block; margin: auto;" />
+
+**Figure 6: **Observed (points) and estimated spawner abundance for Lower Columbia River chum salmon populations, including 5-year forecasts. The posterior median (solid gray line) is from the multi-population IPM. Posterior 90% credible intervals indicate process (dark shading) and observation (light shading) uncertainty.
+
+
+Of course we could also look at forecasts of smolts, or any other state variable. Here are the 2020 forecasts of wild spawners for each population...
+
+<table class="table table-striped table-hover" style="width: auto !important; margin-left: auto; margin-right: auto;">
+ <thead>
+  <tr>
+   <th style="text-align:left;"> Population </th>
+   <th style="text-align:left;"> Estimate </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;"> Cascade_MS </td>
+   <td style="text-align:left;"> 3020 (828, 23392) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Duncan_Creek </td>
+   <td style="text-align:left;"> 282 (79, 2075) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Grays_CJ </td>
+   <td style="text-align:left;"> 3272 (892, 22673) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Grays_MS </td>
+   <td style="text-align:left;"> 6267 (1589, 43739) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Grays_WF </td>
+   <td style="text-align:left;"> 6135 (1587, 44327) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Hamilton_Channel </td>
+   <td style="text-align:left;"> 1237 (306, 9188) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Hamilton_Creek </td>
+   <td style="text-align:left;"> 724 (181, 4959) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Hardy_Creek </td>
+   <td style="text-align:left;"> 332 (81, 2409) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Horsetail </td>
+   <td style="text-align:left;"> 286 (63, 2089) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Ives </td>
+   <td style="text-align:left;"> 1337 (344, 10212) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Multnomah </td>
+   <td style="text-align:left;"> 521 (136, 3697) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> St_Cloud </td>
+   <td style="text-align:left;"> 254 (59, 1782) </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Total </td>
+   <td style="text-align:left;"> 24264 (7273, 171231) </td>
+  </tr>
+</tbody>
+</table>
+
 

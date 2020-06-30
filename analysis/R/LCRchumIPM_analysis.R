@@ -149,9 +149,9 @@ fish_data_SMS_fore <- fish_data_SMS %>% group_by(pop) %>%
   mutate(year = (unique(year) + 1):(max(fish_data_SMS$year) + 5),
          S_obs = NA, M_obs = NA, fit_p_HOS = 0, B_take_obs = 0, F_rate = 0) %>% 
   mutate_at(vars(starts_with("n_")), ~ 0) %>% 
-  full_join(fish_data_SMS) %>% arrange(pop, year) %>% as.data.frame() %>% 
+  full_join(fish_data_SMS) %>% arrange(pop, year) %>% 
   mutate(forecast = year > max(fish_data_SMS$year)) %>% 
-  select(strata:year, forecast, A:F_rate)
+  select(strata:year, forecast, A:F_rate) %>% as.data.frame()
 
 ## @knitr
 
@@ -462,26 +462,26 @@ axis(side = 2, at = tck, labels = tck * switch(life_cycle, SS = 1, SMS = 1/1000)
 for(i in 1:ncol(R_pop_IPM))
   lines(S[1,], R_pop_IPM[,i], col = c1t)
 polygon(c(S[1,], rev(S[1,])), 
-        c(colQuantiles(R_ESU_IPM, probs = 0.025), rev(colQuantiles(R_ESU_IPM, probs = 0.975))), 
+        c(colQuantiles(R_ESU_IPM, probs = 0.05), rev(colQuantiles(R_ESU_IPM, probs = 0.95))), 
         col = c1tt, border = NA)
 rug(S_IPM, col = c1)
 title(ylab = switch(life_cycle, SS = "Recruits", SMS = "Smolts (thousands)"), 
       line = 3.5, cex.lab = 1.8)
-# text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "A", cex = 2)
+text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "A", cex = 2)
 
 # log(recruits/spawner) vs. spawners
 plot(S[1,], colMedians(log(R_ESU_IPM/S)), type = "l", lwd=3, col = c1, las = 1,
      cex.axis = 1.2, cex.lab = 1.8, xaxs = "i", yaxs = "i", xlab="Spawners", 
      ylab = switch(life_cycle, SS = "log(recruits/spawner)", SMS = "log(smolts/spawner)"),
-     ylim = range(colQuantiles(log(R_ESU_IPM/S), probs = c(0.025,0.975)), na.rm = TRUE))
+     ylim = range(colQuantiles(log(R_ESU_IPM/S), probs = c(0.05,0.95)), na.rm = TRUE))
 for(i in 1:ncol(R_pop_IPM))
   lines(S[1,], log(R_pop_IPM[,i]/S[1,]), col = c1t)
 polygon(c(S[1,], rev(S[1,])),
-        c(colQuantiles(log(R_ESU_IPM/S), probs = 0.025),
-          rev(colQuantiles(log(R_ESU_IPM/S), probs = 0.975))),
+        c(colQuantiles(log(R_ESU_IPM/S), probs = 0.05),
+          rev(colQuantiles(log(R_ESU_IPM/S), probs = 0.95))),
         col = c1tt, border = NA)
 rug(S_IPM, col = c1)
-# text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "B", cex = 2)
+text(par("usr")[2], par("usr")[4], adj = c(1.5,1.5), "B", cex = 2)
 
 # Posterior densities of log(alpha)
 dd_IPM_ESU <- density(mu_alpha)
@@ -496,7 +496,7 @@ plot(dd_IPM_ESU$x, dd_IPM_ESU$y, type = "l", lwd = 3, col = c1, las = 1,
 for(i in 1:length(dd_IPM_pop))
   lines(dd_IPM_pop[[i]]$x, dd_IPM_pop[[i]]$y, col = c1t)
 title(xlab = bquote(log(alpha)), ylab = "Probability density", line = 3.5, cex.lab = 1.8)
-# text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "C", cex = 2)
+text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "C", cex = 2)
 
 # Posterior densities of log(Rmax)
 dd_IPM_ESU <- density(mu_Rmax)
@@ -512,7 +512,7 @@ for(i in 1:length(dd_IPM_pop))
   lines(dd_IPM_pop[[i]]$x, dd_IPM_pop[[i]]$y, col = c1t)
 title(xlab = bquote(log(italic(R)[max])), ylab = "Probability density", 
       line = 3.5, cex.lab = 1.8)
-# text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "D", cex = 2)
+text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "D", cex = 2)
 
 rm(list=c("mod_name","life_cycle","SR_fun","mu_alpha","mu_Rmax","S","R_ESU_IPM","tck",
           "c1","c1t","c1tt","dd_IPM_ESU","dd_IPM_pop","alpha","Rmax","R_pop_IPM","S_IPM"))
@@ -556,7 +556,7 @@ for(i in levels(dat$pop))
   plot(yi, N_obs[dat$pop==i], pch = "",
        xlim = range(dat$year),
        ylim = range(pmax(N_obs[dat$pop==i], 1),
-                    colQuantiles(N_obs_IPM[,dat$pop==i], probs = c(0.025,0.975)), na.rm = T), 
+                    colQuantiles(N_obs_IPM[,dat$pop==i], probs = c(0.05,0.95)), na.rm = T), 
        las = 1, xaxt = "n", yaxs = "i", yaxt = "n", xlab = "", ylab = "", log = "y")
   axis(side = 1, at = yi[yi %% 5 == 0], cex.axis = 1.2)
   rug(yi[yi %% 5 != 0], ticksize = -0.02)
@@ -571,12 +571,12 @@ for(i in levels(dat$pop))
     mtext("Year", side = 1, line = 3, cex = par("cex")*1.5)
   lines(yi, colMedians(N_IPM[,dat$pop==i]), col = c1, lwd = 3)
   polygon(c(yi, rev(yi)), 
-          c(colQuantiles(N_IPM[,dat$pop==i], probs = 0.025), 
-            rev(colQuantiles(N_IPM[,dat$pop==i], probs = 0.975))),
+          c(colQuantiles(N_IPM[,dat$pop==i], probs = 0.05), 
+            rev(colQuantiles(N_IPM[,dat$pop==i], probs = 0.95))),
           col = c1t, border = NA)
   polygon(c(yi, rev(yi)), 
-          c(colQuantiles(N_obs_IPM[,dat$pop==i], probs = 0.025), 
-            rev(colQuantiles(N_obs_IPM[,dat$pop==i], probs = 0.975))),
+          c(colQuantiles(N_obs_IPM[,dat$pop==i], probs = 0.05), 
+            rev(colQuantiles(N_obs_IPM[,dat$pop==i], probs = 0.95))),
           col = c1tt, border = NA)
   points(yi, N_obs[dat$pop==i], pch=16, cex = 1.5)
 }
@@ -635,11 +635,11 @@ c1t <- transparent(c1, trans.val = 0.5)
 par(oma = c(0,0.1,0,0))
 
 plot(y, colMedians(phi), type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
-     ylim = range(colQuantiles(phi, probs = c(0.025,0.975))), xaxs = "i", xaxt = "n",
+     ylim = range(colQuantiles(phi, probs = c(0.05,0.95))), xaxs = "i", xaxt = "n",
      xlab = "Brood year", ylab = "Productivity anomaly")
 abline(h = 0, col = "gray")
 polygon(c(y, rev(y)), 
-        c(colQuantiles(phi, probs = 0.025), rev(colQuantiles(phi, probs = 0.975))),
+        c(colQuantiles(phi, probs = 0.05), rev(colQuantiles(phi, probs = 0.95))),
         col = c1t, border = NA)
 lines(y, colMedians(phi), lwd = 3)
 axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
@@ -668,17 +668,17 @@ mu_MS <- do.call(extract1, list(as.name(mod_name), "mu_MS"))
 s_hat_MS <- plogis(sweep(phi_MS, 1, qlogis(mu_MS), "+"))
 
 c1 <- "slategray4"
-c1t <- transparent(c1, trans.val = 0.5)
+c1t <- transparent(c1, trans.val = 0.7)
 
-par(mfcol = c(2,1), mar = c(5.1,4.1,2,2),  oma = c(0,0.1,0,0))
+par(mfcol = c(2,1), mar = c(5.1,5.1,2,2),  oma = c(0,0.1,0,0))
 
 # Smolt recruitment
 plot(y, colMedians(phi_M), type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
-     ylim = range(colQuantiles(phi_M, probs = c(0.025,0.975))), xaxs = "i", xaxt = "n",
+     ylim = range(colQuantiles(phi_M, probs = c(0.05,0.95))), xaxs = "i", xaxt = "n",
      xlab = "Brood year", ylab = "Productivity anomaly", main = "Smolt recruitment")
-abline(h = 0, col = "gray")
+abline(h = 0, col = "darkgray")
 polygon(c(y, rev(y)), 
-        c(colQuantiles(phi_M, probs = 0.025), rev(colQuantiles(phi_M, probs = 0.975))),
+        c(colQuantiles(phi_M, probs = 0.05), rev(colQuantiles(phi_M, probs = 0.95))),
         col = c1t, border = NA)
 lines(y, colMedians(phi_M), lwd = 3)
 axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
@@ -686,10 +686,11 @@ rug(y[y %% 5 != 0], ticksize = -0.02)
 
 # SAR
 plot(y, colMedians(s_hat_MS), type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
-     ylim = range(0, colQuantiles(s_hat_MS, probs = 0.975)), xaxs = "i", xaxt = "n",
-     xlab = "Outmigration year", ylab = "Survival", main = "SAR")
+     ylim = range(0, colQuantiles(s_hat_MS, probs = 0.95)), xaxs = "i", xaxt = "n",
+     xlab = "Outmigration year", ylab = "", main = "SAR")
+mtext("Survival", side = 2, line = 3.7, cex = par("cex")*1.5)
 polygon(c(y, rev(y)), 
-        c(colQuantiles(s_hat_MS, probs = 0.025), rev(colQuantiles(s_hat_MS, probs = 0.975))),
+        c(colQuantiles(s_hat_MS, probs = 0.05), rev(colQuantiles(s_hat_MS, probs = 0.95))),
         col = c1t, border = NA)
 lines(y, colMedians(s_hat_MS), lwd = 3)
 axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
