@@ -53,6 +53,12 @@ Read in and manipulate the data...
 ```{r data}
 ```
 
+Let's look at the first few rows of `fish_data` to see the format **salmonIPM** expects...
+
+```{r print_fish_data_SMS}
+head(fish_data_SMS)
+```
+
 
 # Retrospective models
 
@@ -131,4 +137,11 @@ mod_name <- "SMS_Ricker_fore"
 life_stage <- "S"
 <<plot_spawner_smolt_ts>>
 ```
+
+Of course we could also look at forecasts of smolts, or any other state variable. Here are the run size forecasts in tabular form...
+
+```{r spawner_fore_tab}
+kable()
+```
+
 

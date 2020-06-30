@@ -149,7 +149,10 @@ fish_data_SMS_fore <- fish_data_SMS %>% group_by(pop) %>%
   mutate(year = (unique(year) + 1):(max(fish_data_SMS$year) + 5),
          S_obs = NA, M_obs = NA, fit_p_HOS = 0, B_take_obs = 0, F_rate = 0) %>% 
   mutate_at(vars(starts_with("n_")), ~ 0) %>% 
-  full_join(fish_data_SMS) %>% arrange(pop, year) %>% as.data.frame()
+  full_join(fish_data_SMS) %>% arrange(pop, year) %>% as.data.frame() %>% 
+  mutate(forecast = year > max(fish_data_SMS$year)) %>% 
+  select(strata:year, forecast, A:F_rate)
+
 ## @knitr
 
 #--------------------------------------------------------------
@@ -533,7 +536,6 @@ life_cycle <- unlist(strsplit(mod_name, "_"))[1]
 forecasting <- ifelse(is.na(unlist(strsplit(mod_name, "_"))[3]), "no", "yes")
 dat <- switch(life_cycle, SS = fish_data_SS, 
               SMS = switch(forecasting, no = fish_data_SMS, yes = fish_data_SMS_fore))
-SR_fun <- unlist(strsplit(mod_name, "_"))[2]
 
 par(mfrow=c(3,4), mar=c(1,3,4.1,1), oma=c(4.1,3.1,0,0))
 
@@ -579,10 +581,38 @@ for(i in levels(dat$pop))
   points(yi, N_obs[dat$pop==i], pch=16, cex = 1.5)
 }
 
-rm(list = c("mod_name","forecasting","life_stage","life_cycle","dat","SR_fun",
+rm(list = c("mod_name","forecasting","life_stage","life_cycle","dat",
             "N_IPM","N_obs_IPM","N_obs","c1","c1t","c1tt","yi","tau"))
 ## @knitr
 # dev.off()
+
+
+#--------------------------------------------------------------------------------
+# Tabular summary of 1-year-ahead forecasts by pop
+#--------------------------------------------------------------------------------
+
+mod_name <- "SMS_Ricker_fore"
+life_stage <- "S"   # "S" = spawners, "M" = smolts
+
+## @knitr forecast_df
+life_cycle <- unlist(strsplit(mod_name, "_"))[1]
+dat <- switch(life_cycle, SS = fish_data_SS_fore, SMS = fish_data_SMS_fore)
+y <- dat$year
+y1 <- min(dat$year[dat$forecast])
+pop <- c(as.character(dat$pop[dat$year==y1]), "Total")
+N_IPM <- do.call(extract1, list(as.name(mod_name), life_stage))
+N1_IPM <- cbind(N_IPM[,dat$year==y1], rowSums(N_IPM[,dat$year==y1]))
+N1_IPM_median <- round(colMedians(N1_IPM), 0)
+N1_IPM_lo <- round(colQuantiles(N1_IPM, probs = 0.05), 0)
+N1_IPM_up <- round(colQuantiles(N1_IPM, probs = 0.95), 0)
+
+forecast_df <- data.frame(Population = pop, 
+                          Estimate = paste0(N1_IPM_median, " (", N1_IPM_lo, ", ",
+                                            N1_IPM_up, ")"))
+
+rm("mod_name","life_stage","life_cycle","dat","y","y1","pop","N_IPM","N1_IPM",
+   "N1_IPM_median","N1_IPM_lo","N1_IPM_up")
+## @knitr
 
 
 #--------------------------------------------------------------------------------
@@ -626,14 +656,16 @@ rm(list = c("mod_name","y","phi","c1","c1t"))
 
 mod_name <- "SMS_Ricker"
 
-# dev.new(width=6,height=8)
-png(filename=here("analysis","results",paste0("phi_", mod_name, ".png")),
-    width=6, height=8, units="in", res=200, type="cairo-png")
+dev.new(width=6,height=8)
+# png(filename=here("analysis","results",paste0("phi_", mod_name, ".png")),
+#     width=6, height=8, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_phi
 y <- sort(unique(fish_data_SMS$year))
 phi_M <- do.call(extract1, list(as.name(mod_name), "phi_M"))
 phi_MS <- do.call(extract1, list(as.name(mod_name), "phi_MS"))
+mu_MS <- do.call(extract1, list(as.name(mod_name), "mu_MS"))
+s_hat_MS <- plogis(sweep(phi_MS, 1, qlogis(mu_MS), "+"))
 
 c1 <- "slategray4"
 c1t <- transparent(c1, trans.val = 0.5)
@@ -653,20 +685,19 @@ axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
 rug(y[y %% 5 != 0], ticksize = -0.02)
 
 # SAR
-plot(y, colMedians(phi_MS), type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
-     ylim = range(colQuantiles(phi_MS, probs = c(0.025,0.975))), xaxs = "i", xaxt = "n",
-     xlab = "Outmigration year", ylab = "Productivity anomaly", main = "SAR")
-abline(h = 0, col = "gray")
+plot(y, colMedians(s_hat_MS), type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
+     ylim = range(0, colQuantiles(s_hat_MS, probs = 0.975)), xaxs = "i", xaxt = "n",
+     xlab = "Outmigration year", ylab = "Survival", main = "SAR")
 polygon(c(y, rev(y)), 
-        c(colQuantiles(phi_MS, probs = 0.025), rev(colQuantiles(phi_MS, probs = 0.975))),
+        c(colQuantiles(s_hat_MS, probs = 0.025), rev(colQuantiles(s_hat_MS, probs = 0.975))),
         col = c1t, border = NA)
-lines(y, colMedians(phi_MS), lwd = 3)
+lines(y, colMedians(s_hat_MS), lwd = 3)
 axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
 rug(y[y %% 5 != 0], ticksize = -0.02)
 
-rm(list = c("mod_name","y","phi_M","phi_MS","c1","c1t"))
+rm(list = c("mod_name","y","phi_M","phi_MS","s_hat_MS","c1","c1t"))
 ## @knitr
-dev.off()
+# dev.off()
 
 
 #--------------------------------------------------------------------------------
