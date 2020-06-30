@@ -23,6 +23,10 @@ output:
 
 Background on IPMs, outline of **salmonIPM**...
 
+[eqns]
+
+
+
 # Setup and data
 
 Load the packages we'll need...
@@ -143,7 +147,7 @@ fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("year","strata","p
   rename_at(vars(contains("Age-")), list(~ paste0(sub("Age-","n_age",.), "_obs"))) %>% 
   select(-c(n_age2_obs, n_age6_obs)) %>% 
   rename(n_H_obs = H, n_W_obs = W) %>% mutate(A = 1, fit_p_HOS = NA, F_rate = 0) %>% 
-  mutate_at(vars(contains("n_")), list(~ replace(., is.na(.), 0))) %>% 
+  mutate_at(vars(contains("n_")), ~ replace(., is.na(.), 0)) %>% 
   select(strata, pop, year, A, S_obs, M_obs, n_age3_obs:n_W_obs, 
          fit_p_HOS, B_take_obs, F_rate) %>% arrange(strata, pop, year) 
 
@@ -168,6 +172,19 @@ fish_data_SS <- fish_data %>% group_by(pop) %>% filter(head_noNA(S_obs)) %>% as.
 # spawner-spawner: drop cases with initial NAs in M_obs, even if bio data is present
 fish_data_SMS <- fish_data %>% group_by(pop) %>% 
   filter(head_noNA(S_obs) | head_noNA(M_obs)) %>% as.data.frame()
+
+# pad data with future years to generate forecasts
+# use 5-year (1-generation) time horizon
+fish_data_SMS_fore <- fish_data_SMS %>% group_by(pop) %>% 
+  slice(rep(n(), max(fish_data_SMS$year) + 5 - max(year))) %>% 
+  mutate(year = (unique(year) + 1):(max(fish_data_SMS$year) + 5),
+         S_obs = NA, M_obs = NA, fit_p_HOS = 0, B_take_obs = 0, F_rate = 0) %>% 
+  mutate_at(vars(starts_with("n_")), ~ 0) %>% 
+  full_join(fish_data_SMS) %>% arrange(pop, year) %>% as.data.frame()
+```
+
+```
+Joining, by = c("strata", "pop", "year", "A", "S_obs", "M_obs", "n_age3_obs", "n_age4_obs", "n_age5_obs", "n_H_obs", "n_W_obs", "fit_p_HOS", "B_take_obs", "F_rate")
 ```
 
 
@@ -182,7 +199,6 @@ Density-independent
 SMS_exp <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
                      stan_model = "IPM_SMS_pp", SR_fun = "exp",
                      pars = c("mu_alpha","sigma_alpha","alpha",
-                              "mu_Rmax","sigma_Rmax","Rmax","rho_alphaRmax",
                               "beta_phi_M","rho_phi_M","sigma_phi_M","phi_M","sigma_M",
                               "mu_MS","beta_phi_MS","rho_phi_MS",
                               "sigma_phi_MS","phi_MS","sigma_MS","s_MS",
@@ -194,7 +210,7 @@ SMS_exp <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
 
 ```r
 print(SMS_exp, prob = c(0.025,0.5,0.975),
-      pars = c("alpha","Rmax","phi_M","phi_MS","p","p_HOS","S","M","s_MS","q","LL"), 
+      pars = c("alpha","phi_M","phi_MS","p","p_HOS","S","M","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
 ```
 
@@ -206,9 +222,6 @@ post-warmup draws per chain=1000, total post-warmup draws=3000.
                     mean se_mean    sd      2.5%       50%     97.5% n_eff Rhat
 mu_alpha            6.68    0.00  0.17      6.35      6.68      7.01  1170 1.00
 sigma_alpha         0.26    0.00  0.10      0.10      0.24      0.50   902 1.00
-mu_Rmax             0.01    0.15 10.17    -20.21     -0.08     19.65  4648 1.00
-sigma_Rmax          1.49    0.03  0.86      0.07      1.48      2.99   984 1.00
-rho_alphaRmax       0.00    0.01  0.58     -0.95      0.00      0.96  4713 1.00
 rho_phi_M           0.10    0.01  0.40     -0.68      0.13      0.77  1082 1.00
 sigma_phi_M         0.43    0.01  0.19      0.07      0.42      0.85   561 1.01
 sigma_M             0.11    0.00  0.07      0.01      0.10      0.27   331 1.00
@@ -235,12 +248,11 @@ tau_M               0.68    0.01  0.13      0.46      0.67      0.95   483 1.01
 tau_S               0.90    0.00  0.07      0.77      0.90      1.05   936 1.00
 lp__           -22491.99    1.26 30.20 -22552.91 -22491.06 -22434.93   575 1.01
 
-Samples were drawn using NUTS(diag_e) at Fri Jun 26 14:47:32 2020.
+Samples were drawn using NUTS(diag_e) at Sun Jun 28 22:09:03 2020.
 For each parameter, n_eff is a crude measure of effective sample size,
 and Rhat is the potential scale reduction factor on split chains (at 
 convergence, Rhat=1).
 ```
-
 
 Beverton-Holt
 
@@ -386,17 +398,6 @@ r_eff_SMS <- lapply(LL_SMS, function(x) relative_eff(exp(x)))
 
 # PSIS-LOO
 LOO_SMS <- lapply(1:length(LL_SMS), function(i) loo(LL_SMS[[i]], r_eff = r_eff_SMS[[i]]))
-```
-
-```
-Warning: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
-
-Warning: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
-
-Warning: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
-```
-
-```r
 names(LOO_SMS) <- names(LL_SMS)
 
 ## Compare all three models
@@ -445,27 +446,28 @@ BH     -20.1       8.8
 
 Plot estimated spawner-smolt production curves and parameters for the Beverton-Holt model.
 
-
-<img src="LCRchumIPM_analysis_files/figure-html/plot_SR_params-1.png" width="50%" style="display: block; margin: auto;" />
+<img src="LCRchumIPM_analysis_files/figure-html/plot_SR_SMS_BH-1.png" width="50%" style="display: block; margin: auto;" />
 
 Now do the same for the Ricker model.
 
-
-<img src="LCRchumIPM_analysis_files/figure-html/plot_SR_params-1.png" width="50%" style="display: block; margin: auto;" />
+<img src="LCRchumIPM_analysis_files/figure-html/plot_SR_SMS_Ricker-1.png" width="50%" style="display: block; margin: auto;" />
 
 The Ricker model is more biologically plausible, so let's proceed with that model for now. Here are the fits to the spawner data:
 
-
-<img src="LCRchumIPM_analysis_files/figure-html/plot_spawner_smolt_ts-1.png" width="90%" style="display: block; margin: auto;" />
+<img src="LCRchumIPM_analysis_files/figure-html/plot_spawners_SMS_Ricker-1.png" width="100%" style="display: block; margin: auto;" />
 
 And here are the fits to the much sparser smolt data:
 
-
-<img src="LCRchumIPM_analysis_files/figure-html/plot_spawner_smolt_ts-1.png" width="90%" style="display: block; margin: auto;" />
+<img src="LCRchumIPM_analysis_files/figure-html/plot_smolts_SMS_Ricker-1.png" width="100%" style="display: block; margin: auto;" />
 
 We can examine how the model partitions shared interannual fluctuations between the two life-stage transitions...
 
+<img src="LCRchumIPM_analysis_files/figure-html/plot_phi_SMS_Ricker-1.png" width="50%" style="display: block; margin: auto;" />
 
-<img src="LCRchumIPM_analysis_files/figure-html/plot_phi-1.png" width="50%" style="display: block; margin: auto;" />
 
+# Forecasts
+
+It is straightforward to use the IPM to generate forecasts of population dynamics...
+
+<img src="LCRchumIPM_analysis_files/figure-html/plot_spawners_SMS_Ricker_fore-1.png" width="100%" style="display: block; margin: auto;" />
 

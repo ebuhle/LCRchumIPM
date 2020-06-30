@@ -116,7 +116,7 @@ fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("year","strata","p
   rename_at(vars(contains("Age-")), list(~ paste0(sub("Age-","n_age",.), "_obs"))) %>% 
   select(-c(n_age2_obs, n_age6_obs)) %>% 
   rename(n_H_obs = H, n_W_obs = W) %>% mutate(A = 1, fit_p_HOS = NA, F_rate = 0) %>% 
-  mutate_at(vars(contains("n_")), list(~ replace(., is.na(.), 0))) %>% 
+  mutate_at(vars(contains("n_")), ~ replace(., is.na(.), 0)) %>% 
   select(strata, pop, year, A, S_obs, M_obs, n_age3_obs:n_W_obs, 
          fit_p_HOS, B_take_obs, F_rate) %>% arrange(strata, pop, year) 
 
@@ -142,6 +142,14 @@ fish_data_SS <- fish_data %>% group_by(pop) %>% filter(head_noNA(S_obs)) %>% as.
 fish_data_SMS <- fish_data %>% group_by(pop) %>% 
   filter(head_noNA(S_obs) | head_noNA(M_obs)) %>% as.data.frame()
 
+# pad data with future years to generate forecasts
+# use 5-year (1-generation) time horizon
+fish_data_SMS_fore <- fish_data_SMS %>% group_by(pop) %>% 
+  slice(rep(n(), max(fish_data_SMS$year) + 5 - max(year))) %>% 
+  mutate(year = (unique(year) + 1):(max(fish_data_SMS$year) + 5),
+         S_obs = NA, M_obs = NA, fit_p_HOS = 0, B_take_obs = 0, F_rate = 0) %>% 
+  mutate_at(vars(starts_with("n_")), ~ 0) %>% 
+  full_join(fish_data_SMS) %>% arrange(pop, year) %>% as.data.frame()
 ## @knitr
 
 #--------------------------------------------------------------
@@ -264,7 +272,6 @@ loo_compare(LOO_SS[c("BH","Ricker")])
 SMS_exp <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
                      stan_model = "IPM_SMS_pp", SR_fun = "exp",
                      pars = c("mu_alpha","sigma_alpha","alpha",
-                              "mu_Rmax","sigma_Rmax","Rmax","rho_alphaRmax",
                               "beta_phi_M","rho_phi_M","sigma_phi_M","phi_M","sigma_M",
                               "mu_MS","beta_phi_MS","rho_phi_MS",
                               "sigma_phi_MS","phi_MS","sigma_MS","s_MS",
@@ -275,7 +282,7 @@ SMS_exp <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
 
 ## @knitr print_SMS_exp
 print(SMS_exp, prob = c(0.025,0.5,0.975),
-      pars = c("alpha","Rmax","phi_M","phi_MS","p","p_HOS","S","M","s_MS","q","LL"), 
+      pars = c("alpha","phi_M","phi_MS","p","p_HOS","S","M","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
@@ -358,6 +365,35 @@ loo_compare(LOO_SMS[c("BH","Ricker")])
 ## @knitr
 
 
+#===========================================================================
+# FIT PROSPECTIVE FORECASTING MODELS
+#===========================================================================
+
+#--------------------------------------------------------------
+# Spawner-smolt-spawner IPM
+#--------------------------------------------------------------
+
+# Ricker
+## @knitr fit_SMS_Ricker_fore
+SMS_Ricker_fore <- salmonIPM(fish_data = fish_data_SMS_fore, ages = list(M = 1),
+                             stan_model = "IPM_SMS_pp", SR_fun = "Ricker",
+                             pars = c("mu_alpha","sigma_alpha","alpha",
+                                      "mu_Rmax","sigma_Rmax","Rmax","rho_alphaRmax",
+                                      "beta_phi_M","rho_phi_M","sigma_phi_M","phi_M","sigma_M",
+                                      "mu_MS","beta_phi_MS","rho_phi_MS",
+                                      "sigma_phi_MS","phi_MS","sigma_MS","s_MS",
+                                      "mu_p","sigma_gamma","R_gamma","sigma_p","R_p","p",
+                                      "tau_M","tau_S","p_HOS","M","S","q","LL"),
+                             chains = 3, iter = 1500, warmup = 500,
+                             control = list(adapt_delta = 0.99, max_treedepth = 13))
+
+## @knitr print_SMS_Ricker_fore
+print(SMS_Ricker_fore, prob = c(0.025,0.5,0.975),
+      pars = c("alpha","Rmax","phi_M","phi_MS","p","p_HOS","S","M","s_MS","q","LL"), 
+      include = FALSE, use_cache = FALSE)
+## @knitr
+
+
 #--------------------------------------------------------------
 # Save stanfit objects
 #--------------------------------------------------------------
@@ -376,9 +412,9 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 #--------------------------------------------------------------------
 
 mod_name <- "SMS_Ricker"
-# dev.new(width = 7, height = 7)
-png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
-    width=7, height=7, units="in", res=200, type="cairo-png")
+dev.new(width = 7, height = 7)
+# png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
+#     width=7, height=7, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_SR_params
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
@@ -478,7 +514,7 @@ title(xlab = bquote(log(italic(R)[max])), ylab = "Probability density",
 rm(list=c("mod_name","life_cycle","SR_fun","mu_alpha","mu_Rmax","S","R_ESU_IPM","tck",
           "c1","c1t","c1tt","dd_IPM_ESU","dd_IPM_pop","alpha","Rmax","R_pop_IPM","S_IPM"))
 ## @knitr
-dev.off()
+# dev.off()
 
 
 #--------------------------------------------------------------------------------
@@ -488,13 +524,15 @@ dev.off()
 mod_name <- "SMS_Ricker"
 life_stage <- "S"   # "S" = spawners, "M" = smolts
 
-# dev.new(width=13,height=8)
-png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
-    width=13*0.9, height=8*0.9, units="in", res=200, type="cairo-png")
+dev.new(width=13,height=8)
+# png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
+#     width=13*0.9, height=8*0.9, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_spawner_smolt_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
-dat <- switch(life_cycle, SS = fish_data_SS, SMS = fish_data_SMS)
+forecasting <- ifelse(is.na(unlist(strsplit(mod_name, "_"))[3]), "no", "yes")
+dat <- switch(life_cycle, SS = fish_data_SS, 
+              SMS = switch(forecasting, no = fish_data_SMS, yes = fish_data_SMS_fore))
 SR_fun <- unlist(strsplit(mod_name, "_"))[2]
 
 par(mfrow=c(3,4), mar=c(1,3,4.1,1), oma=c(4.1,3.1,0,0))
@@ -541,10 +579,10 @@ for(i in levels(dat$pop))
   points(yi, N_obs[dat$pop==i], pch=16, cex = 1.5)
 }
 
-rm(list = c("mod_name","life_stage","life_cycle","dat","SR_fun",
+rm(list = c("mod_name","forecasting","life_stage","life_cycle","dat","SR_fun",
             "N_IPM","N_obs_IPM","N_obs","c1","c1t","c1tt","yi","tau"))
 ## @knitr
-dev.off()
+# dev.off()
 
 
 #--------------------------------------------------------------------------------
@@ -586,7 +624,7 @@ rm(list = c("mod_name","y","phi","c1","c1t"))
 # Shared recruitment and SAR process errors (brood year productivity anomalies)
 #--------------------------------------------------------------------------------
 
-mod_name <- "SMS_BH"
+mod_name <- "SMS_Ricker"
 
 # dev.new(width=6,height=8)
 png(filename=here("analysis","results",paste0("phi_", mod_name, ".png")),

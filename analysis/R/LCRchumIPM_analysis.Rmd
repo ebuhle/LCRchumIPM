@@ -20,6 +20,7 @@ knitr::opts_chunk$set(tidy = FALSE, highlight = TRUE, comment = NA,
                       dev = "png", dev.args = list(type = "cairo-png"), dpi = 200,
                       out.width = "50%", fig.align = "center")
 
+library(here)
 if(!require(captioner))
   devtools::install_github("adletaw/captioner")
 library(captioner)
@@ -29,12 +30,16 @@ fig_nums <- captioner("Figure", suffix = ": ", auto_space = FALSE, style = "b", 
 options(width = 130)
 ```
 ```{r read_chunks, echo = FALSE}
-knitr::read_chunk("LCRchumIPM_analysis.R")
+knitr::read_chunk(here("analysis","R","LCRchumIPM_analysis.R"))
 ```
 
 # Overview
 
 Background on IPMs, outline of **salmonIPM**...
+
+[eqns]
+
+
 
 # Setup and data
 
@@ -60,7 +65,6 @@ Density-independent
 ```{r print_SMS_exp}
 ```
 
-
 Beverton-Holt
 
 ```{r fit_SMS_BH, eval = FALSE}
@@ -77,49 +81,54 @@ Ricker
 
 Model comparison based on LOO (unhelpful because Pareto ks are too high)
 
-```{r loo_SMS, warning = TRUE}
+```{r loo_SMS, warning = FALSE}
 ```
 
 Plot estimated spawner-smolt production curves and parameters for the Beverton-Holt model.
 
-```{r, echo = FALSE}
+```{r plot_SR_SMS_BH, echo=FALSE, fig.height=7, fig.width=7, warning=FALSE}
 mod_name <- "SMS_BH"
-```
-```{r plot_SR_params, echo = FALSE, warning = FALSE, fig.height = 5, fig.width = 5}
+<<plot_SR_params>>
 ```
 
 Now do the same for the Ricker model.
 
-```{r, echo = FALSE}
+```{r plot_SR_SMS_Ricker, echo = FALSE, warning = FALSE, fig.height = 7, fig.width = 7}
 mod_name <- "SMS_Ricker"
-```
-```{r plot_SR_params, echo = FALSE, warning = FALSE, fig.height = 5, fig.width = 5}
+<<plot_SR_params>>
 ```
 
 The Ricker model is more biologically plausible, so let's proceed with that model for now. Here are the fits to the spawner data:
 
-```{r, echo = FALSE}
+```{r plot_spawners_SMS_Ricker, echo = FALSE, fig.width=10, fig.height=6, out.width="100%"}
 mod_name <- "SMS_Ricker"
 life_stage <- "S"
-```
-```{r plot_spawner_smolt_ts, echo = FALSE, fig.width=12, fig.height=7, out.width="90%"}
+<<plot_spawner_smolt_ts>>
 ```
 
 And here are the fits to the much sparser smolt data:
 
-```{r, echo = FALSE}
+```{r plot_smolts_SMS_Ricker, echo = FALSE, fig.width=10, fig.height=6, out.width="100%"}
 mod_name <- "SMS_Ricker"
 life_stage <- "M"
-```
-```{r plot_spawner_smolt_ts, echo = FALSE, fig.width=12, fig.height=7, out.width="90%"}
+<<plot_spawner_smolt_ts>>
 ```
 
 We can examine how the model partitions shared interannual fluctuations between the two life-stage transitions...
 
-```{r, echo = FALSE}
+```{r plot_phi_SMS_Ricker, echo = FALSE, fig.width = 6, fig.height = 8}
 mod_name <- "SMS_Ricker"
-```
-```{r plot_phi, echo = FALSE, fig.width = 6, fig.height = 8}
+<<plot_phi>>
 ```
 
+
+# Forecasts
+
+It is straightforward to use the IPM to generate forecasts of population dynamics...
+
+```{r plot_spawners_SMS_Ricker_fore, echo = FALSE, fig.width=10, fig.height=6, out.width="100%"}
+mod_name <- "SMS_Ricker_fore"
+life_stage <- "S"
+<<plot_spawner_smolt_ts>>
+```
 
