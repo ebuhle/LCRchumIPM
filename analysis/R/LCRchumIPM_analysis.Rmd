@@ -1,18 +1,22 @@
 ---
 title: 'Fitting Integrated Population Models to Lower Columbia River Chum Salmon Monitoring Data'
 author: "Eric Buhle, Kale Bentley, Thomas Buehrens, Mark Scheuerell, Todd Hillson, and ..."
-date: "June 25, 2020"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
 output:
+  pdf_document:
+    highlight: haddock
+    toc: yes
+    number_sections: true
+    toc_depth: '3'
+  word_document:
+    toc: true
   html_document:
-    keep_md: true
     df_print: paged
     fig_caption: true
     toc: true
     toc_float: true
-  word_document:
-    toc: true
-  pdf_document:
-    toc: true
+fontsize: 11pt
+geometry: margin=1in
 ---
 
 ```{r setup, include=FALSE}
@@ -139,7 +143,7 @@ mod_name <- "SMS_Ricker"
 `r fig_nums("plot_phi_SMS_Ricker", "Estimates of shared (ESU-level) process errors from the multi-population IPM fitted to Lower Columbia River chum salmon data. The top panel shows the shared anomalies around the Ricker spawner recruit function, and the bottom panel shows the average SAR.")`
 
 
-# Forecasts
+# Forecasting
 
 It is straightforward to use the IPM to generate forecasts of population dynamics...
 
