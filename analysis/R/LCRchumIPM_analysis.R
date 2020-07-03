@@ -8,6 +8,7 @@ library(shinystan)
 library(matrixStats)
 library(tibble)
 library(dplyr)
+library(tidyr)
 library(reshape2)
 library(yarrr)
 library(corrplot)
@@ -44,6 +45,9 @@ hatcheries <- read.csv(here("data","Hatchery_Programs.csv"), header = TRUE, stri
 # (1) NAs in hatchery dispositions (incl. Duncan Channel) are really zeros
 # (2) NAs in Duncan Creek from 2004-present are really zeros
 # (3) All other NAs are real missing observations
+# (4) When calculating the observation error of log(S_obs), tau_S_obs, assume
+#     Abund.Mean and Abund.SD are the mean and SD of a lognormal posterior distribution
+#     of spawner abundance based on the sample
 spawner_data <- read.csv(here("data","Data_ChumSpawnerAbundance_2019-12-12.csv"), 
                          header = TRUE, stringsAsFactors = TRUE) %>% 
   rename(year = Return.Yr., strata = Strata, location = Location.Reach, 
@@ -51,20 +55,24 @@ spawner_data <- read.csv(here("data","Data_ChumSpawnerAbundance_2019-12-12.csv")
   mutate(pop = location_pop$pop2[match(location, location_pop$location)],
          disposition_HW = disposition_HW$HW[match(disposition, disposition_HW$disposition)],
          S_obs = replace(S_obs, is.na(S_obs) & disposition_HW == "H", 0),
-         S_obs = replace(S_obs, is.na(S_obs) & pop == "Duncan_Creek" & year >= 2004, 0)) %>% 
-  select(year:location, pop, disposition, disposition_HW, method:SD) %>% 
+         S_obs = replace(S_obs, is.na(S_obs) & pop == "Duncan_Creek" & year >= 2004, 0),
+         tau_S_obs = sqrt(log((SD/S_obs)^2 + 1))) %>% 
+  select(year:location, pop, disposition, disposition_HW, method:tau_S_obs) %>% 
   arrange(strata, location, year)
 
 names_S_obs <- disposition_HW$disposition
 names_B_take_obs <- disposition_HW$disposition[disposition_HW$HW == "H"]
 
-spawner_data_agg <- aggregate(S_obs ~ year + strata + pop + disposition,
-                              data = spawner_data, FUN = sum, na.action = na.pass) %>%
-  dcast(year + strata + pop ~ disposition, value.var = "S_obs", 
-        fun.aggregate = identity, fill = 0) %>% 
-  add_column(S_obs = rowSums(select(., all_of(names_S_obs))),
-             B_take_obs = rowSums(select(., all_of(names_B_take_obs)))) %>% 
-  select(-all_of(names_S_obs)) %>% arrange(strata, pop, year)
+spawner_data_agg <- spawner_data %>% group_by(strata, pop, year, disposition) %>% 
+  summarize(S_obs = sum(S_obs), tau_S_obs = unique(tau_S_obs)) %>% ungroup() %>% 
+  pivot_wider(id_cols = c(strata, pop, year), names_from = disposition,
+              values_from = c(S_obs, tau_S_obs), values_fill = list(S_obs = 0)) %>% 
+  add_column(S_obs = rowSums(select(., all_of(paste0("S_obs_", names_S_obs)))),
+             tau_S_obs = rowSums(select(., all_of(paste0("tau_S_obs_", names_S_obs))), na.rm = TRUE),
+             B_take_obs = rowSums(select(., all_of(paste0("S_obs_", names_B_take_obs))))) %>% 
+  mutate(tau_S_obs = replace(tau_S_obs, tau_S_obs == 0, NA)) %>% 
+  select(-matches(paste(names_S_obs, collapse = "|"))) %>%
+  as.data.frame()
 
 # Spawner age-, sex-, and origin-frequency (aka BioData)
 bio_data <- read.csv(here("data","Data_ChumSpawnerBioData_2019-12-12.csv"), 
@@ -90,6 +98,9 @@ bio_data_origin <- bio_data %>%
 #     in Duncan Creek (hence Duncan_Channel -> Duncan_Creek in location_pop)
 # (2) Duncan_North + Duncan_South = Duncan_Channel, so the former two are redundant 
 #     (not really an assumption, although the equality isn't perfect in all years)
+# (3) When calculating the observation error of log(M_obs), tau_M_obs, assume
+#     Abund_Mean and Abund_SD are the mean and SD of a lognormal posterior distribution
+#     of smolt abundance based on the sample
 juv_data <- read.csv(here("data", "Data_ChumJuvenileAbundance_2020-06-09.csv"), 
                      header = TRUE, stringsAsFactors = TRUE) %>% 
   rename(brood_year = Brood.Year, year = Outmigration.Year, strata = Strata, 
@@ -97,8 +108,10 @@ juv_data <- read.csv(here("data", "Data_ChumJuvenileAbundance_2020-06-09.csv"),
          analysis = Analysis, partial_spawners = Partial.Spawners, raw_catch = RawCatch,
          M_obs = Abund_Mean, SD = Abund_SD, L95 = Abund_L95, U95 = Abund_U95, CV = Abund_CV,
          comments = Comments) %>% 
-  mutate(pop = location_pop$pop2[match(location, location_pop$location)]) %>% 
-  select(brood_year:location, pop, origin:comments) %>% arrange(strata, location, year)
+  mutate(pop = location_pop$pop2[match(location, location_pop$location)],
+         tau_M_obs = sqrt(log((SD/M_obs)^2 + 1))) %>% 
+  select(strata, location, pop, year, brood_year, origin:CV, tau_M_obs, comments) %>% 
+  arrange(strata, location, year)
 
 # drop hatchery or redundant pops and cases with leading or trailing NAs in M_obs
 head_noNA <- function(x) { cumsum(!is.na(x)) > 0 }
@@ -109,15 +122,15 @@ juv_data_incl <- juv_data %>% filter(pop %in% spawner_data$pop) %>%
 # Fish data formatted for salmonIPM
 # Drop age-2 and age-6 samples (each is < 0.1% of aged spawners)
 # Use A = 1 for now (so Rmax in units of spawners)
-fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("year","strata","pop")) %>% 
-  full_join(bio_data_origin, by = c("year","strata","pop")) %>% 
-  full_join(juv_data_incl, by = c("year","strata","pop")) %>%
+fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("strata","pop","year")) %>% 
+  full_join(bio_data_origin, by = c("strata","pop","year")) %>% 
+  full_join(juv_data_incl, by = c("strata","pop","year")) %>%
   mutate(B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0)) %>% 
   rename_at(vars(contains("Age-")), list(~ paste0(sub("Age-","n_age",.), "_obs"))) %>% 
   select(-c(n_age2_obs, n_age6_obs)) %>% 
   rename(n_H_obs = H, n_W_obs = W) %>% mutate(A = 1, fit_p_HOS = NA, F_rate = 0) %>% 
   mutate_at(vars(contains("n_")), ~ replace(., is.na(.), 0)) %>% 
-  select(strata, pop, year, A, S_obs, M_obs, n_age3_obs:n_W_obs, 
+  select(strata, pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_W_obs, 
          fit_p_HOS, B_take_obs, F_rate) %>% arrange(strata, pop, year) 
 
 # fill in fit_p_HOS
@@ -147,7 +160,8 @@ fish_data_SMS <- fish_data %>% group_by(pop) %>%
 fish_data_SMS_fore <- fish_data_SMS %>% group_by(pop) %>% 
   slice(rep(n(), max(fish_data_SMS$year) + 5 - max(year))) %>% 
   mutate(year = (unique(year) + 1):(max(fish_data_SMS$year) + 5),
-         S_obs = NA, M_obs = NA, fit_p_HOS = 0, B_take_obs = 0, F_rate = 0) %>% 
+         S_obs = NA, tau_S_obs = NA, M_obs = NA, tau_M_obs = NA,
+         fit_p_HOS = 0, B_take_obs = 0, F_rate = 0) %>% 
   mutate_at(vars(starts_with("n_")), ~ 0) %>% 
   full_join(fish_data_SMS) %>% arrange(pop, year) %>% 
   mutate(forecast = year > max(fish_data_SMS$year)) %>% 
