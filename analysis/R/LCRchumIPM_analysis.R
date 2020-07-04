@@ -101,6 +101,8 @@ bio_data_origin <- bio_data %>%
 # (3) When calculating the observation error of log(M_obs), tau_M_obs, assume
 #     Abund_Mean and Abund_SD are the mean and SD of a lognormal posterior distribution
 #     of smolt abundance based on the sample
+# (4) If Abund_SD == 0 (when Analysis=="Census": some years in Duncan_Channel and 
+#     Hamilton_Channel) treat as NA
 juv_data <- read.csv(here("data", "Data_ChumJuvenileAbundance_2020-06-09.csv"), 
                      header = TRUE, stringsAsFactors = TRUE) %>% 
   rename(brood_year = Brood.Year, year = Outmigration.Year, strata = Strata, 
@@ -109,7 +111,7 @@ juv_data <- read.csv(here("data", "Data_ChumJuvenileAbundance_2020-06-09.csv"),
          M_obs = Abund_Mean, SD = Abund_SD, L95 = Abund_L95, U95 = Abund_U95, CV = Abund_CV,
          comments = Comments) %>% 
   mutate(pop = location_pop$pop2[match(location, location_pop$location)],
-         tau_M_obs = sqrt(log((SD/M_obs)^2 + 1))) %>% 
+         tau_M_obs = replace(sqrt(log((SD/M_obs)^2 + 1)), SD==0, NA)) %>% 
   select(strata, location, pop, year, brood_year, origin:CV, tau_M_obs, comments) %>% 
   arrange(strata, location, year)
 
@@ -380,6 +382,76 @@ loo_compare(LOO_SMS[c("exp","BH")])
 ## Beverton-Holt vs. Ricker
 loo_compare(LOO_SMS[c("BH","Ricker")])
 ## @knitr
+
+
+#--------------------------------------------------------------
+# Lower Columbia chum spawner-smolt-spawner IPM
+#--------------------------------------------------------------
+
+# Density-independent
+## @knitr fit_LCRchum_exp
+LCRchum_exp <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
+                         stan_model = "IPM_LCRchum_pp", SR_fun = "exp",
+                         pars = c("mu_alpha","sigma_alpha","alpha",
+                                  "beta_phi_M","rho_phi_M","sigma_phi_M","phi_M","sigma_M",
+                                  "mu_MS","beta_phi_MS","rho_phi_MS",
+                                  "sigma_phi_MS","phi_MS","sigma_MS","s_MS",
+                                  "mu_p","sigma_gamma","R_gamma","sigma_p","R_p","p",
+                                  "p_HOS","M","S","q","LL"),
+                         chains = 3, iter = 1500, warmup = 500,
+                         control = list(adapt_delta = 0.99, max_treedepth = 13))
+
+## @knitr print_LCRchum_exp
+print(LCRchum_exp, prob = c(0.025,0.5,0.975),
+      pars = c("alpha","phi_M","phi_MS","p","p_HOS","S","M","s_MS","q","LL"), 
+      include = FALSE, use_cache = FALSE)
+## @knitr
+
+launch_shinystan(LCRchum_exp)
+
+# Beverton-Holt
+## @knitr fit_LCRchum_BH
+LCRchum_BH <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
+                        stan_model = "IPM_LCRchum_pp", SR_fun = "BH",
+                        pars = c("mu_alpha","sigma_alpha","alpha",
+                                 "mu_Rmax","sigma_Rmax","Rmax","rho_alphaRmax",
+                                 "beta_phi_M","rho_phi_M","sigma_phi_M","phi_M","sigma_M",
+                                 "mu_MS","beta_phi_MS","rho_phi_MS",
+                                 "sigma_phi_MS","phi_MS","sigma_MS","s_MS",
+                                 "mu_p","sigma_gamma","R_gamma","sigma_p","R_p","p",
+                                 "p_HOS","M","S","q","LL"),
+                        chains = 3, iter = 1500, warmup = 500,
+                        control = list(adapt_delta = 0.99, max_treedepth = 13))
+
+## @knitr print_LCRchum_BH
+print(LCRchum_BH, prob = c(0.025,0.5,0.975),
+      pars = c("alpha","Rmax","phi_M","phi_MS","p","p_HOS","S","M","s_MS","q","LL"), 
+      include = FALSE, use_cache = FALSE)
+## @knitr
+
+launch_shinystan(LCRchum_BH)
+
+# Ricker
+## @knitr fit_LCRchum_Ricker
+LCRchum_Ricker <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
+                            stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
+                            pars = c("mu_alpha","sigma_alpha","alpha",
+                                     "mu_Rmax","sigma_Rmax","Rmax","rho_alphaRmax",
+                                     "beta_phi_M","rho_phi_M","sigma_phi_M","phi_M","sigma_M",
+                                     "mu_MS","beta_phi_MS","rho_phi_MS",
+                                     "sigma_phi_MS","phi_MS","sigma_MS","s_MS",
+                                     "mu_p","sigma_gamma","R_gamma","sigma_p","R_p","p",
+                                     "p_HOS","M","S","q","LL"),
+                            chains = 3, iter = 1500, warmup = 500,
+                            control = list(adapt_delta = 0.99, max_treedepth = 13))
+
+## @knitr print_LCRchum_Ricker
+print(LCRchum_Ricker, prob = c(0.025,0.5,0.975),
+      pars = c("alpha","Rmax","phi_M","phi_MS","p","p_HOS","S","M","s_MS","q","LL"), 
+      include = FALSE, use_cache = FALSE)
+## @knitr
+
+launch_shinystan(LCRchum_Ricker)
 
 
 #===========================================================================
