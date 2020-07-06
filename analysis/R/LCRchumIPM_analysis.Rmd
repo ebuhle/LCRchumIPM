@@ -3,18 +3,18 @@ title: 'Fitting Integrated Population Models to Lower Columbia River Chum Salmon
 author: "Eric Buhle, Kale Bentley, Thomas Buehrens, Mark Scheuerell, Todd Hillson, and ..."
 date: "`r format(Sys.time(), '%Y-%m-%d')`"
 output:
-  pdf_document:
-    highlight: haddock
-    toc: yes
-    number_sections: true
-    toc_depth: '3'
-  word_document:
-    toc: true
   html_document:
     df_print: paged
     fig_caption: true
     toc: true
     toc_float: true
+  word_document:
+    toc: true
+  pdf_document:
+    highlight: haddock
+    toc: yes
+    number_sections: true
+    toc_depth: '3'
 fontsize: 11pt
 geometry: margin=1in
 ---
@@ -55,7 +55,7 @@ Load the packages we'll need...
 
 Read in and manipulate the data...
 
-```{r data, warning=FALSE, message=FALSE}
+```{r data, warning = FALSE, message = FALSE}
 ```
 
 Let's look at the first few rows of `fish_data` to see the format **salmonIPM** expects...
@@ -71,95 +71,95 @@ Fit two-stage spawner-smolt-spawner models and explore output...
 
 Density-independent
 
-```{r fit_SMS_exp, eval = FALSE}
+```{r fit_LCRchum_exp, eval = !exists("LCRchum_exp")}
 ```
-```{r print_SMS_exp}
+```{r print_LCRchum_exp}
 ```
 
 Beverton-Holt
 
-```{r fit_SMS_BH, eval = FALSE}
+```{r fit_LCRchum_BH, eval = !exists("LCRchum_BH")}
 ```
-```{r print_SMS_BH}
+```{r print_LCRchum_BH}
 ```
 
 Ricker
 
-```{r fit_SMS_Ricker, eval = FALSE}
+```{r fit_LCRchum_Ricker, eval = !exists("LCRchum_Ricker")}
 ```
-```{r print_SMS_Ricker}
+```{r print_LCRchum_Ricker}
 ```
 
-Model comparison based on LOO (unhelpful because Pareto ks are too high)
+Model comparison based on LOO. Unhelpful because Pareto ks are too high, but appears to favor Beverton-Holt.
 
-```{r loo_SMS, warning = FALSE}
+```{r loo_LCRchum, warning = FALSE}
 ```
 
 Plot estimated spawner-smolt production curves and parameters for the Beverton-Holt model.
 
-```{r plot_SR_SMS_BH, echo=FALSE, fig.height=7, fig.width=7, warning=FALSE}
-mod_name <- "SMS_BH"
+```{r plot_SR_LCRchum_BH, echo=FALSE, fig.height=7, fig.width=7, warning=FALSE}
+mod_name <- "LCRchum_BH"
 <<plot_SR_params>>
 ```
 
-`r fig_nums("plot_SR_SMS_BH", "Estimated Beverton-Holt spawner-recruit relationship (A, B) and intrinsic productivity (C) and capacity (D) parameters for the multi-population IPM. Thin lines correspond to each of 12 populations of Lower Columbia chum salmon; thick lines represent hyper-means across populations. In (A, B), each curve is a posterior median and the shaded region represents the 90% credible interval of the hyper-mean curve (uncertainty around the population-specific curves is omitted for clarity).")`
+`r fig_nums("plot_SR_LCRchum_BH", "Estimated Beverton-Holt spawner-recruit relationship (A, B) and intrinsic productivity (C) and capacity (D) parameters for the multi-population IPM. Thin lines correspond to each of 12 populations of Lower Columbia chum salmon; thick lines represent hyper-means across populations. In (A, B), each curve is a posterior median and the shaded region represents the 90% credible interval of the hyper-mean curve (uncertainty around the population-specific curves is omitted for clarity).")`
 
 Now do the same for the Ricker model.
 
-```{r plot_SR_SMS_Ricker, echo = FALSE, warning = FALSE, fig.height = 7, fig.width = 7}
-mod_name <- "SMS_Ricker"
+```{r plot_SR_LCRchum_Ricker, echo = FALSE, warning = FALSE, fig.height = 7, fig.width = 7}
+mod_name <- "LCRchum_Ricker"
 <<plot_SR_params>>
 ```
 
-`r fig_nums("plot_SR_SMS_Ricker", "Estimated Ricker spawner-recruit relationship (A, B) and intrinsic productivity (C) and capacity (D) parameters for the multi-population IPM. Thin lines correspond to each of 12 populations of Lower Columbia River chum salmon; thick lines represent hyper-means across populations. In (A, B), each curve is a posterior median and the shaded region represents the 90% credible interval of the hyper-mean curve (uncertainty around the population-specific curves is omitted for clarity).")`
+`r fig_nums("plot_SR_LCRchum_Ricker", "Estimated Ricker spawner-recruit relationship (A, B) and intrinsic productivity (C) and capacity (D) parameters for the multi-population IPM. Thin lines correspond to each of 12 populations of Lower Columbia River chum salmon; thick lines represent hyper-means across populations. In (A, B), each curve is a posterior median and the shaded region represents the 90% credible interval of the hyper-mean curve (uncertainty around the population-specific curves is omitted for clarity).")`
 
-The Ricker model is more biologically plausible, so let's proceed with that model for now. Here are the fits to the spawner data:
+The Beverton-Holt model is biologically plausible and appears to be supported by LOO, albeit with caveats, so let's tentatively proceed with that model for now. Here are the fits to the spawner data:
 
-```{r plot_spawners_SMS_Ricker, echo = FALSE, fig.width=10, fig.height=6, out.width="100%"}
-mod_name <- "SMS_Ricker"
+```{r plot_spawners_LCRchum_BH, echo = FALSE, fig.width=10, fig.height=6, out.width="100%"}
+mod_name <- "LCRchum_BH"
 life_stage <- "S"
 <<plot_spawner_smolt_ts>>
 ```
 
-`r fig_nums("plot_spawners_SMS_Ricker", "Observed (points) and estimated spawner abundance for Lower Columbia River chum salmon populations. The posterior median (solid gray line) is from the multi-population IPM. Posterior 90% credible intervals indicate process (dark shading) and observation (light shading) uncertainty.")`
+`r fig_nums("plot_spawners_LCRchum_BH", "Observed (points) and estimated spawner abundance for Lower Columbia River chum salmon populations. The posterior median (solid gray line) is from the multi-population IPM. Posterior 90% credible intervals indicate process (dark shading) and observation (light shading) uncertainty.")`
 
 And here are the fits to the much sparser smolt data:
 
-```{r plot_smolts_SMS_Ricker, echo = FALSE, fig.width=10, fig.height=6, out.width="100%"}
-mod_name <- "SMS_Ricker"
+```{r plot_smolts_LCRchum_BH, echo = FALSE, fig.width=10, fig.height=6, out.width="100%"}
+mod_name <- "LCRchum_Ricker"
 life_stage <- "M"
 <<plot_spawner_smolt_ts>>
 ```
 
-`r fig_nums("plot_smolts_SMS_Ricker", "Observed (points) and estimated smolt abundance for Lower Columbia River chum salmon populations. The posterior median (solid gray line) is from the multi-population IPM. Posterior 90% credible intervals indicate process (dark shading) and observation (light shading) uncertainty.")`
+`r fig_nums("plot_smolts_LCRchum_BH", "Observed (points) and estimated smolt abundance for Lower Columbia River chum salmon populations. The posterior median (solid gray line) is from the multi-population IPM. Posterior 90% credible intervals indicate process (dark shading) and observation (light shading) uncertainty.")`
 
 We can examine how the model partitions shared interannual fluctuations between the two life-stage transitions...
 
-```{r plot_phi_SMS_Ricker, echo = FALSE, fig.width = 6, fig.height = 8}
-mod_name <- "SMS_Ricker"
+```{r plot_phi_LCRchum_BH, echo = FALSE, fig.width = 6, fig.height = 8}
+mod_name <- "LCRchum_BH"
 <<plot_phi>>
 ```
 
-`r fig_nums("plot_phi_SMS_Ricker", "Estimates of shared (ESU-level) process errors from the multi-population IPM fitted to Lower Columbia River chum salmon data. The top panel shows the shared anomalies around the Ricker spawner recruit function, and the bottom panel shows the average SAR.")`
+`r fig_nums("plot_phi_LCRchum_Ricker", "Estimates of shared (ESU-level) process errors from the multi-population IPM fitted to Lower Columbia River chum salmon data. The top panel shows the shared anomalies around the Ricker spawner recruit function, and the bottom panel shows the average SAR.")`
 
 
 # Forecasting
 
 It is straightforward to use the IPM to generate forecasts of population dynamics...
 
-```{r plot_spawners_SMS_Ricker_fore, echo = FALSE, fig.width=10, fig.height=6, out.width="100%"}
-mod_name <- "SMS_Ricker_fore"
+```{r plot_spawners_LCRchum_BH_fore, echo = FALSE, fig.width=10, fig.height=6, out.width="100%"}
+mod_name <- "LCRchum_BH_fore"
 life_stage <- "S"
 <<plot_spawner_smolt_ts>>
 ```
 
-`r fig_nums("plot_spawners_SMS_Ricker_fore", "Observed (points) and estimated spawner abundance for Lower Columbia River chum salmon populations, including 5-year forecasts. The posterior median (solid gray line) is from the multi-population IPM. Posterior 90% credible intervals indicate process (dark shading) and observation (light shading) uncertainty.")`
+`r fig_nums("plot_spawners_LCRchum_BH_fore", "Observed (points) and estimated spawner abundance for Lower Columbia River chum salmon populations, including 5-year forecasts. The posterior median (solid gray line) is from the multi-population IPM. Posterior 90% credible intervals indicate process (dark shading) and observation (light shading) uncertainty.")`
 
 
 Of course we could also look at forecasts of smolts, or any other state variable. Here are the 2020 forecasts of wild spawners for each population...
 
 ```{r spawner_forecast_table, echo = FALSE}
-mod_name <- "SMS_Ricker_fore"
+mod_name <- "LCRchum_BH_fore"
 life_stage <- "S"   # "S" = spawners, "M" = smolts
 <<forecast_df>>
 kable(forecast_df, align = "l") %>% 

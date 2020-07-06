@@ -194,13 +194,9 @@ bio_data %>% mutate(age = substring(age,5,5)) %>% group_by(origin_HW, sex, age) 
 # Density-independent
 ## @knitr fit_SS_exp
 SS_exp <- salmonIPM(fish_data = fish_data_SS, stan_model = "IPM_SS_pp", SR_fun = "exp",
-                   pars = c("mu_alpha","sigma_alpha","alpha",
-                            "sigma_phi","rho_phi","phi",
-                            "mu_p","sigma_gamma","R_gamma","gamma",
-                            "sigma_p","R_p","p",
-                            "p_HOS","sigma","tau","S","R","q","LL"),
-                   chains = 3, iter = 1500, warmup = 500,
-                   control = list(adapt_delta = 0.99, max_treedepth = 13))
+                    pars = c("B_rate_all","mu_Rmax","sigma_Rmax","Rmax"), include = FALSE, 
+                    log_lik = TRUE, chains = 3, iter = 1500, warmup = 500,
+                    control = list(adapt_delta = 0.99, max_treedepth = 13))
 
 ## @knitr print_SS_exp
 print(SS_exp, prob = c(0.025,0.5,0.975),
@@ -213,14 +209,9 @@ launch_shinystan(SS_exp)
 # Beverton-Holt
 ## @knitr fit_SS_BH
 SS_BH <- salmonIPM(fish_data = fish_data_SS, stan_model = "IPM_SS_pp", SR_fun = "BH",
-                    pars = c("mu_alpha","sigma_alpha","alpha",
-                             "mu_Rmax","sigma_Rmax","Rmax","rho_alphaRmax",
-                             "sigma_phi","rho_phi","phi",
-                             "mu_p","sigma_gamma","R_gamma","gamma",
-                             "sigma_p","R_p","p",
-                             "p_HOS","sigma","tau","S","R","q","LL"),
-                    chains = 3, iter = 1500, warmup = 500,
-                    control = list(adapt_delta = 0.99, max_treedepth = 13))
+                   pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
+                   chains = 3, iter = 1500, warmup = 500,
+                   control = list(adapt_delta = 0.99, max_treedepth = 13))
 
 ## @knitr print_SS_BH
 print(SS_BH, prob = c(0.025,0.5,0.975),
@@ -233,12 +224,7 @@ launch_shinystan(SS_BH)
 # Ricker
 ## @knitr fit_SS_Ricker
 SS_Ricker <- salmonIPM(fish_data = fish_data_SS, stan_model = "IPM_SS_pp", SR_fun = "Ricker",
-                       pars = c("mu_alpha","sigma_alpha","alpha",
-                                "mu_Rmax","sigma_Rmax","Rmax","rho_alphaRmax",
-                                "sigma_phi","rho_phi","phi",
-                                "mu_p","sigma_gamma","R_gamma","gamma",
-                                "sigma_p","R_p","p",
-                                "p_HOS","sigma","tau","S","R","q","LL"),
+                       pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
                        chains = 3, iter = 1500, warmup = 500,
                        control = list(adapt_delta = 0.99, max_treedepth = 13))
 
@@ -290,13 +276,8 @@ loo_compare(LOO_SS[c("BH","Ricker")])
 ## @knitr fit_SMS_exp
 SMS_exp <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
                      stan_model = "IPM_SMS_pp", SR_fun = "exp",
-                     pars = c("mu_alpha","sigma_alpha","alpha",
-                              "beta_phi_M","rho_phi_M","sigma_phi_M","phi_M","sigma_M",
-                              "mu_MS","beta_phi_MS","rho_phi_MS",
-                              "sigma_phi_MS","phi_MS","sigma_MS","s_MS",
-                              "mu_p","sigma_gamma","R_gamma","sigma_p","R_p","p",
-                              "tau_M","tau_S","p_HOS","M","S","q","LL"),
-                     chains = 3, iter = 1500, warmup = 500,
+                     pars = c("B_rate_all","mu_Rmax","sigma_Rmax","Rmax"), include = FALSE, 
+                     log_lik = TRUE, chains = 3, iter = 1500, warmup = 500,
                      control = list(adapt_delta = 0.99, max_treedepth = 13))
 
 ## @knitr print_SMS_exp
@@ -311,13 +292,7 @@ launch_shinystan(SMS_exp)
 ## @knitr fit_SMS_BH
 SMS_BH <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
                     stan_model = "IPM_SMS_pp", SR_fun = "BH",
-                    pars = c("mu_alpha","sigma_alpha","alpha",
-                             "mu_Rmax","sigma_Rmax","Rmax","rho_alphaRmax",
-                             "beta_phi_M","rho_phi_M","sigma_phi_M","phi_M","sigma_M",
-                             "mu_MS","beta_phi_MS","rho_phi_MS",
-                             "sigma_phi_MS","phi_MS","sigma_MS","s_MS",
-                             "mu_p","sigma_gamma","R_gamma","sigma_p","R_p","p",
-                             "tau_M","tau_S","p_HOS","M","S","q","LL"),
+                    pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
                     chains = 3, iter = 1500, warmup = 500,
                     control = list(adapt_delta = 0.99, max_treedepth = 13))
 
@@ -333,13 +308,7 @@ launch_shinystan(SMS_BH)
 ## @knitr fit_SMS_Ricker
 SMS_Ricker <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
                         stan_model = "IPM_SMS_pp", SR_fun = "Ricker",
-                        pars = c("mu_alpha","sigma_alpha","alpha",
-                                 "mu_Rmax","sigma_Rmax","Rmax","rho_alphaRmax",
-                                 "beta_phi_M","rho_phi_M","sigma_phi_M","phi_M","sigma_M",
-                                 "mu_MS","beta_phi_MS","rho_phi_MS",
-                                 "sigma_phi_MS","phi_MS","sigma_MS","s_MS",
-                                 "mu_p","sigma_gamma","R_gamma","sigma_p","R_p","p",
-                                 "tau_M","tau_S","p_HOS","M","S","q","LL"),
+                        pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
                         chains = 3, iter = 1500, warmup = 500,
                         control = list(adapt_delta = 0.99, max_treedepth = 13))
 
@@ -392,18 +361,15 @@ loo_compare(LOO_SMS[c("BH","Ricker")])
 ## @knitr fit_LCRchum_exp
 LCRchum_exp <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
                          stan_model = "IPM_LCRchum_pp", SR_fun = "exp",
-                         pars = c("mu_alpha","sigma_alpha","alpha",
-                                  "beta_phi_M","rho_phi_M","sigma_phi_M","phi_M","sigma_M",
-                                  "mu_MS","beta_phi_MS","rho_phi_MS",
-                                  "sigma_phi_MS","phi_MS","sigma_MS","s_MS",
-                                  "mu_p","sigma_gamma","R_gamma","sigma_p","R_p","p",
-                                  "p_HOS","M","S","q","LL"),
+                         pars = c("B_rate_all","mu_Rmax","sigma_Rmax","rho_alphaRmax","Rmax"), 
+                         include = FALSE, log_lik = TRUE, 
                          chains = 3, iter = 1500, warmup = 500,
-                         control = list(adapt_delta = 0.99, max_treedepth = 13))
+                         control = list(adapt_delta = 0.95, max_treedepth = 13))
 
 ## @knitr print_LCRchum_exp
 print(LCRchum_exp, prob = c(0.025,0.5,0.975),
-      pars = c("alpha","phi_M","phi_MS","p","p_HOS","S","M","s_MS","q","LL"), 
+      pars = c("alpha","rho_alphaRmax","phi_M","phi_MS","gamma","p","tau_M","tau_S",
+               "p_HOS","S","M","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
@@ -413,19 +379,14 @@ launch_shinystan(LCRchum_exp)
 ## @knitr fit_LCRchum_BH
 LCRchum_BH <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
                         stan_model = "IPM_LCRchum_pp", SR_fun = "BH",
-                        pars = c("mu_alpha","sigma_alpha","alpha",
-                                 "mu_Rmax","sigma_Rmax","Rmax","rho_alphaRmax",
-                                 "beta_phi_M","rho_phi_M","sigma_phi_M","phi_M","sigma_M",
-                                 "mu_MS","beta_phi_MS","rho_phi_MS",
-                                 "sigma_phi_MS","phi_MS","sigma_MS","s_MS",
-                                 "mu_p","sigma_gamma","R_gamma","sigma_p","R_p","p",
-                                 "p_HOS","M","S","q","LL"),
+                        pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
                         chains = 3, iter = 1500, warmup = 500,
-                        control = list(adapt_delta = 0.99, max_treedepth = 13))
+                        control = list(adapt_delta = 0.95, max_treedepth = 13))
 
 ## @knitr print_LCRchum_BH
 print(LCRchum_BH, prob = c(0.025,0.5,0.975),
-      pars = c("alpha","Rmax","phi_M","phi_MS","p","p_HOS","S","M","s_MS","q","LL"), 
+      pars = c("alpha","Rmax","phi_M","phi_MS","gamma","p","tau_M","tau_S",
+               "p_HOS","S","M","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
@@ -433,25 +394,54 @@ launch_shinystan(LCRchum_BH)
 
 # Ricker
 ## @knitr fit_LCRchum_Ricker
-LCRchum_Ricker <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
-                            stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
-                            pars = c("mu_alpha","sigma_alpha","alpha",
-                                     "mu_Rmax","sigma_Rmax","Rmax","rho_alphaRmax",
-                                     "beta_phi_M","rho_phi_M","sigma_phi_M","phi_M","sigma_M",
-                                     "mu_MS","beta_phi_MS","rho_phi_MS",
-                                     "sigma_phi_MS","phi_MS","sigma_MS","s_MS",
-                                     "mu_p","sigma_gamma","R_gamma","sigma_p","R_p","p",
-                                     "p_HOS","M","S","q","LL"),
+LCRchum_Ricker <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1), 
+                            stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", 
+                            pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
                             chains = 3, iter = 1500, warmup = 500,
-                            control = list(adapt_delta = 0.99, max_treedepth = 13))
+                            control = list(adapt_delta = 0.95, max_treedepth = 13))
 
 ## @knitr print_LCRchum_Ricker
 print(LCRchum_Ricker, prob = c(0.025,0.5,0.975),
-      pars = c("alpha","Rmax","phi_M","phi_MS","p","p_HOS","S","M","s_MS","q","LL"), 
+      pars = c("alpha","Rmax","phi_M","phi_MS","gamma","p","tau_M","tau_S",
+               "p_HOS","S","M","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
 launch_shinystan(LCRchum_Ricker)
+
+
+#--------------------------------------------------------------
+# Model selection using LOO
+#--------------------------------------------------------------
+
+# Observationwise log-likelihood of each fitted model
+# Here an observation is a row of fish_data, and the total likelihood includes 
+# components for smolt abundance, spawner abundance, age-frequency, H/W-frequency,
+# and smolt and spawner observation error SDs
+## @knitr loo_LCRchum
+LL_LCRchum <- lapply(list(exp = LCRchum_exp, BH = LCRchum_BH, Ricker = LCRchum_Ricker),
+                 loo::extract_log_lik, parameter_name = "LL", merge_chains = FALSE)
+
+# Relative ESS of posterior draws of observationwise likelihood 
+r_eff_LCRchum <- lapply(LL_LCRchum, function(x) relative_eff(exp(x)))
+
+# PSIS-LOO
+LOO_LCRchum <- lapply(1:length(LL_LCRchum), 
+                      function(i) loo(LL_LCRchum[[i]], r_eff = r_eff_LCRchum[[i]]))
+names(LOO_LCRchum) <- names(LL_LCRchum)
+
+## Compare all three models
+loo_compare(LOO_LCRchum)
+
+## Exponential vs. Ricker
+loo_compare(LOO_LCRchum[c("exp","Ricker")])
+
+## Exponential vs. Beverton-Holt
+loo_compare(LOO_LCRchum[c("exp","BH")])
+
+## Beverton-Holt vs. Ricker
+loo_compare(LOO_LCRchum[c("BH","Ricker")])
+## @knitr
 
 
 #===========================================================================
@@ -459,26 +449,20 @@ launch_shinystan(LCRchum_Ricker)
 #===========================================================================
 
 #--------------------------------------------------------------
-# Spawner-smolt-spawner IPM
+# Lower Columbia chum spawner-smolt-spawner IPM
 #--------------------------------------------------------------
 
 # Ricker
-## @knitr fit_SMS_Ricker_fore
-SMS_Ricker_fore <- salmonIPM(fish_data = fish_data_SMS_fore, ages = list(M = 1),
-                             stan_model = "IPM_SMS_pp", SR_fun = "Ricker",
-                             pars = c("mu_alpha","sigma_alpha","alpha",
-                                      "mu_Rmax","sigma_Rmax","Rmax","rho_alphaRmax",
-                                      "beta_phi_M","rho_phi_M","sigma_phi_M","phi_M","sigma_M",
-                                      "mu_MS","beta_phi_MS","rho_phi_MS",
-                                      "sigma_phi_MS","phi_MS","sigma_MS","s_MS",
-                                      "mu_p","sigma_gamma","R_gamma","sigma_p","R_p","p",
-                                      "tau_M","tau_S","p_HOS","M","S","q","LL"),
-                             chains = 3, iter = 1500, warmup = 500,
-                             control = list(adapt_delta = 0.99, max_treedepth = 13))
+## @knitr fit_LCRchum_BH_fore
+LCRchum_BH_fore <- salmonIPM(fish_data = fish_data_SMS_fore, ages = list(M = 1),
+                             stan_model = "IPM_LCRchum_pp", SR_fun = "BH",
+                             pars = c("alpha","Rmax","gamma","p","p_HOS","B_rate_all"), 
+                             include = FALSE, chains = 3, iter = 1500, warmup = 500,
+                             control = list(adapt_delta = 0.95, max_treedepth = 13))
 
-## @knitr print_SMS_Ricker_fore
-print(SMS_Ricker_fore, prob = c(0.025,0.5,0.975),
-      pars = c("alpha","Rmax","phi_M","phi_MS","p","p_HOS","S","M","s_MS","q","LL"), 
+## @knitr print_LCRchum_BH_fore
+print(LCRchum_BH_fore, prob = c(0.025,0.5,0.975),
+      pars = c("phi_M","phi_MS","tau_M","tau_S","S","M","s_MS","q"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
@@ -500,14 +484,15 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 # S-R curves and posterior distributions of parameters
 #--------------------------------------------------------------------
 
-mod_name <- "SMS_Ricker"
-dev.new(width = 7, height = 7)
-# png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
-#     width=7, height=7, units="in", res=200, type="cairo-png")
+mod_name <- "LCRchum_BH"
+
+# dev.new(width = 7, height = 7)
+png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
+    width=7, height=7, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_SR_params
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
-dat <- switch(life_cycle, SS = fish_data_SS, SMS = fish_data_SMS)
+dat <- switch(life_cycle, SS = fish_data_SS, SMS = fish_data_SMS, LCRchum = fish_data_SMS)
 SR_fun <- unlist(strsplit(mod_name, "_"))[2]
 
 SR_eval <- function(alpha, Rmax = NULL, S, SR_fun = "BH") 
@@ -543,22 +528,22 @@ plot(S[1,], colMedians(R_ESU_IPM), type = "l", lwd=3, col = c1, las = 1,
      cex.axis = 1.2, cex.lab = 1.8, xaxs = "i", yaxs = "i", yaxt = "n", 
      ylim = range(R_pop_IPM), xlab="Spawners", ylab = "")
 tck <- axTicks(side = 2)
-axis(side = 2, at = tck, labels = tck * switch(life_cycle, SS = 1, SMS = 1/1000), 
-     las = 1, cex.axis = 1.2)
+axis(side = 2, at = tck, las = 1, cex.axis = 1.2, 
+     labels = tck * ifelse(life_cycle=="SS", 1, 1/1000))
 for(i in 1:ncol(R_pop_IPM))
   lines(S[1,], R_pop_IPM[,i], col = c1t)
 polygon(c(S[1,], rev(S[1,])), 
         c(colQuantiles(R_ESU_IPM, probs = 0.05), rev(colQuantiles(R_ESU_IPM, probs = 0.95))), 
         col = c1tt, border = NA)
 rug(S_IPM, col = c1)
-title(ylab = switch(life_cycle, SS = "Recruits", SMS = "Smolts (thousands)"), 
+title(ylab = ifelse(life_cycle=="SS", "Recruits", "Smolts (thousands)"), 
       line = 3.5, cex.lab = 1.8)
 text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "A", cex = 2)
 
 # log(recruits/spawner) vs. spawners
 plot(S[1,], colMedians(log(R_ESU_IPM/S)), type = "l", lwd=3, col = c1, las = 1,
      cex.axis = 1.2, cex.lab = 1.8, xaxs = "i", yaxs = "i", xlab="Spawners", 
-     ylab = switch(life_cycle, SS = "log(recruits/spawner)", SMS = "log(smolts/spawner)"),
+     ylab = ifelse(life_cycle=="SS", "log(recruits/spawner)", "log(smolts/spawner)"),
      ylim = range(colQuantiles(log(R_ESU_IPM/S), probs = c(0.05,0.95)), na.rm = TRUE))
 for(i in 1:ncol(R_pop_IPM))
   lines(S[1,], log(R_pop_IPM[,i]/S[1,]), col = c1t)
@@ -603,33 +588,35 @@ text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "D", cex = 2)
 rm(list=c("mod_name","life_cycle","SR_fun","mu_alpha","mu_Rmax","S","R_ESU_IPM","tck",
           "c1","c1t","c1tt","dd_IPM_ESU","dd_IPM_pop","alpha","Rmax","R_pop_IPM","S_IPM"))
 ## @knitr
-# dev.off()
+dev.off()
 
 
 #--------------------------------------------------------------------------------
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "SMS_Ricker"
+mod_name <- "LCRchum_BH"
 life_stage <- "S"   # "S" = spawners, "M" = smolts
 
-dev.new(width=13,height=8)
-# png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
-#     width=13*0.9, height=8*0.9, units="in", res=200, type="cairo-png")
+# dev.new(width=13,height=8)
+png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
+    width=13*0.9, height=8*0.9, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_spawner_smolt_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
 forecasting <- ifelse(is.na(unlist(strsplit(mod_name, "_"))[3]), "no", "yes")
 dat <- switch(life_cycle, SS = fish_data_SS, 
-              SMS = switch(forecasting, no = fish_data_SMS, yes = fish_data_SMS_fore))
+              SMS = switch(forecasting, no = fish_data_SMS, yes = fish_data_SMS_fore),
+              LCRchum = switch(forecasting, no = fish_data_SMS, yes = fish_data_SMS_fore))
 
 par(mfrow=c(3,4), mar=c(1,3,4.1,1), oma=c(4.1,3.1,0,0))
 
 N_obs <- dat[,paste0(life_stage, "_obs")]
 N_IPM <- do.call(extract1, list(as.name(mod_name), life_stage))
-tau <- do.call(extract1, list(as.name(mod_name), 
-                    switch(life_cycle, SS = "tau",
-                           SMS = switch(life_stage, M = "tau_M", S = "tau_S"))))
+tau <- do.call(extract1, list(as.name(mod_name),
+                              switch(life_cycle, SS = "tau",
+                                     SMS = switch(life_stage, M = "tau_M", S = "tau_S"),
+                                     LCRchum = switch(life_stage, M = "tau_M", S = "tau_S"))))
 N_obs_IPM <- N_IPM * rlnorm(length(N_IPM), 0, tau)
 
 c1 <- "slategray4"
@@ -643,7 +630,7 @@ for(i in levels(dat$pop))
        xlim = range(dat$year),
        ylim = range(pmax(N_obs[dat$pop==i], 1),
                     colQuantiles(N_obs_IPM[,dat$pop==i], probs = c(0.05,0.95)), na.rm = T), 
-       las = 1, xaxt = "n", yaxs = "i", yaxt = "n", xlab = "", ylab = "", log = "y")
+       las = 1, xaxt = "n", yaxt = "n", xlab = "", ylab = "", log = "y")
   axis(side = 1, at = yi[yi %% 5 == 0], cex.axis = 1.2)
   rug(yi[yi %% 5 != 0], ticksize = -0.02)
   # tck <- maglab(10^par("usr")[3:4], log = TRUE)
@@ -670,19 +657,20 @@ for(i in levels(dat$pop))
 rm(list = c("mod_name","forecasting","life_stage","life_cycle","dat",
             "N_IPM","N_obs_IPM","N_obs","c1","c1t","c1tt","yi","tau"))
 ## @knitr
-# dev.off()
+dev.off()
 
 
 #--------------------------------------------------------------------------------
 # Tabular summary of 1-year-ahead forecasts by pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "SMS_Ricker_fore"
+mod_name <- "LCRchum_BH_fore"
 life_stage <- "S"   # "S" = spawners, "M" = smolts
 
 ## @knitr forecast_df
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
-dat <- switch(life_cycle, SS = fish_data_SS_fore, SMS = fish_data_SMS_fore)
+dat <- switch(life_cycle, SS = fish_data_SS_fore, SMS = fish_data_SMS_fore,
+              LCRchum = fish_data_SMS_fore)
 y <- dat$year
 y1 <- min(dat$year[dat$forecast])
 pop <- c(as.character(dat$pop[dat$year==y1]), "Total")
@@ -740,11 +728,11 @@ rm(list = c("mod_name","y","phi","c1","c1t"))
 # Shared recruitment and SAR process errors (brood year productivity anomalies)
 #--------------------------------------------------------------------------------
 
-mod_name <- "SMS_Ricker"
+mod_name <- "LCRchum_BH"
 
-dev.new(width=6,height=8)
-# png(filename=here("analysis","results",paste0("phi_", mod_name, ".png")),
-#     width=6, height=8, units="in", res=200, type="cairo-png")
+# dev.new(width=6,height=8)
+png(filename=here("analysis","results",paste0("phi_", mod_name, ".png")),
+    width=6, height=8, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_phi
 y <- sort(unique(fish_data_SMS$year))
@@ -784,7 +772,7 @@ rug(y[y %% 5 != 0], ticksize = -0.02)
 
 rm(list = c("mod_name","y","phi_M","phi_MS","s_hat_MS","c1","c1t"))
 ## @knitr
-# dev.off()
+dev.off()
 
 
 #--------------------------------------------------------------------------------
@@ -836,4 +824,59 @@ rm(list = c("mod_name","sigma","sigma_phi","rho_phi","sd_phi","sigma_tot","tau",
             "dd_sigma","dd_sd_phi","dd_sigma_tot","dd_tau"))
 
 
+#--------------------------------------------------------------------------------
+# Lower Columbia chum spawner-smolt-spawner #
+# Observed and fitted distributions of "known" smolt and spawner 
+# observation error SDs
+#--------------------------------------------------------------------------------
+
+mod_name <- "LCRchum_BH"
+
+# dev.new(width=6,height=8)
+png(filename=here("analysis","results",paste0("tau_fit_", mod_name, ".png")),
+    width=6, height=8, units="in", res=200, type="cairo-png")
+
+## @knitr plot_obs_error_fit
+tau_M_obs <- fish_data_SMS$tau_M_obs
+tau_M_seq <- seq(min(tau_M_obs, na.rm = TRUE), max(tau_M_obs, na.rm = TRUE), length = 100)
+mu_tau_M <- do.call(extract1, list(as.name(mod_name), "mu_tau_M"))
+sigma_tau_M <- do.call(extract1, list(as.name(mod_name), "sigma_tau_M"))
+tau_M_fit <- sapply(tau_M_seq, function(x) dlnorm(x, log(mu_tau_M), sigma_tau_M))
+
+tau_S_obs <- fish_data_SMS$tau_S_obs
+tau_S_seq <- seq(min(tau_S_obs, na.rm = TRUE), max(tau_S_obs, na.rm = TRUE), length = 100)
+mu_tau_S <- do.call(extract1, list(as.name(mod_name), "mu_tau_S"))
+sigma_tau_S <- do.call(extract1, list(as.name(mod_name), "sigma_tau_S"))
+tau_S_fit <- sapply(tau_S_seq, function(x) dlnorm(x, log(mu_tau_S), sigma_tau_S))
+
+c1 <- "slategray4"
+c1t <- transparent(c1, trans.val = 0.6)
+
+par(mfcol = c(2,1), mar = c(5.1,5.1,2,2),  oma = c(0,0.1,0,0))
+
+# smolt observation error SD
+hist(tau_M_obs, 10, prob = TRUE, las = 1, cex.axis = 1.2, cex.lab = 1.5, 
+     col = "lightgray", border = "white",
+     ylim = c(0, max(colQuantiles(tau_M_fit, probs = 0.95))),
+     xlab = bquote(tau[italic(M)]), ylab = "Probability density", 
+     main = "Smolt observation error")
+polygon(c(tau_M_seq, rev(tau_M_seq)),
+        c(colQuantiles(tau_M_fit, probs = 0.05), rev(colQuantiles(tau_M_fit, probs = 0.95))),
+        col = c1t, border = NA)
+lines(tau_M_seq, colMedians(tau_M_fit), col = c1, lwd = 3)
+
+# spawner observation error SD
+hist(tau_S_obs, 20, prob = TRUE, las = 1, cex.axis = 1.2, cex.lab = 1.5, 
+     col = "lightgray", border = "white",
+     ylim = c(0, max(colQuantiles(tau_S_fit, probs = 0.95))),
+     xlab = bquote(tau[italic(S)]), ylab = "Probability density", main = "Spawner observation error")
+polygon(c(tau_S_seq, rev(tau_S_seq)),
+        c(colQuantiles(tau_S_fit, probs = 0.05), rev(colQuantiles(tau_S_fit, probs = 0.95))),
+        col = c1t, border = NA)
+lines(tau_S_seq, colMedians(tau_S_fit), col = c1, lwd = 3)
+
+rm(list = c("mod_name","tau_M_obs","tau_M_seq","mu_tau_M","sigma_tau_M","tau_M_fit",
+            "tau_S_obs","tau_S_seq","mu_tau_S","sigma_tau_S","tau_S_fit","c1","c1t"))
+## @knitr
+dev.off()
 
