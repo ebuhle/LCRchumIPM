@@ -101,17 +101,17 @@ bio_data_origin <- bio_data %>%
 # (3) When calculating the observation error of log(M_obs), tau_M_obs, assume
 #     Abund_Mean and Abund_SD are the mean and SD of a lognormal posterior distribution
 #     of smolt abundance based on the sample
-# (4) If Abund_SD == 0 (when Analysis=="Census": some years in Duncan_Channel and 
+# (4) If Abund_SD == 0 (when Analysis=="Census": some years in Duncan_Creek and 
 #     Hamilton_Channel) treat as NA
 juv_data <- read.csv(here("data", "Data_ChumJuvenileAbundance_2020-06-09.csv"), 
                      header = TRUE, stringsAsFactors = TRUE) %>% 
   rename(brood_year = Brood.Year, year = Outmigration.Year, strata = Strata, 
          location = Location.Reach, origin = Origin, trap_type = TrapType, 
          analysis = Analysis, partial_spawners = Partial.Spawners, raw_catch = RawCatch,
-         M_obs = Abund_Mean, SD = Abund_SD, L95 = Abund_L95, U95 = Abund_U95, CV = Abund_CV,
-         comments = Comments) %>% 
+         M_obs = Abund_Median, mean = Abund_Mean, SD = Abund_SD, 
+         L95 = Abund_L95, U95 = Abund_U95, CV = Abund_CV, comments = Comments) %>% 
   mutate(pop = location_pop$pop2[match(location, location_pop$location)],
-         tau_M_obs = replace(sqrt(log((SD/M_obs)^2 + 1)), SD==0, NA)) %>% 
+         tau_M_obs = replace(sqrt(log((SD/mean)^2 + 1)), SD==0, NA)) %>% 
   select(strata, location, pop, year, brood_year, origin:CV, tau_M_obs, comments) %>% 
   arrange(strata, location, year)
 
@@ -364,7 +364,7 @@ LCRchum_exp <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
                          pars = c("B_rate_all","mu_Rmax","sigma_Rmax","rho_alphaRmax","Rmax"), 
                          include = FALSE, log_lik = TRUE, 
                          chains = 3, iter = 1500, warmup = 500,
-                         control = list(adapt_delta = 0.95, max_treedepth = 13))
+                         control = list(adapt_delta = 0.99, max_treedepth = 13))
 
 ## @knitr print_LCRchum_exp
 print(LCRchum_exp, prob = c(0.025,0.5,0.975),
@@ -381,7 +381,7 @@ LCRchum_BH <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
                         stan_model = "IPM_LCRchum_pp", SR_fun = "BH",
                         pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
                         chains = 3, iter = 1500, warmup = 500,
-                        control = list(adapt_delta = 0.95, max_treedepth = 13))
+                        control = list(adapt_delta = 0.99, max_treedepth = 13))
 
 ## @knitr print_LCRchum_BH
 print(LCRchum_BH, prob = c(0.025,0.5,0.975),
@@ -398,7 +398,7 @@ LCRchum_Ricker <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
                             stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", 
                             pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
                             chains = 3, iter = 1500, warmup = 500,
-                            control = list(adapt_delta = 0.95, max_treedepth = 13))
+                            control = list(adapt_delta = 0.99, max_treedepth = 13))
 
 ## @knitr print_LCRchum_Ricker
 print(LCRchum_Ricker, prob = c(0.025,0.5,0.975),
@@ -458,7 +458,7 @@ LCRchum_BH_fore <- salmonIPM(fish_data = fish_data_SMS_fore, ages = list(M = 1),
                              stan_model = "IPM_LCRchum_pp", SR_fun = "BH",
                              pars = c("alpha","Rmax","gamma","p","p_HOS","B_rate_all"), 
                              include = FALSE, chains = 3, iter = 1500, warmup = 500,
-                             control = list(adapt_delta = 0.95, max_treedepth = 13))
+                             control = list(adapt_delta = 0.99, max_treedepth = 13))
 
 ## @knitr print_LCRchum_BH_fore
 print(LCRchum_BH_fore, prob = c(0.025,0.5,0.975),
@@ -508,6 +508,7 @@ mu_alpha <- as.vector(do.call(extract1, list(as.name(mod_name), "mu_alpha")))
 mu_Rmax <- as.vector(do.call(extract1, list(as.name(mod_name), "mu_Rmax")))
 # S <- matrix(seq(0, quantile(dat$S_obs/dat$A, 0.9, na.rm = TRUE), length = 100),
 #             nrow = length(mu_alpha), ncol = 100, byrow = TRUE)
+scl <- ifelse(life_cycle == "SS", 1, 1e-6)
 S <- matrix(seq(0, quantile(S_IPM/dat$A, 0.9, na.rm = TRUE), length = 100),
             nrow = length(mu_alpha), ncol = 100, byrow = TRUE)
 R_ESU_IPM <- SR_eval(alpha = exp(mu_alpha), Rmax = exp(mu_Rmax), S = S, SR_fun = SR_fun)
@@ -524,25 +525,23 @@ c1tt <- transparent(c1, trans.val = 0.7)
 par(mfrow = c(2,2), mar = c(5.1,5.1,1,1))
 
 # Recruits vs. spawners
-plot(S[1,], colMedians(R_ESU_IPM), type = "l", lwd=3, col = c1, las = 1,
-     cex.axis = 1.2, cex.lab = 1.8, xaxs = "i", yaxs = "i", yaxt = "n", 
-     ylim = range(R_pop_IPM), xlab="Spawners", ylab = "")
-tck <- axTicks(side = 2)
-axis(side = 2, at = tck, las = 1, cex.axis = 1.2, 
-     labels = tck * ifelse(life_cycle=="SS", 1, 1/1000))
+plot(S[1,], colMedians(R_ESU_IPM*scl), type = "l", lwd=3, col = c1, las = 1,
+     cex.axis = 1.2, cex.lab = 1.5, xaxs = "i", yaxs = "i", #yaxt = "n", 
+     ylim = range(R_pop_IPM*scl), xlab="Spawners", ylab = "")
 for(i in 1:ncol(R_pop_IPM))
-  lines(S[1,], R_pop_IPM[,i], col = c1t)
+  lines(S[1,], R_pop_IPM[,i]*scl, col = c1t)
 polygon(c(S[1,], rev(S[1,])), 
-        c(colQuantiles(R_ESU_IPM, probs = 0.05), rev(colQuantiles(R_ESU_IPM, probs = 0.95))), 
+        c(colQuantiles(R_ESU_IPM*scl, probs = 0.05), 
+          rev(colQuantiles(R_ESU_IPM*scl, probs = 0.95))), 
         col = c1tt, border = NA)
 rug(S_IPM, col = c1)
-title(ylab = ifelse(life_cycle=="SS", "Recruits", "Smolts (thousands)"), 
-      line = 3.5, cex.lab = 1.8)
-text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "A", cex = 2)
+title(ylab = ifelse(life_cycle=="SS", "Recruits", "Smolts (millions)"), 
+      line = 3.5, cex.lab = 1.5)
+text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "A", cex = 1.5)
 
 # log(recruits/spawner) vs. spawners
 plot(S[1,], colMedians(log(R_ESU_IPM/S)), type = "l", lwd=3, col = c1, las = 1,
-     cex.axis = 1.2, cex.lab = 1.8, xaxs = "i", yaxs = "i", xlab="Spawners", 
+     cex.axis = 1.2, cex.lab = 1.5, xaxs = "i", yaxs = "i", xlab="Spawners", 
      ylab = ifelse(life_cycle=="SS", "log(recruits/spawner)", "log(smolts/spawner)"),
      ylim = range(colQuantiles(log(R_ESU_IPM/S), probs = c(0.05,0.95)), na.rm = TRUE))
 for(i in 1:ncol(R_pop_IPM))
@@ -552,7 +551,7 @@ polygon(c(S[1,], rev(S[1,])),
           rev(colQuantiles(log(R_ESU_IPM/S), probs = 0.95))),
         col = c1tt, border = NA)
 rug(S_IPM, col = c1)
-text(par("usr")[2], par("usr")[4], adj = c(1.5,1.5), "B", cex = 2)
+text(par("usr")[2], par("usr")[4], adj = c(1.5,1.5), "B", cex = 1.5)
 
 # Posterior densities of log(alpha)
 dd_IPM_ESU <- density(mu_alpha)
@@ -566,8 +565,8 @@ plot(dd_IPM_ESU$x, dd_IPM_ESU$y, type = "l", lwd = 3, col = c1, las = 1,
      ylim = range(c(dd_IPM_ESU$y, sapply(dd_IPM_pop, function(m) m$y))))
 for(i in 1:length(dd_IPM_pop))
   lines(dd_IPM_pop[[i]]$x, dd_IPM_pop[[i]]$y, col = c1t)
-title(xlab = bquote(log(alpha)), ylab = "Probability density", line = 3.5, cex.lab = 1.8)
-text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "C", cex = 2)
+title(xlab = bquote(log(alpha)), ylab = "Probability density", line = 3.5, cex.lab = 1.5)
+text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "C", cex = 1.5)
 
 # Posterior densities of log(Rmax)
 dd_IPM_ESU <- density(mu_Rmax)
@@ -582,10 +581,10 @@ plot(dd_IPM_ESU$x, dd_IPM_ESU$y, type = "l", lwd = 3, col = c1, las = 1,
 for(i in 1:length(dd_IPM_pop))
   lines(dd_IPM_pop[[i]]$x, dd_IPM_pop[[i]]$y, col = c1t)
 title(xlab = bquote(log(italic(R)[max])), ylab = "Probability density", 
-      line = 3.5, cex.lab = 1.8)
-text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "D", cex = 2)
+      line = 3.5, cex.lab = 1.5)
+text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "D", cex = 1.5)
 
-rm(list=c("mod_name","life_cycle","SR_fun","mu_alpha","mu_Rmax","S","R_ESU_IPM","tck",
+rm(list=c("mod_name","life_cycle","SR_fun","scl","mu_alpha","mu_Rmax","S","R_ESU_IPM",
           "c1","c1t","c1tt","dd_IPM_ESU","dd_IPM_pop","alpha","Rmax","R_pop_IPM","S_IPM"))
 ## @knitr
 dev.off()
@@ -622,6 +621,7 @@ N_obs_IPM <- N_IPM * rlnorm(length(N_IPM), 0, tau)
 c1 <- "slategray4"
 c1t <- transparent(c1, trans.val = 0.5)
 c1tt <- transparent(c1, trans.val = 0.7)
+pc <- ifelse(is.na(dat[,paste0("tau_", life_stage, "_obs")]), 1, 16)
 
 for(i in levels(dat$pop))
 {
@@ -651,7 +651,7 @@ for(i in levels(dat$pop))
           c(colQuantiles(N_obs_IPM[,dat$pop==i], probs = 0.05), 
             rev(colQuantiles(N_obs_IPM[,dat$pop==i], probs = 0.95))),
           col = c1tt, border = NA)
-  points(yi, N_obs[dat$pop==i], pch=16, cex = 1.5)
+  points(yi, N_obs[dat$pop==i], pch = pc[dat$pop==i], lwd = 2, cex = 1.8)
 }
 
 rm(list = c("mod_name","forecasting","life_stage","life_cycle","dat",
@@ -838,13 +838,13 @@ png(filename=here("analysis","results",paste0("tau_fit_", mod_name, ".png")),
 
 ## @knitr plot_obs_error_fit
 tau_M_obs <- fish_data_SMS$tau_M_obs
-tau_M_seq <- seq(min(tau_M_obs, na.rm = TRUE), max(tau_M_obs, na.rm = TRUE), length = 100)
+tau_M_seq <- seq(min(tau_M_obs, na.rm = TRUE), max(tau_M_obs, na.rm = TRUE), length = 500)
 mu_tau_M <- do.call(extract1, list(as.name(mod_name), "mu_tau_M"))
 sigma_tau_M <- do.call(extract1, list(as.name(mod_name), "sigma_tau_M"))
 tau_M_fit <- sapply(tau_M_seq, function(x) dlnorm(x, log(mu_tau_M), sigma_tau_M))
 
 tau_S_obs <- fish_data_SMS$tau_S_obs
-tau_S_seq <- seq(min(tau_S_obs, na.rm = TRUE), max(tau_S_obs, na.rm = TRUE), length = 100)
+tau_S_seq <- seq(min(tau_S_obs, na.rm = TRUE), max(tau_S_obs, na.rm = TRUE), length = 500)
 mu_tau_S <- do.call(extract1, list(as.name(mod_name), "mu_tau_S"))
 sigma_tau_S <- do.call(extract1, list(as.name(mod_name), "sigma_tau_S"))
 tau_S_fit <- sapply(tau_S_seq, function(x) dlnorm(x, log(mu_tau_S), sigma_tau_S))
