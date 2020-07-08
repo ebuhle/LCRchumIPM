@@ -195,12 +195,18 @@ fish_data_SMS_fore <- fish_data_SMS %>% group_by(pop) %>%
 
 # Time series of sex ratio by population
 windows()
-bio_data %>% filter(origin_HW=="W") %>% group_by(pop, year, sex) %>%
-  summarize(n = sum(count)) %>% mutate(prop = n/sum(n)) %>% filter(sex == "Female") %>% 
-  ggplot(aes(x = year, y = prop)) + geom_abline(intercept = 0.5, slope = 0, color = "gray") + 
-  geom_point(size = 2) + geom_line() + facet_wrap(vars(pop), nrow = 3, ncol = 4) +
-  theme_bw() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
-
+bio_data %>% filter(origin_HW=="W") %>% group_by(pop, year, sex) %>% 
+  summarize(n = sum(count)) %>% 
+  dcast(pop + year ~ sex, value.var = "n", fun.aggregate = sum) %>% 
+  mutate(total = Female + Male) %>% 
+  data.frame(., with(., binconf(x = Female, n = total))) %>%
+  mutate(prop_female = PointEst) %>% 
+  ggplot(aes(x = year, y = prop_female, ymin = Lower, ymax = Upper)) + 
+  geom_abline(intercept = 0.5, slope = 0, color = "gray") + 
+  geom_point(size = 2) + geom_line() + geom_errorbar(width = 0) +
+  facet_wrap(vars(pop), nrow = 3, ncol = 4) + theme_bw() +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+  
 # Histogram of spawner age by sex and H/W origin
 windows()
 bio_data %>% mutate(age = substring(age,5,5)) %>% group_by(origin_HW, sex, age) %>% 
