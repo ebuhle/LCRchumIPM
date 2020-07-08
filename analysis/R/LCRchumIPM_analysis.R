@@ -6,13 +6,15 @@ library(salmonIPM)
 library(rstan)
 library(shinystan)
 library(matrixStats)
+library(Hmisc)
 library(tibble)
 library(dplyr)
 library(tidyr)
 library(reshape2)
 library(yarrr)
-library(corrplot)
+# library(corrplot)
 library(magicaxis)
+library(viridis)
 library(zoo)
 library(here)
 
@@ -495,7 +497,7 @@ life_cycle <- unlist(strsplit(mod_name, "_"))[1]
 dat <- switch(life_cycle, SS = fish_data_SS, SMS = fish_data_SMS, LCRchum = fish_data_SMS)
 SR_fun <- unlist(strsplit(mod_name, "_"))[2]
 
-SR_eval <- function(alpha, Rmax = NULL, S, SR_fun = "BH") 
+SR_eval <- function(alpha, Rmax = NULL, S) 
 {
   switch(SR_fun,
          exp = alpha*S,
@@ -591,6 +593,92 @@ dev.off()
 
 
 #--------------------------------------------------------------------------------
+# Lower Columbia chum spawner-smolt-spawner #
+# Estimated S-R curves for each pop, overlaid with states and observed data
+#--------------------------------------------------------------------------------
+
+mod_name <- "LCRchum_BH"
+life_stage <- "M"   # "S" = spawners, "M" = smolts
+
+# dev.new(width=14.5,height=8)
+png(filename=here("analysis", "results", paste0("SR_fit_", mod_name, ".png")),
+    width=14.5*0.9, height=8*0.9, units="in", res=200, type="cairo-png")
+
+## @knitr plot_SR_fits
+SR_eval <- function(alpha, Rmax = NULL, S, SR_fun) 
+{
+  switch(SR_fun,
+         exp = alpha*S,
+         BH = alpha*S/(1 + alpha*S/Rmax),
+         Ricker = alpha*S*exp(-alpha*S/(exp(1)*Rmax)))
+}
+
+scl <- switch(life_stage, M = 1e-6, S = 1)
+S_obs <- fish_data_SMS$S_obs
+M_obs <- fish_data_SMS$M_obs*scl
+S_IPM <- do.call(extract1, list(as.name(mod_name), "S"))
+M_IPM <- do.call(extract1, list(as.name(mod_name), "M"))*scl
+SR_fun <- unlist(strsplit(mod_name, "_"))[2]
+alpha <- do.call(extract1, list(as.name(mod_name), "alpha"))
+Rmax <- do.call(extract1, list(as.name(mod_name), "Rmax"))
+
+c1 <- "slategray4"
+c1t <- transparent(c1, trans.val = 0.7)
+y <- sort(unique(fish_data_SMS$year))
+cy <- plasma(length(y), end = 0.9, direction = -1, alpha = 0.8)
+
+op <- par(mfrow=c(3,4), mar=c(1,3,4.1,1), oma=c(4.1,3.1,0,13))
+
+for(i in levels(fish_data_SMS$pop))
+{
+  indx <- fish_data_SMS$pop == i
+  ii <- levels(fish_data_SMS$pop) == i
+  yi <- fish_data_SMS$year[indx]
+  cyi <- cy[match(yi, y)]
+  S_upper <- max(S_obs[indx], colQuantiles(S_IPM[,indx], probs = 0.9), na.rm = TRUE)
+  S <- matrix(seq(0, S_upper, length = 1000), nrow = nrow(alpha), ncol = 1000, byrow = TRUE)
+  M_fit_IPM <- SR_eval(alpha = alpha[,ii], Rmax = Rmax[,ii], S = S, SR_fun = SR_fun)*scl
+
+  plot(colMedians(S_IPM[,indx]), colMedians(M_IPM[,indx]), pch = "",
+       xlim = range(0, S_obs[indx], colQuantiles(S_IPM[,indx], probs = 0.7), na.rm = TRUE),
+       ylim = range(0, M_obs[indx], colQuantiles(M_IPM[,indx], probs = 0.6), 
+                    colQuantiles(M_fit_IPM[,indx], probs = 0.95), na.rm = TRUE), 
+       las = 1, xlab = "", ylab = "", cex.axis = 1.2)
+  mtext(i, side = 3, line = 0.5, cex = par("cex")*1.5)
+  if(par("mfg")[2] == 1) 
+    mtext("Smolts (millions)", side = 2, line = 3.5, cex = par("cex")*1.5)
+  if(par("mfg")[1] == par("mfg")[3]) 
+    mtext("Spawners", side = 1, line = 3, cex = par("cex")*1.5)
+  polygon(c(S[1,], rev(S[1,])), 
+          c(colQuantiles(M_fit_IPM, probs = 0.05), 
+            rev(colQuantiles(M_fit_IPM, probs = 0.95))), 
+          col = c1t, border = NA)
+  lines(S[1,], colMedians(M_fit_IPM), lwd = 3, col = c1)
+  points(colMedians(S_IPM[,indx]), colMedians(M_IPM[,indx]), pch = 3, cex = 1.8, col = cyi)
+  segments(x0 = colMedians(S_IPM[,indx]), 
+           y0 = colQuantiles(M_IPM[,indx], probs = 0.05), 
+           y1 = colQuantiles(M_IPM[,indx], probs = 0.95),
+           col = cyi)
+  segments(x0 = colQuantiles(S_IPM[,indx], probs = 0.05), 
+           x1 = colQuantiles(S_IPM[,indx], probs = 0.95),
+           y0 = colMedians(M_IPM[,indx]), 
+           col = cyi)
+  points(S_obs[indx], M_obs[indx], pch = 16, col = cyi, cex = 1.8)
+}
+par(op)
+par(usr = c(0,1,0,1))
+legend(0.9, 0.5, c("observation", "state", "", y), fill = c(rep(NA,3), cy), border = NA,
+       col = c(rep("black",3), cy), pch = c(16, 3, rep(NA, length(y) + 1)), pt.cex = 1.2, 
+       yjust = 0.5, xpd = NA, box.lwd = 0.5)
+
+rm(list = c("mod_name","SR_fun","S_IPM","M_IPM","S_obs","M_obs","alpha","Rmax",
+            "M_fit_IPM","c1","c1t","yi","y","cy","cyi","indx","life_stage","scl",
+            "ii","S_upper","op"))
+## @knitr
+dev.off()
+
+
+#--------------------------------------------------------------------------------
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
 
@@ -608,8 +696,6 @@ dat <- switch(life_cycle, SS = fish_data_SS,
               SMS = switch(forecasting, no = fish_data_SMS, yes = fish_data_SMS_fore),
               LCRchum = switch(forecasting, no = fish_data_SMS, yes = fish_data_SMS_fore))
 
-par(mfrow=c(3,4), mar=c(1,3,4.1,1), oma=c(4.1,3.1,0,0))
-
 N_obs <- dat[,paste0(life_stage, "_obs")]
 N_IPM <- do.call(extract1, list(as.name(mod_name), life_stage))
 tau <- do.call(extract1, list(as.name(mod_name),
@@ -622,6 +708,8 @@ c1 <- "slategray4"
 c1t <- transparent(c1, trans.val = 0.5)
 c1tt <- transparent(c1, trans.val = 0.7)
 pc <- ifelse(is.na(dat[,paste0("tau_", life_stage, "_obs")]), 1, 16)
+
+par(mfrow=c(3,4), mar=c(1,3,4.1,1), oma=c(4.1,3.1,0,0))
 
 for(i in levels(dat$pop))
 {
@@ -656,6 +744,66 @@ for(i in levels(dat$pop))
 
 rm(list = c("mod_name","forecasting","life_stage","life_cycle","dat",
             "N_IPM","N_obs_IPM","N_obs","c1","c1t","c1tt","yi","tau"))
+## @knitr
+dev.off()
+
+
+#--------------------------------------------------------------------------------
+# Time series of observed and fitted spawner age structure for each pop
+#--------------------------------------------------------------------------------
+
+mod_name <- "LCRchum_BH"
+
+# dev.new(width=13,height=8.5)
+png(filename=here("analysis", "results", paste0("q_fit_", mod_name, ".png")),
+    width=13*0.9, height=8.5*0.9, units="in", res=200, type="cairo-png")
+
+## @knitr plot_spawner_age_ts
+life_cycle <- unlist(strsplit(mod_name, "_"))[1]
+dat <- switch(life_cycle, SS = fish_data_SS, SMS = fish_data_SMS, LCRchum = fish_data_SMS)
+
+n_age_obs <- select(dat, starts_with("n_age")) 
+q_IPM <- do.call(extract1, list(as.name(mod_name), "q"))
+
+c1 <- viridis(ncol(n_age_obs)) #c("red","blue","green")
+c1t <- transparent(c1, trans.val = 0.2)
+c1tt <- transparent(c1, trans.val = 0.7)
+
+op <- par(mfrow=c(3,4), mar=c(1,3,4.1,1), oma=c(4.1,3.1,4,0))
+
+for(i in levels(dat$pop))
+{
+  yi <- dat$year[dat$pop==i]
+  plot(yi, rep(0.5, length(yi)), pch = "", xlim = range(dat$year), ylim = c(0,1), 
+       las = 1, cex.axis = 1.2, xaxt = "n", xlab = "", ylab = "")
+  axis(side = 1, at = yi[yi %% 5 == 0], cex.axis = 1.2)
+  rug(yi[yi %% 5 != 0], ticksize = -0.02)
+  mtext(i, side = 3, line = 0.5, cex = par("cex")*1.5)
+  if(par("mfg")[2] == 1) 
+    mtext("Proportion at age", side = 2, line = 3.5, cex = par("cex")*1.5)
+  if(par("mfg")[1] == par("mfg")[3]) 
+    mtext("Year", side = 1, line = 3, cex = par("cex")*1.5)
+  
+  for(a in 1:ncol(n_age_obs))
+  {
+    q_obs <- binconf(n_age_obs[dat$pop==i,a], rowSums(n_age_obs[dat$pop==i,]), alpha = 0.1)
+    lines(yi, colMedians(q_IPM[,dat$pop==i,a]), col = c1t[a], lwd = 2)
+    polygon(c(yi, rev(yi)),
+            c(colQuantiles(q_IPM[,dat$pop==i,a], probs = 0.05),
+              rev(colQuantiles(q_IPM[,dat$pop==i,a], probs = 0.95))),
+            col = c1tt[a], border = NA)
+    points(yi, q_obs[,"PointEst"], pch = 16, col = c1t[a], cex = 1.8)
+    segments(x0 = yi, y0 = q_obs[,"Lower"], y1 = q_obs[,"Upper"], col = c1t[a])
+  }
+}
+par(op)
+par(usr = c(0,1,0,1))
+legend(0.5, 1.1, paste("age", substring(names(n_age_obs), 6, 6), "  "), x.intersp = 0.5,
+       col = c1, pch = 16, pt.cex = 1.2, lwd = 2, horiz = TRUE, xjust = 0.5, 
+       xpd = NA, box.lwd = 0.5)
+       
+rm(list = c("mod_name","life_cycle","dat","q_IPM","n_age_obs","q_obs","op",
+            "c1","c1t","c1tt","yi"))
 ## @knitr
 dev.off()
 
