@@ -134,7 +134,7 @@ fecundity <- read.csv(here("data","Data_ChumFecundity_fromHatcheryPrograms_2017-
 
 # drop cases with age not in c(3,4,5) or with estimated fecundity missing
 # add strata based on stock: Grays -> Coastal, I-205 -> Cascade, Lower Gorge -> Gorge
-egg_data <- fecundity %>% filter(age %in% 3:5 & !is.na(fecundity)) %>% 
+fecundity_data <- fecundity %>% filter(age %in% 3:5 & !is.na(fecundity)) %>% 
   mutate(strata = recode(stock, Grays = "Coastal", `I-205` = "Cascade", `Lower Gorge` = "Gorge")) %>% 
   select(strata, stock:fecundity, L95, U95, mean_mass) %>% 
   arrange(strata, brood_year, age) 
@@ -193,6 +193,14 @@ fish_data_SMS_fore <- fish_data_SMS %>% group_by(pop) %>%
 # Data exploration
 #--------------------------------------------------------------
 
+# Time series of sex ratio by population
+windows()
+bio_data %>% filter(origin_HW=="W") %>% group_by(pop, year, sex) %>%
+  summarize(n = sum(count)) %>% mutate(prop = n/sum(n)) %>% filter(sex == "Female") %>% 
+  ggplot(aes(x = year, y = prop)) + geom_abline(intercept = 0.5, slope = 0, color = "gray") + 
+  geom_point(size = 2) + geom_line() + facet_wrap(vars(pop), nrow = 3, ncol = 4) +
+  theme_bw() + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
 # Histogram of spawner age by sex and H/W origin
 windows()
 bio_data %>% mutate(age = substring(age,5,5)) %>% group_by(origin_HW, sex, age) %>% 
@@ -202,18 +210,18 @@ bio_data %>% mutate(age = substring(age,5,5)) %>% group_by(origin_HW, sex, age) 
 
 # Boxplots of fecundity by age
 windows()
-egg_data %>% mutate(age = factor(age)) %>% 
+fecundity_data %>% mutate(age = factor(age)) %>% 
   ggplot(aes(x = age, y = fecundity)) + geom_boxplot() + theme_bw()
 
 # Boxplots of fecundity by age, grouped by strata
 windows()
-egg_data %>% mutate(age = factor(age)) %>% 
+fecundity_data %>% mutate(age = factor(age)) %>% 
   ggplot(aes(x = age, y = fecundity)) + geom_boxplot() + 
   facet_wrap(vars(strata), nrow = 1, ncol = 3) + theme_bw()
 
 # Histograms of fecundity, grouped by age and strata
 windows()
-egg_data %>% mutate(age = factor(age)) %>%  ggplot(aes(x = fecundity)) +
+fecundity_data %>% mutate(age = factor(age)) %>%  ggplot(aes(x = fecundity)) +
   geom_histogram(aes(y = stat(density)), bins = 15, color = "white", fill = "darkgray") + 
   facet_grid(rows = vars(strata), cols = vars(age)) + theme_bw()
 
