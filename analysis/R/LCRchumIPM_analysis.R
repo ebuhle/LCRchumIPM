@@ -231,6 +231,12 @@ fecundity_data %>% mutate(age_E = factor(age_E)) %>%  ggplot(aes(x = E_obs)) +
   geom_histogram(aes(y = stat(density)), bins = 15, color = "white", fill = "darkgray") + 
   facet_grid(rows = vars(strata), cols = vars(age_E)) + theme_bw()
 
+# Normal QQ plots of fecundity, grouped by age and strata
+windows()
+fecundity_data %>% mutate(age_E = factor(age_E)) %>%  ggplot(aes(sample = E_obs)) +
+  geom_qq(distribution = qnorm) + geom_qq_line(distribution = qnorm) +
+  facet_grid(rows = vars(strata), cols = vars(age_E)) + theme_bw()
+
 
 #===========================================================================
 # FIT RETROSPECTIVE MODELS
