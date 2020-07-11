@@ -127,17 +127,17 @@ juv_data_incl <- juv_data %>% filter(pop %in% spawner_data$pop) %>%
 # Note that L95% and U95% are reversed
 fecundity <- read.csv(here("data","Data_ChumFecundity_fromHatcheryPrograms_2017-01-25.csv"),
                       header = TRUE, stringsAsFactors = TRUE) %>% 
-  rename(stock = Stock, brood_year = BY, ID = Female.., age = Age, L95 = U95., U95 = L95.,
-         reproductive_effort = Reproductive.Effort, fecundity = Estimated.Fecundity,
+  rename(stock = Stock, year = BY, ID = Female.., age = Age, L95 = U95., U95 = L95.,
+         reproductive_effort = Reproductive.Effort, E_obs = Estimated.Fecundity,
          mean_mass = Green.egg.avg.weight, comments = Comments) %>% 
   mutate(ID = as.character(ID))
 
 # drop cases with age not in c(3,4,5) or with estimated fecundity missing
 # add strata based on stock: Grays -> Coastal, I-205 -> Cascade, Lower Gorge -> Gorge
-fecundity_data <- fecundity %>% filter(age %in% 3:5 & !is.na(fecundity)) %>% 
+fecundity_data <- fecundity %>% filter(age %in% 3:5 & !is.na(E_obs)) %>% 
   mutate(strata = recode(stock, Grays = "Coastal", `I-205` = "Cascade", `Lower Gorge` = "Gorge")) %>% 
-  select(strata, stock:fecundity, L95, U95, mean_mass) %>% 
-  arrange(strata, brood_year, age) 
+  select(strata, stock:E_obs, L95, U95, mean_mass) %>% 
+  arrange(strata, year, age) 
 
 # Fish data formatted for salmonIPM
 # Drop age-2 and age-6 samples (each is < 0.1% of aged spawners)
@@ -217,17 +217,17 @@ bio_data %>% mutate(age = substring(age,5,5)) %>% group_by(origin_HW, sex, age) 
 # Boxplots of fecundity by age
 windows()
 fecundity_data %>% mutate(age = factor(age)) %>% 
-  ggplot(aes(x = age, y = fecundity)) + geom_boxplot() + theme_bw()
+  ggplot(aes(x = age, y = E_obs)) + geom_boxplot() + theme_bw()
 
 # Boxplots of fecundity by age, grouped by strata
 windows()
 fecundity_data %>% mutate(age = factor(age)) %>% 
-  ggplot(aes(x = age, y = fecundity)) + geom_boxplot() + 
+  ggplot(aes(x = age, y = E_obs)) + geom_boxplot() + 
   facet_wrap(vars(strata), nrow = 1, ncol = 3) + theme_bw()
 
 # Histograms of fecundity, grouped by age and strata
 windows()
-fecundity_data %>% mutate(age = factor(age)) %>%  ggplot(aes(x = fecundity)) +
+fecundity_data %>% mutate(age = factor(age)) %>%  ggplot(aes(x = E_obs)) +
   geom_histogram(aes(y = stat(density)), bins = 15, color = "white", fill = "darkgray") + 
   facet_grid(rows = vars(strata), cols = vars(age)) + theme_bw()
 
@@ -535,16 +535,16 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 
 mod_name <- "LCRchum_BH"
 
-# dev.new(width = 7, height = 7)
-png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
-    width=7, height=7, units="in", res=200, type="cairo-png")
+dev.new(width = 7, height = 7)
+# png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
+#     width=7, height=7, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_SR_params
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
 dat <- switch(life_cycle, SS = fish_data_SS, SMS = fish_data_SMS, LCRchum = fish_data_SMS)
 SR_fun <- unlist(strsplit(mod_name, "_"))[2]
 
-SR_eval <- function(alpha, Rmax = NULL, S) 
+SR_eval <- function(alpha, Rmax = NULL, S, SR_fun) 
 {
   switch(SR_fun,
          exp = alpha*S,
@@ -636,7 +636,7 @@ text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "D", cex = 1.5)
 rm(list=c("mod_name","life_cycle","SR_fun","scl","mu_alpha","mu_Rmax","S","R_ESU_IPM",
           "c1","c1t","c1tt","dd_IPM_ESU","dd_IPM_pop","alpha","Rmax","R_pop_IPM","S_IPM"))
 ## @knitr
-dev.off()
+# dev.off()
 
 
 #--------------------------------------------------------------------------------
@@ -732,9 +732,9 @@ dev.off()
 mod_name <- "LCRchum_BH"
 life_stage <- "S"   # "S" = spawners, "M" = smolts
 
-# dev.new(width=13,height=8)
-png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
-    width=13*0.9, height=8*0.9, units="in", res=200, type="cairo-png")
+dev.new(width=13,height=8)
+# png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
+#     width=13*0.9, height=8*0.9, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_spawner_smolt_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
@@ -792,7 +792,7 @@ for(i in levels(dat$pop))
 rm(list = c("mod_name","forecasting","life_stage","life_cycle","dat",
             "N_IPM","N_obs_IPM","N_obs","c1","c1t","c1tt","yi","tau"))
 ## @knitr
-dev.off()
+# dev.off()
 
 
 #--------------------------------------------------------------------------------
@@ -925,9 +925,9 @@ rm(list = c("mod_name","y","phi","c1","c1t"))
 
 mod_name <- "LCRchum_BH"
 
-# dev.new(width=6,height=8)
-png(filename=here("analysis","results",paste0("phi_", mod_name, ".png")),
-    width=6, height=8, units="in", res=200, type="cairo-png")
+dev.new(width=6,height=8)
+# png(filename=here("analysis","results",paste0("phi_", mod_name, ".png")),
+#     width=6, height=8, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_phi
 y <- sort(unique(fish_data_SMS$year))
@@ -967,7 +967,7 @@ rug(y[y %% 5 != 0], ticksize = -0.02)
 
 rm(list = c("mod_name","y","phi_M","phi_MS","s_hat_MS","c1","c1t"))
 ## @knitr
-dev.off()
+# dev.off()
 
 
 #--------------------------------------------------------------------------------
@@ -1027,9 +1027,9 @@ rm(list = c("mod_name","sigma","sigma_phi","rho_phi","sd_phi","sigma_tot","tau",
 
 mod_name <- "LCRchum_BH"
 
-# dev.new(width=6,height=8)
-png(filename=here("analysis","results",paste0("tau_fit_", mod_name, ".png")),
-    width=6, height=8, units="in", res=200, type="cairo-png")
+dev.new(width=6,height=8)
+# png(filename=here("analysis","results",paste0("tau_fit_", mod_name, ".png")),
+#     width=6, height=8, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_obs_error_fit
 tau_M_obs <- fish_data_SMS$tau_M_obs
@@ -1073,5 +1073,5 @@ lines(tau_S_seq, colMedians(tau_S_fit), col = c1, lwd = 3)
 rm(list = c("mod_name","tau_M_obs","tau_M_seq","mu_tau_M","sigma_tau_M","tau_M_fit",
             "tau_S_obs","tau_S_seq","mu_tau_S","sigma_tau_S","tau_S_fit","c1","c1t"))
 ## @knitr
-dev.off()
+# dev.off()
 
