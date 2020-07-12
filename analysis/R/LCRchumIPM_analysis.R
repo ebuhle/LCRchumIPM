@@ -996,7 +996,8 @@ for(j in levels(fish_data_SMS$pop))
 axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
 rug(y[y %% 5 != 0], ticksize = -0.02)
 
-rm(list = c("mod_name","y","phi_M","phi_MS","s_hat_MS","c1","c1t","indx1","indx2"))
+rm(list = c("mod_name","y","phi_M","phi_MS","s_hat_MS","c1","c1t","indx1","indx2",
+            "sigma_M","zeta_M","epsilon_M","sigma_MS","zeta_MS","epsilon_MS"))
 ## @knitr
 # dev.off()
 
