@@ -937,41 +937,66 @@ dev.new(width=6,height=8)
 
 ## @knitr plot_phi
 y <- sort(unique(fish_data_SMS$year))
+
 phi_M <- do.call(extract1, list(as.name(mod_name), "phi_M"))
+sigma_M <- do.call(extract1, list(as.name(mod_name), "sigma_M"))
+zeta_M <- do.call(stan_mean, list(as.name(mod_name), "zeta_M"))
+epsilon_M <- t(sapply(sigma_M, function(x) x*zeta_M))
+
 phi_MS <- do.call(extract1, list(as.name(mod_name), "phi_MS"))
 mu_MS <- do.call(extract1, list(as.name(mod_name), "mu_MS"))
 s_hat_MS <- plogis(sweep(phi_MS, 1, qlogis(mu_MS), "+"))
+sigma_MS <- do.call(extract1, list(as.name(mod_name), "sigma_MS"))
+zeta_MS <- do.call(stan_mean, list(as.name(mod_name), "zeta_MS"))
+epsilon_MS <- t(sapply(sigma_MS, function(x) x*zeta_MS))
 
 c1 <- "slategray4"
-c1t <- transparent(c1, trans.val = 0.7)
+c1t <- transparent(c1, trans.val = 0.5)
+c1tt <- transparent(c1, trans.val = 0.7)
 
 par(mfcol = c(2,1), mar = c(5.1,5.1,2,2),  oma = c(0,0.1,0,0))
 
 # Smolt recruitment
 plot(y, colMedians(phi_M), type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
-     ylim = range(colQuantiles(phi_M, probs = c(0.05,0.95))), xaxs = "i", xaxt = "n",
-     xlab = "Brood year", ylab = "Productivity anomaly", main = "Smolt recruitment")
+     ylim = range(colQuantiles(phi_M, probs = c(0.05,0.95)),
+                  colMedians(phi_M[,match(fish_data_SMS$year, y)] + epsilon_M)), 
+     xlab = "Brood year", ylab = "Productivity anomaly", main = "Smolt recruitment",
+     xaxs = "i", xaxt = "n")
 abline(h = 0, col = "darkgray")
 polygon(c(y, rev(y)), 
         c(colQuantiles(phi_M, probs = 0.05), rev(colQuantiles(phi_M, probs = 0.95))),
-        col = c1t, border = NA)
-lines(y, colMedians(phi_M), lwd = 3)
+        col = c1tt, border = NA)
+lines(y, colMedians(phi_M), col = c1t, lwd = 4)
+for(j in levels(fish_data_SMS$pop))
+{
+  indx1 <- fish_data_SMS$pop == j
+  indx2 <- y %in% fish_data_SMS$year[indx1]
+  lines(y[indx2], colMedians(phi_M[,indx2] + epsilon_M[,indx1]), col = c1t)
+}
 axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
 rug(y[y %% 5 != 0], ticksize = -0.02)
 
 # SAR
 plot(y, colMedians(s_hat_MS), type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
-     ylim = range(0, colQuantiles(s_hat_MS, probs = 0.95)), xaxs = "i", xaxt = "n",
+     ylim = range(0, colQuantiles(s_hat_MS, probs = 0.95),
+                  colMedians(plogis(qlogis(s_hat_MS[,match(fish_data_SMS$year, y)]) + epsilon_MS))), 
+     xaxs = "i", xaxt = "n",
      xlab = "Outmigration year", ylab = "", main = "SAR")
 mtext("Survival", side = 2, line = 3.7, cex = par("cex")*1.5)
 polygon(c(y, rev(y)), 
         c(colQuantiles(s_hat_MS, probs = 0.05), rev(colQuantiles(s_hat_MS, probs = 0.95))),
-        col = c1t, border = NA)
-lines(y, colMedians(s_hat_MS), lwd = 3)
+        col = c1tt, border = NA)
+lines(y, colMedians(s_hat_MS), col = c1t, lwd = 4)
+for(j in levels(fish_data_SMS$pop))
+{
+  indx1 <- fish_data_SMS$pop == j
+  indx2 <- y %in% fish_data_SMS$year[indx1]
+  lines(y[indx2], colMedians(plogis(qlogis(s_hat_MS[,indx2]) + epsilon_MS[,indx1])), col = c1t)
+}
 axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
 rug(y[y %% 5 != 0], ticksize = -0.02)
 
-rm(list = c("mod_name","y","phi_M","phi_MS","s_hat_MS","c1","c1t"))
+rm(list = c("mod_name","y","phi_M","phi_MS","s_hat_MS","c1","c1t","indx1","indx2"))
 ## @knitr
 # dev.off()
 
