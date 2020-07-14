@@ -413,17 +413,18 @@ loo_compare(LOO_SMS[c("BH","Ricker")])
 
 # Density-independent
 ## @knitr fit_LCRchum_exp
-LCRchum_exp <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
-                         stan_model = "IPM_LCRchum_pp", SR_fun = "exp",
-                         pars = c("B_rate_all","mu_Rmax","sigma_Rmax","rho_alphaRmax","Rmax"), 
+LCRchum_exp <- salmonIPM(fish_data = fish_data_SMS,  fecundity_data = fecundity_data,
+                         ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "exp",
+                         pars = c("B_rate_all","mu_Emax","sigma_Emax","rho_Emax_EM","Emax"), 
                          include = FALSE, log_lik = TRUE, 
                          chains = 3, iter = 1500, warmup = 500,
-                         control = list(adapt_delta = 0.99, max_treedepth = 13))
+                         control = list(adapt_delta = 0.95, max_treedepth = 14,
+                                        stepsize = 1e-4))
 
 ## @knitr print_LCRchum_exp
 print(LCRchum_exp, prob = c(0.025,0.5,0.975),
-      pars = c("alpha","rho_alphaRmax","phi_M","phi_MS","gamma","p","tau_M","tau_S",
-               "p_HOS","S","M","s_MS","q","LL"), 
+      pars = c("eta_pop_EM","eta_year_EM","eta_year_MS","eta_pop_p","p",
+               "tau_M","tau_S","p_HOS","E","S","M","s_EM","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
@@ -449,16 +450,17 @@ launch_shinystan(LCRchum_BH)
 
 # Ricker
 ## @knitr fit_LCRchum_Ricker
-LCRchum_Ricker <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1), 
-                            stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", 
+LCRchum_Ricker <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundity_data,
+                            ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
                             pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
                             chains = 3, iter = 1500, warmup = 500,
-                            control = list(adapt_delta = 0.99, max_treedepth = 13))
+                            control = list(adapt_delta = 0.95, max_treedepth = 14,
+                                           stepsize = 1e-4))
 
 ## @knitr print_LCRchum_Ricker
 print(LCRchum_Ricker, prob = c(0.025,0.5,0.975),
-      pars = c("alpha","Rmax","phi_M","phi_MS","gamma","p","tau_M","tau_S",
-               "p_HOS","S","M","s_MS","q","LL"), 
+      pars = c("Emax","eta_pop_EM","eta_year_EM","eta_year_MS","eta_pop_p",
+               "p","tau_M","tau_S","p_HOS","E","S","M","s_EM","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
@@ -546,7 +548,7 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 # Time series of egg-smolt survival and SAR
 #--------------------------------------------------------------------
 
-mod_name <- "LCRchum_BH"
+mod_name <- "LCRchum_Ricker"
 
 dev.new(width = 7, height = 8)
 # png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
@@ -587,22 +589,17 @@ y <- sort(unique(dat$year))
 eta_year_EM <- do.call(extract1, list(as.name(mod_name), "eta_year_EM"))
 mu_EM <- do.call(extract1, list(as.name(mod_name), "mu_EM"))
 s_hat_EM <- plogis(sweep(eta_year_EM, 1, qlogis(mu_EM), "+"))
-eta_pop_EM <- do.call(extract1, list(as.name(mod_name), "eta_pop_EM"))
-sigma_EM <- do.call(extract1, list(as.name(mod_name), "sigma_EM"))
-zeta_EM <- do.call(stan_mean, list(as.name(mod_name), "zeta_EM"))
-epsilon_EM <- t(sapply(sigma_EM, function(x) x*zeta_EM))
+s_EM <- do.call(extract1, list(as.name(mod_name), "s_EM"))
 # SAR
 eta_year_MS <- do.call(extract1, list(as.name(mod_name), "eta_year_MS"))
 mu_MS <- do.call(extract1, list(as.name(mod_name), "mu_MS"))
 s_hat_MS <- plogis(sweep(eta_year_MS, 1, qlogis(mu_MS), "+"))
-sigma_MS <- do.call(extract1, list(as.name(mod_name), "sigma_MS"))
-zeta_MS <- do.call(stan_mean, list(as.name(mod_name), "zeta_MS"))
-epsilon_MS <- t(sapply(sigma_MS, function(x) x*zeta_MS))
+s_MS <- do.call(extract1, list(as.name(mod_name), "s_MS"))
 # colors
 c1 <- "slategray4"
 c1t <- transparent(c1, trans.val = 0.5)
 c1tt <- transparent(c1, trans.val = 0.7)
-ac <- viridis(length(ages), alpha = 0.7) 
+ac <- viridis(length(ages), end = 0.8, alpha = 0.7) 
 
 par(mfrow = c(3,2), mar = c(5.1,5.1,1,1))
 
@@ -667,8 +664,8 @@ text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "D", cex = 1.5)
 
 # Egg-smolt survival
 plot(y, colMedians(s_hat_EM), type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
-     ylim = range(0, colQuantiles(s_hat_EM, probs = 0.95),
-                  colMedians(plogis(qlogis(s_hat_EM[,match(dat$year, y)]) + epsilon_EM))), 
+     ylim = range(0, colQuantiles(s_hat_EM, probs = 0.95), 
+                  colQuantiles(s_EM, probs = 0.95)), 
      xaxs = "i", xaxt = "n", xlab = "Outmigration year", ylab = "")
 mtext("Egg-to-smolt survival", side = 2, line = 3.7, cex = par("cex")*1.5)
 polygon(c(y, rev(y)), 
@@ -676,22 +673,15 @@ polygon(c(y, rev(y)),
         col = c1tt, border = NA)
 lines(y, colMedians(s_hat_EM), col = c1t, lwd = 3)
 for(j in levels(dat$pop))
-{
-  jj <- levels(dat$pop) == j
-  indx1 <- dat$pop == j
-  indx2 <- y %in% dat$year[indx1]
-  lines(y[indx2], 
-        colMedians(plogis(qlogis(s_hat_EM[,indx2]) + eta_pop_EM[,jj] + epsilon_EM[,indx1])), 
-        col = c1t)
-}
+  lines(dat$year[dat$pop == j], colMedians(s_EM[,dat$pop == j]), col = c1t)
 axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
 rug(y[y %% 5 != 0], ticksize = -0.02)
 text(par("usr")[2], par("usr")[4], adj = c(-1,1.5), "E", cex = 1.5)
 
 # SAR
 plot(y, colMedians(s_hat_MS), type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
-     ylim = range(0, colQuantiles(s_hat_MS, probs = 0.95),
-                  colMedians(plogis(qlogis(s_hat_MS[,match(dat$year, y)]) + epsilon_MS))), 
+     ylim = range(0, colQuantiles(s_hat_MS, probs = 0.95), 
+                  colQuantiles(s_MS, probs = 0.95)), 
      xaxs = "i", xaxt = "n", xlab = "Outmigration year", ylab = "")
 mtext("SAR", side = 2, line = 3.7, cex = par("cex")*1.5)
 polygon(c(y, rev(y)), 
@@ -699,20 +689,14 @@ polygon(c(y, rev(y)),
         col = c1tt, border = NA)
 lines(y, colMedians(s_hat_MS), col = c1t, lwd = 3)
 for(j in levels(dat$pop))
-{
-  indx1 <- dat$pop == j
-  indx2 <- y %in% dat$year[indx1]
-  lines(y[indx2], colMedians(plogis(qlogis(s_hat_MS[,indx2]) + epsilon_MS[,indx1])), col = c1t)
-}
+  lines(dat$year[dat$pop == j], colMedians(s_MS[,dat$pop == j]), col = c1t)
 axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
 rug(y[y %% 5 != 0], ticksize = -0.02)
 text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "F", cex = 1.5)
 
 rm(list=c("mod_name","life_cycle","SR_fun","mu_alpha","mu_Emax","S","S_grid","E_ESU",
-          "c1","c1t","c1tt","dd_ESU","dd_pop","dd_age","alpha","Emax","E_pop",
-          "ac","ages","y","eta_year_EM","mu_EM","s_hat_EM","eta_pop_EM",
-          "sigma_EM","zeta_EM","epsilon_EM","eta_year_MS","mu_MS","s_hat_MS","sigma_MS",
-          "zeta_MS","epsilon_MS","indx1","indx2","dat","jj"))
+          "c1","c1t","c1tt","dd_ESU","dd_pop","dd_age","alpha","Emax","E_pop","ac","ages",
+          "y","eta_year_EM","mu_EM","s_hat_EM","eta_year_MS","mu_MS","s_hat_MS","dat"))
 ## @knitr
 # dev.off()
 
@@ -808,8 +792,8 @@ dev.off()
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_BH"
-life_stage <- "M"   # "S" = spawners, "M" = smolts
+mod_name <- "LCRchum_Ricker"
+life_stage <- "S"   # "S" = spawners, "M" = smolts
 
 dev.new(width=13,height=8)
 # png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
@@ -878,11 +862,11 @@ rm(list = c("mod_name","forecasting","life_stage","life_cycle","dat",
 # Time series of observed and fitted spawner age structure for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_BH"
+mod_name <- "LCRchum_Ricker"
 
-# dev.new(width=13,height=8.5)
-png(filename=here("analysis", "results", paste0("q_fit_", mod_name, ".png")),
-    width=13*0.9, height=8.5*0.9, units="in", res=200, type="cairo-png")
+dev.new(width=13,height=8.5)
+# png(filename=here("analysis", "results", paste0("q_fit_", mod_name, ".png")),
+#     width=13*0.9, height=8.5*0.9, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_spawner_age_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
@@ -891,7 +875,7 @@ dat <- switch(life_cycle, SS = fish_data_SS, SMS = fish_data_SMS, LCRchum = fish
 n_age_obs <- select(dat, starts_with("n_age")) 
 q_IPM <- do.call(extract1, list(as.name(mod_name), "q"))
 
-c1 <- viridis(ncol(n_age_obs)) 
+c1 <- viridis(ncol(n_age_obs), end = 0.8) 
 c1t <- transparent(c1, trans.val = 0.2)
 c1tt <- transparent(c1, trans.val = 0.7)
 
@@ -931,7 +915,7 @@ legend(0.5, 1.1, paste("age", substring(names(n_age_obs), 6, 6), "  "), x.inters
 rm(list = c("mod_name","life_cycle","dat","q_IPM","n_age_obs","q_obs","op",
             "c1","c1t","c1tt","yi"))
 ## @knitr
-dev.off()
+# dev.off()
 
 
 #--------------------------------------------------------------------------------
@@ -939,7 +923,7 @@ dev.off()
 # Observed and fitted distributions of fecundity by age
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_BH"
+mod_name <- "LCRchum_Ricker"
 
 dev.new(width=7,height=7)
 # png(filename=here("analysis","results",paste0("fecundity_fit_", mod_name, ".png")),
@@ -955,27 +939,29 @@ E_fit <- array(NA, c(nrow(mu_E), length(E_seq), ncol(mu_E)))
 for(a in 1:length(ages))
   E_fit[,,a] <- sapply(E_seq, function(x) dnorm(x, mu_E[,a], sigma_E[,a]))
 
-c1 <- viridis(length(ages)) 
+c1 <- viridis(length(ages), end = 0.8) 
 c1t <- transparent(c1, trans.val = 0.5)
-c1tt <- transparent(c1, trans.val = 0.9)
+c1tt <- transparent(c1, trans.val = 0.7)
 
-plot(E_seq, colMedians(E_fit[,,1]), pch = "", las = 1, cex.axis = 1.2, cex.lab = 1.5,
-     xlim = range(E_seq), ylim = c(0, max(apply(E_fit, 2:3, quantile, 0.95))),
-     xlab = "Fecundity", ylab = "", yaxt = "n")
-title(ylab = "Probability density", line = 1, cex.lab = 1.5)
+par(mfrow = c(3,1), mar = c(3,2,0,2), oma = c(2,2,0,0))
+
 for(a in 1:length(ages))
 {
+  hist(E_obs[fecundity_data$age_E == ages[a]], 20, prob = TRUE, 
+       col = c1tt[a], border = "white", las = 1, cex.axis = 1.2, cex.lab = 1.5,
+       xlim = range(E_seq), ylim = range(0, apply(E_fit, 2:3, quantile, 0.99)),
+       xlab = "", ylab = "", main = "", xaxs = "i", yaxt = "n", bty = "n")
   lines(E_seq, colMedians(E_fit[,,a]), col = c1[a], lwd = 3)
   polygon(c(E_seq, rev(E_seq)),
           c(colQuantiles(E_fit[,,a], probs = 0.05), 
             rev(colQuantiles(E_fit[,,a], probs = 0.95))),
           col = c1t[a], border = NA)
+  text(par("usr")[1] + 0.8*diff(par("usr")[1:2]), par("usr")[4]*0.5, 
+       labels = paste("age", ages[a]), cex = 1.5, col = c1[a], adj = 1)
 }
-legend("topright", paste("age", ages, "  "), x.intersp = 0.5, col = c1, lwd = 3, 
-       xjust = 0.5, box.lwd = 0.5)
+title(xlab = "Fecundity", ylab = "Probability density", cex.lab = 1.5, line = 0, outer = TRUE)
 
-rm(list = c("mod_name","c1","c1t","ages","E_obs","E_seq","mu_E","sigma_E","E_fit",
-            "c1","c1t","c1tt"))
+rm(list = c("mod_name","c1","c1t","c1tt","ages","E_obs","E_seq","mu_E","sigma_E","E_fit"))
 ## @knitr
 # dev.off()
 
@@ -986,7 +972,7 @@ rm(list = c("mod_name","c1","c1t","ages","E_obs","E_seq","mu_E","sigma_E","E_fit
 # observation error SDs
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_BH"
+mod_name <- "LCRchum_Ricker"
 
 dev.new(width=6,height=8)
 # png(filename=here("analysis","results",paste0("tau_fit_", mod_name, ".png")),
@@ -1237,9 +1223,7 @@ epsilon_M <- t(sapply(sigma_M, function(x) x*zeta_M))
 phi_MS <- do.call(extract1, list(as.name(mod_name), "phi_MS"))
 mu_MS <- do.call(extract1, list(as.name(mod_name), "mu_MS"))
 s_hat_MS <- plogis(sweep(phi_MS, 1, qlogis(mu_MS), "+"))
-sigma_MS <- do.call(extract1, list(as.name(mod_name), "sigma_MS"))
-zeta_MS <- do.call(stan_mean, list(as.name(mod_name), "zeta_MS"))
-epsilon_MS <- t(sapply(sigma_MS, function(x) x*zeta_MS))
+s_MS <- do.call(extract1, list(as.name(mod_name), "s_MS"))
 
 c1 <- "slategray4"
 c1t <- transparent(c1, trans.val = 0.5)
@@ -1269,8 +1253,7 @@ rug(y[y %% 5 != 0], ticksize = -0.02)
 
 # SAR
 plot(y, colMedians(s_hat_MS), type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
-     ylim = range(0, colQuantiles(s_hat_MS, probs = 0.95),
-                  colMedians(plogis(qlogis(s_hat_MS[,match(fish_data_SMS$year, y)]) + epsilon_MS))), 
+     ylim = range(0, colQuantiles(s_hat_MS, probs = 0.95), colQuantiles(s_MS, probs = 0.95)), 
      xaxs = "i", xaxt = "n",
      xlab = "Outmigration year", ylab = "", main = "SAR")
 mtext("Survival", side = 2, line = 3.7, cex = par("cex")*1.5)
@@ -1279,16 +1262,13 @@ polygon(c(y, rev(y)),
         col = c1tt, border = NA)
 lines(y, colMedians(s_hat_MS), col = c1t, lwd = 4)
 for(j in levels(fish_data_SMS$pop))
-{
-  indx1 <- fish_data_SMS$pop == j
-  indx2 <- y %in% fish_data_SMS$year[indx1]
-  lines(y[indx2], colMedians(plogis(qlogis(s_hat_MS[,indx2]) + epsilon_MS[,indx1])), col = c1t)
-}
+  lines(fish_data_SMS$year[fish_data_SMS$pop==j], colMedians(s_MS[,fish_data_SMS$pop==j]), 
+        col = c1t)
 axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
 rug(y[y %% 5 != 0], ticksize = -0.02)
 
-rm(list = c("mod_name","y","phi_M","phi_MS","s_hat_MS","c1","c1t","indx1","indx2",
-            "sigma_M","zeta_M","epsilon_M","sigma_MS","zeta_MS","epsilon_MS"))
+rm(list = c("mod_name","y","phi_M","phi_MS","s_hat_MS","c1","c1t",
+            "sigma_M","zeta_M","epsilon_M"))
 ## @knitr
 # dev.off()
 
