@@ -415,11 +415,10 @@ loo_compare(LOO_SMS[c("BH","Ricker")])
 ## @knitr fit_LCRchum_exp
 LCRchum_exp <- salmonIPM(fish_data = fish_data_SMS,  fecundity_data = fecundity_data,
                          ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "exp",
-                         pars = c("B_rate_all","mu_Emax","sigma_Emax","rho_Emax_EM","Emax"), 
+                         pars = c("B_rate_all","mu_Emax","sigma_Emax","Emax"), 
                          include = FALSE, log_lik = TRUE, 
                          chains = 3, iter = 1500, warmup = 500,
-                         control = list(adapt_delta = 0.95, max_treedepth = 14,
-                                        stepsize = 1e-4))
+                         control = list(adapt_delta = 0.99, max_treedepth = 14))
 
 ## @knitr print_LCRchum_exp
 print(LCRchum_exp, prob = c(0.025,0.5,0.975),
@@ -436,8 +435,7 @@ LCRchum_BH <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundity_da
                         ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "BH",
                         pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
                         chains = 3, iter = 1500, warmup = 500,
-                        control = list(adapt_delta = 0.95, max_treedepth = 14,
-                                       stepsize = 1e-4))
+                        control = list(adapt_delta = 0.99, max_treedepth = 14))
 
 ## @knitr print_LCRchum_BH
 print(LCRchum_BH, prob = c(0.025,0.5,0.975),
@@ -454,8 +452,7 @@ LCRchum_Ricker <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundit
                             ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
                             pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
                             chains = 3, iter = 1500, warmup = 500,
-                            control = list(adapt_delta = 0.95, max_treedepth = 14,
-                                           stepsize = 1e-4))
+                            control = list(adapt_delta = 0.99, max_treedepth = 14))
 
 ## @knitr print_LCRchum_Ricker
 print(LCRchum_Ricker, prob = c(0.025,0.5,0.975),
