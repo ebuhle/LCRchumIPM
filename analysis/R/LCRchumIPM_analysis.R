@@ -545,11 +545,11 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 # Time series of egg-smolt survival and SAR
 #--------------------------------------------------------------------
 
-mod_name <- "LCRchum_Ricker"
+mod_name <- "LCRchum_BH"
 
-dev.new(width = 7, height = 8)
-# png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
-#     width=7, height=10, units="in", res=200, type="cairo-png")
+# dev.new(width = 7, height = 8)
+png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
+    width=7, height=8, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_LCM_params
 life_cycle <- "LCRchum"
@@ -695,7 +695,7 @@ rm(list=c("mod_name","life_cycle","SR_fun","mu_alpha","mu_Emax","S","S_grid","E_
           "c1","c1t","c1tt","dd_ESU","dd_pop","dd_age","alpha","Emax","E_pop","ac","ages",
           "y","eta_year_EM","mu_EM","s_hat_EM","eta_year_MS","mu_MS","s_hat_MS","dat"))
 ## @knitr
-# dev.off()
+dev.off()
 
 
 #--------------------------------------------------------------------------------
@@ -789,12 +789,12 @@ dev.off()
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_Ricker"
-life_stage <- "S"   # "S" = spawners, "M" = smolts
+mod_name <- "LCRchum_BH"
+life_stage <- "M"   # "S" = spawners, "M" = smolts
 
-dev.new(width=13,height=8)
-# png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
-#     width=13*0.9, height=8*0.9, units="in", res=200, type="cairo-png")
+# dev.new(width=13,height=8)
+png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
+    width=13*0.9, height=8*0.9, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_spawner_smolt_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
@@ -852,18 +852,18 @@ for(i in levels(dat$pop))
 rm(list = c("mod_name","forecasting","life_stage","life_cycle","dat",
             "N_IPM","N_obs_IPM","N_obs","c1","c1t","c1tt","yi","tau"))
 ## @knitr
-# dev.off()
+dev.off()
 
 
 #--------------------------------------------------------------------------------
 # Time series of observed and fitted spawner age structure for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_Ricker"
+mod_name <- "LCRchum_BH"
 
-dev.new(width=13,height=8.5)
-# png(filename=here("analysis", "results", paste0("q_fit_", mod_name, ".png")),
-#     width=13*0.9, height=8.5*0.9, units="in", res=200, type="cairo-png")
+# dev.new(width=13,height=8.5)
+png(filename=here("analysis", "results", paste0("q_fit_", mod_name, ".png")),
+    width=13*0.9, height=8.5*0.9, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_spawner_age_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
@@ -912,7 +912,7 @@ legend(0.5, 1.1, paste("age", substring(names(n_age_obs), 6, 6), "  "), x.inters
 rm(list = c("mod_name","life_cycle","dat","q_IPM","n_age_obs","q_obs","op",
             "c1","c1t","c1tt","yi"))
 ## @knitr
-# dev.off()
+dev.off()
 
 
 #--------------------------------------------------------------------------------
@@ -920,11 +920,11 @@ rm(list = c("mod_name","life_cycle","dat","q_IPM","n_age_obs","q_obs","op",
 # Observed and fitted distributions of fecundity by age
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_Ricker"
+mod_name <- "LCRchum_BH"
 
-dev.new(width=7,height=7)
-# png(filename=here("analysis","results",paste0("fecundity_fit_", mod_name, ".png")),
-#     width=7, height=7, units="in", res=200, type="cairo-png")
+# dev.new(width=7,height=7)
+png(filename=here("analysis","results",paste0("fecundity_fit_", mod_name, ".png")),
+    width=7, height=7, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_fecundity_fit
 ages <- substring(names(select(fish_data_SMS, starts_with("n_age"))), 6, 6)
@@ -960,7 +960,7 @@ title(xlab = "Fecundity", ylab = "Probability density", cex.lab = 1.5, line = 0,
 
 rm(list = c("mod_name","c1","c1t","c1tt","ages","E_obs","E_seq","mu_E","sigma_E","E_fit"))
 ## @knitr
-# dev.off()
+dev.off()
 
 
 #--------------------------------------------------------------------------------
@@ -969,11 +969,11 @@ rm(list = c("mod_name","c1","c1t","c1tt","ages","E_obs","E_seq","mu_E","sigma_E"
 # observation error SDs
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_Ricker"
+mod_name <- "LCRchum_BH"
 
-dev.new(width=6,height=8)
-# png(filename=here("analysis","results",paste0("tau_fit_", mod_name, ".png")),
-#     width=6, height=8, units="in", res=200, type="cairo-png")
+# dev.new(width=6,height=8)
+png(filename=here("analysis","results",paste0("tau_fit_", mod_name, ".png")),
+    width=6, height=8, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_obs_error_fit
 tau_M_obs <- fish_data_SMS$tau_M_obs
@@ -1017,7 +1017,7 @@ lines(tau_S_seq, colMedians(tau_S_fit), col = c1, lwd = 3)
 rm(list = c("mod_name","tau_M_obs","tau_M_seq","mu_tau_M","sigma_tau_M","tau_M_fit",
             "tau_S_obs","tau_S_seq","mu_tau_S","sigma_tau_S","tau_S_fit","c1","c1t"))
 ## @knitr
-# dev.off()
+dev.off()
 
 
 #--------------------------------------------------------------------------------
