@@ -12,7 +12,6 @@ library(dplyr)
 library(tidyr)
 library(reshape2)
 library(yarrr)
-# library(corrplot)
 library(magicaxis)
 library(viridis)
 library(zoo)
@@ -508,17 +507,17 @@ loo_compare(LOO_LCRchum[c("BH","Ricker")])
 
 # Ricker
 ## @knitr fit_LCRchum_BH_fore
-LCRchum_BH_fore <- salmonIPM(fish_data = fish_data_SMS_fore, ages = list(M = 1),
-                             stan_model = "IPM_LCRchum_pp", SR_fun = "BH",
-                             pars = c("alpha","Rmax","gamma","p","p_HOS","B_rate_all"), 
+LCRchum_BH_fore <- salmonIPM(fish_data = fish_data_SMS_fore, fecundity_data = fecundity_data,
+                             ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "BH",
+                             pars = c("Emax","p","p_HOS","B_rate_all"), 
                              include = FALSE, chains = 3, iter = 1500, warmup = 500,
-                             control = list(adapt_delta = 0.99, max_treedepth = 13))
+                             control = list(adapt_delta = 0.99, max_treedepth = 15))
 
-## @knitr print_LCRchum_BH_fore
-print(LCRchum_BH_fore, prob = c(0.025,0.5,0.975),
-      pars = c("phi_M","phi_MS","tau_M","tau_S","S","M","s_MS","q"), 
-      include = FALSE, use_cache = FALSE)
 ## @knitr
+print(LCRchum_BH_fore, prob = c(0.025,0.5,0.975),
+      pars = c("eta_pop_EM","eta_year_EM","eta_year_MS","eta_pop_p",
+               "E","S","M","s_EM","s_MS","q","tau_M","tau_S"), 
+      include = FALSE, use_cache = FALSE)
 
 
 #--------------------------------------------------------------
@@ -547,9 +546,9 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 
 mod_name <- "LCRchum_BH"
 
-# dev.new(width = 7, height = 8)
-png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
-    width=7, height=8, units="in", res=200, type="cairo-png")
+dev.new(width = 7, height = 8)
+# png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
+#     width=7, height=8, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_LCM_params
 life_cycle <- "LCRchum"
@@ -673,7 +672,7 @@ for(j in levels(dat$pop))
   lines(dat$year[dat$pop == j], colMedians(s_EM[,dat$pop == j]), col = c1t)
 axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
 rug(y[y %% 5 != 0], ticksize = -0.02)
-text(par("usr")[2], par("usr")[4], adj = c(-1,1.5), "E", cex = 1.5)
+text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "E", cex = 1.5)
 
 # SAR
 plot(y, colMedians(s_hat_MS), type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
@@ -695,7 +694,7 @@ rm(list=c("mod_name","life_cycle","SR_fun","mu_alpha","mu_Emax","S","S_grid","E_
           "c1","c1t","c1tt","dd_ESU","dd_pop","dd_age","alpha","Emax","E_pop","ac","ages",
           "y","eta_year_EM","mu_EM","s_hat_EM","eta_year_MS","mu_MS","s_hat_MS","dat"))
 ## @knitr
-dev.off()
+# dev.off()
 
 
 #--------------------------------------------------------------------------------
@@ -789,8 +788,8 @@ dev.off()
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_BH"
-life_stage <- "M"   # "S" = spawners, "M" = smolts
+mod_name <- "LCRchum_BH_fore"
+life_stage <- "S"   # "S" = spawners, "M" = smolts
 
 # dev.new(width=13,height=8)
 png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
