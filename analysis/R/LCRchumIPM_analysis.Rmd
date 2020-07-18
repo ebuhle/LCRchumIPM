@@ -3,18 +3,18 @@ title: 'Fitting Integrated Population Models to Lower Columbia River Chum Salmon
 author: "Eric Buhle, Kale Bentley, Thomas Buehrens, Mark Scheuerell, Todd Hillson, and ..."
 date: "`r format(Sys.time(), '%Y-%m-%d')`"
 output:
-  html_document:
-    df_print: paged
-    fig_caption: true
-    toc: true
-    toc_float: true
-  word_document:
-    toc: true
   pdf_document:
     highlight: haddock
     toc: yes
     number_sections: true
     toc_depth: '3'
+  word_document:
+    toc: true
+  html_document:
+    df_print: paged
+    fig_caption: true
+    toc: true
+    toc_float: true
 fontsize: 11pt
 geometry: margin=1in
 ---
@@ -58,41 +58,41 @@ $$ \alpha_{jt} = \dfrac{1}{2} \sum_{a=3}^{5} q_{jta} \mu_{\textrm{fec},a} $$
 
 Maxmum egg deposition ("capacity") varies randomly among populations according to the hyperdistribution
 
-$$ \textrm{log}(E_{\textrm{max},j}) \sim 
-N(\mu_{E_{\textrm{max}}}, \sigma_{E_{\textrm{max}}}) $$
+$$
+\textrm{log}(E_{\textrm{max},j}) \sim 
+N(\mu_{E_{\textrm{max}}}, \sigma_{E_{\textrm{max}}}) 
+$$
 
 Three spawner-recruit functional forms
 
-$$ 
+$$
 f( S_{jt} | \alpha_{jt}, E_{\textrm{max},j} ) = 
 \begin{cases}
-
-\alpha_{jt} S_{jt} & \textrm{exponential} \\\\
+\alpha_{jt} S_{jt} & \textrm{exponential} 
+\\
 \dfrac{ \alpha_{jt} S_{jt} }{ 1 + \alpha_{jt} S_{jt} / E_{\textrm{max},j} } 
-& \textrm{Beverton-Holt} \\\\
-
-\alpha_{jt} S_{jt} \textrm{exp}\left(- \dfrac{ \alpha_{jt}S_{jt} }{ \textrm{exp(1)} E_{\textrm{max},j} } \right) & \textrm{Ricker}
-
+& \textrm{Beverton-Holt} 
+\\
+\alpha_{jt} S_{jt} \textrm{exp}\left(- \dfrac{ \alpha_{jt}S_{jt} }{ \textrm{exp}(1) E_{\textrm{max},j} } \right) & \textrm{Ricker}
 \end{cases}
 $$
 
 ### Egg-to-Smolt Survival
 
+
 $$
-\begin{eqnarray}
-
-\textrm{logit}( s_{EM,jt} ) &=& \textrm{logit}( \mu_{EM} ) + 
+\begin{aligned}
+\textrm{logit}( s_{EM,jt} ) &= \textrm{logit}( \mu_{EM} ) + 
 \eta^\textrm{pop}_{EM,j} + \eta^\textrm{year}_{EM,t} + 
-\epsilon_{EM,jt} \\
-
-\eta^\textrm{pop}_{EM,j} &\sim& N(0, \sigma^\textrm{pop}_{EM}) \\
-
-\eta^\textrm{year}_{EM,t} &\sim& 
-N(\rho_{EM} \eta^\textrm{year}_{EM,t-1}, \sigma^\textrm{year}_{EM}) \\
-
-\epsilon_{EM,jt} &\sim& N(0, \sigma_{EM})
-
-\end{eqnarray}
+\epsilon_{EM,jt} 
+\\
+\eta^\textrm{pop}_{EM,j} &\sim N(0, \sigma^\textrm{pop}_{EM}) 
+\\
+\eta^\textrm{year}_{EM,t} &\sim
+N(\rho_{EM} \eta^\textrm{year}_{EM,t-1}, \sigma^\textrm{year}_{EM}) 
+\\
+\epsilon_{EM,jt} &\sim N(0, \sigma_{EM})
+\end{aligned}
 $$
 
 Smolts in year $t$
@@ -104,22 +104,21 @@ $$ M_{jt} = s_{EM,t-1}E_{t-1} $$
 SAR
 
 $$
-\begin{eqnarray}
-
-\textrm{logit}( s_{MS,jt} ) &=& \textrm{logit}( \mu_{MS} ) + 
-\eta^\textrm{year}_{MS,t} + \epsilon_{MS,jt} \\
-
-\eta^\textrm{year}_{MS,t} &\sim& 
-N(\rho_{MS} \eta^\textrm{year}_{MS,t-1}, \sigma^\textrm{year}_{MS}) \\
-\epsilon_{MS,jt} &\sim& N(0, \sigma_{MS})
-
-\end{eqnarray}
+\begin{aligned}
+\textrm{logit}( s_{MS,jt} ) &= \textrm{logit}( \mu_{MS} ) + 
+\eta^\textrm{year}_{MS,t} + \epsilon_{MS,jt} 
+\\
+\eta^\textrm{year}_{MS,t} &\sim 
+N(\rho_{MS} \eta^\textrm{year}_{MS,t-1}, \sigma^\textrm{year}_{MS}) 
+\\
+\epsilon_{MS,jt} &\sim N(0, \sigma_{MS})
+\end{aligned}
 $$
 
 ### Conditional Age-at-Return
 
 Adult age structure is modeled by defining a vector of conditional probabilities,
-$ \mathbf{p}_{jt} = [p_{3jt}, p_{4jt}, p_{5jt}] ^ \top $, where $p{ajt}$ is the probability of an outmigrant in year $t$ in population $j$ returning at age $a$, *given that it survives to adulthood*. The unconditional probability is given by $s_{MS,jt} p{ajt}$, where both SAR and $p_a$ are functions of underlying annual marine survival and maturation probabilities that are nonidentifiable without some ancillary data. This parameterization resolves the nonidentifiability.
+$\mathbf{p}_{jt} = [p_{3jt}, p_{4jt}, p_{5jt}] ^ \top$, where $p_{ajt}$ is the probability of an outmigrant in year $t$ in population $j$ returning at age $a$, given that it survives to adulthood. The unconditional probability is given by $s_{MS,jt} p{ajt}$, where both SAR and $p_a$ are functions of underlying annual marine survival and maturation probabilities that are nonidentifiable without some ancillary data. This parameterization resolves the nonidentifiability.
 
 The conditional age probabilities follow a logistic normal process model with hierarchical structure across populations and through time within each population. The additive log ratio,
 
@@ -127,40 +126,37 @@ $$
 \textrm{alr}(\mathbf{p_{jt}}) = 
 [\textrm{log}(p_{3jt}/p_{5jt}), \textrm{log}(p_{4jt}/p_{5jt})] ^ \top
 $$
+
 has a bivariate normal distribution:
 
 $$
-\begin{eqnarray}
-
-\textrm{alr}(\mathbf{p_{jt}}) &=& \textrm{alr}(\boldsymbol{\mu}_\mathbf{p}) + 
+\begin{aligned}
+\textrm{alr}(\mathbf{p_{jt}}) &= \textrm{alr}(\boldsymbol{\mu}_\mathbf{p}) + 
 \boldsymbol{\eta}^\textrm{pop}_{\mathbf{p}, j} +
-\boldsymbol{\epsilon}_{\mathbf{p}, jt} \\
-
-\boldsymbol{\eta}^\textrm{pop}_{\mathbf{p}, j} &\sim& 
-N(\mathbf{0}, \boldsymbol{\Sigma}^\textrm{pop}_\mathbf{p}) \\
-
-\boldsymbol{\epsilon}_{\mathbf{p}, jt} &\sim&
+\boldsymbol{\epsilon}_{\mathbf{p}, jt} 
+\\
+\boldsymbol{\eta}^\textrm{pop}_{\mathbf{p}, j} &\sim 
+N(\mathbf{0}, \boldsymbol{\Sigma}^\textrm{pop}_\mathbf{p}) 
+\\
+\boldsymbol{\epsilon}_{\mathbf{p}, jt} &\sim
 N(\mathbf{0}, \boldsymbol{\Sigma}_\mathbf{p}).
-
-\end{eqnarray}
+\end{aligned}
 $$
 
 Here the 2 $\times$ 2 covariances matrices $\boldsymbol{\Sigma}^\textrm{pop}_\mathbf{p}$ and $\boldsymbol{\Sigma}_\mathbf{p}$ allow correlated variation among age classes (on the unconstrained scale, not merely due to the mathematical simplex constraint on $\mathbf{p}$) across populations and through time within a population, respectively. For example, some populations or cohorts may skew overall younger or older than average. We parameterize each covariance matrix by a vector of standard deviations and a correlation matrix: 
 
 $$
-\begin{eqnarray}
-
-\boldsymbol{\Sigma}^\textrm{pop}_\mathbf{p} &=& 
+\begin{aligned}
+\boldsymbol{\Sigma}^\textrm{pop}_\mathbf{p} &= 
 \boldsymbol{\sigma}^\textrm{pop}_\mathbf{p}
 \mathbf{R}_\mathbf{p}^\textrm{pop} 
 { \boldsymbol{\sigma}^\textrm{pop}_\mathbf{p} } ^ \top
 \\
-\boldsymbol{\Sigma}_\mathbf{p} &=& 
+\boldsymbol{\Sigma}_\mathbf{p} &= 
 \boldsymbol{\sigma}_\mathbf{p} 
 \mathbf{R}_\mathbf{p}
 \boldsymbol{\sigma}_\mathbf{p} ^ \top
-
-\end{eqnarray}
+\end{aligned}
 $$
 
 ### Adult Recruitment
@@ -196,17 +192,21 @@ $$ E_{a,i}^\textrm{obs} \sim N(\mu_{E,a}, \sigma_{E,a}) \hspace{0.1cm} T[0, \inf
 Informative priors based on Bayesian observation models applied to field data of various kinds
 
 $$
-\textrm{log}(M_{jt}) \sim N(\mu_{M,jt}, \tau_{M,ij})
+\begin{aligned}
+\textrm{log}(M_{jt}) &\sim N(\mu_{M,jt}, \tau_{M,ij})
 \\
-\textrm{log}(S_{jt}) \sim N(\mu_{S,jt}, \tau_{S,ij})
+\textrm{log}(S_{jt}) &\sim N(\mu_{S,jt}, \tau_{S,ij})
+\end{aligned}
 $$
 
 Some prior observation error SDs are missing or unknown, and so were imputed by fitting a lognormal hyperdistribution to the known SDs
 
 $$
-\textrm{log}(\tau_{M,ij}) \sim N( \mu_{\tau_M},  \sigma_{\tau_M})
+\begin{aligned}
+\textrm{log}(\tau_{M,ij}) &\sim N( \mu_{\tau_M},  \sigma_{\tau_M})
 \\
-\textrm{log}(\tau_{S,ij}) \sim N( \mu_{\tau_S},  \sigma_{\tau_S})
+\textrm{log}(\tau_{S,ij}) &\sim N( \mu_{\tau_S},  \sigma_{\tau_S})
+\end{aligned}
 $$
 
 ### Spawner Age and Origin Composition
@@ -226,7 +226,6 @@ n_{\textrm{H},jt}^\textrm{obs} \sim
 \textrm{Bin} \left( n_{\textrm{W},jt}^\textrm{obs} + n_{\textrm{H},jt}^\textrm{obs},
 p_{\textrm{HOS},jt} \right)
 $$
-
 
 ## Priors
 
@@ -282,9 +281,9 @@ Model comparison based on LOO. Unhelpful because Pareto ks are too high, but app
 
 Plot estimated spawner-smolt production curves and parameters for the Beverton-Holt model.
 
-```{r plot_SR_LCRchum_BH, echo=FALSE, fig.height=7, fig.width=7, warning=FALSE}
+```{r plot_SR_LCRchum_BH, echo=FALSE, fig.height=7, fig.width=7, out.width="70%", warning=FALSE}
 mod_name <- "LCRchum_BH"
-<<plot_SR_params>>
+<<plot_LCM_params>>
 ```
 
 `r fig_nums("plot_SR_LCRchum_BH", "Estimated Beverton-Holt spawner-recruit relationship (A, B) and intrinsic productivity (C) and capacity (D) parameters for the multi-population IPM. Thin lines correspond to each of 12 populations of Lower Columbia chum salmon; thick lines represent hyper-means across populations. In (A, B), each curve is a posterior median and the shaded region represents the 90% credible interval of the hyper-mean curve (uncertainty around the population-specific curves is omitted for clarity).")`
@@ -326,16 +325,6 @@ mod_name <- "LCRchum_BH"
 ```
 
 `r fig_nums("plot_spawner_age_LCRchum_BH", "Observed (points) and estimated spawner age composition for Lower Columbia River chum salmon populations. The posterior distribution from the multi-population IPM is summarized by the median (solid line) and 90% credible interval (shading). The error bar around each observed proportion indicates the 90% binomial confidence interval based on sample size.")`
-
-We can examine how the model partitions shared interannual fluctuations between the two life-stage transitions...
-
-```{r plot_phi_LCRchum_BH, echo = FALSE, fig.width = 6, fig.height = 8}
-mod_name <- "LCRchum_BH"
-<<plot_phi>>
-```
-
-`r fig_nums("plot_phi_LCRchum_Ricker", "Estimates of shared (ESU-level) process errors from the multi-population IPM fitted to Lower Columbia River chum salmon data. The top panel shows the shared anomalies around the Ricker spawner recruit function, and the bottom panel shows the average SAR.")`
-
 
 # Forecasting
 
