@@ -49,16 +49,20 @@ hatcheries <- read.csv(here("data","Hatchery_Programs.csv"), header = TRUE, stri
 # (4) When calculating the observation error of log(S_obs), tau_S_obs, assume
 #     Abund.Mean and Abund.SD are the mean and SD of a lognormal posterior distribution
 #     of spawner abundance based on the sample
+# (5) ?? Temporary ?? Replace NAs in tau_S_obs with median of known values
+# (6) ?? Temporary ?? Calculate median (S_obs) based on mean and tau_S_obs
 spawner_data <- read.csv(here("data","Data_ChumSpawnerAbundance_2019-12-12.csv"), 
                          header = TRUE, stringsAsFactors = TRUE) %>% 
   rename(year = Return.Yr., strata = Strata, location = Location.Reach, 
-         disposition = Disposition, method = Method, S_obs = Abund.Mean, SD = Abund.SD) %>% 
+         disposition = Disposition, method = Method, mean = Abund.Mean, SD = Abund.SD) %>% 
   mutate(pop = location_pop$pop2[match(location, location_pop$location)],
          disposition_HW = disposition_HW$HW[match(disposition, disposition_HW$disposition)],
-         S_obs = replace(S_obs, is.na(S_obs) & disposition_HW == "H", 0),
-         S_obs = replace(S_obs, is.na(S_obs) & pop == "Duncan_Creek" & year >= 2004, 0),
-         tau_S_obs = sqrt(log((SD/S_obs)^2 + 1))) %>% 
-  select(year:location, pop, disposition, disposition_HW, method:tau_S_obs) %>% 
+         mean = replace(mean, is.na(mean) & disposition_HW == "H", 0),
+         mean = replace(mean, is.na(mean) & pop == "Duncan_Creek" & year >= 2004, 0),
+         tau_S_obs = sqrt(log((SD/mean)^2 + 1)),
+         tau_S_obs = replace(tau_S_obs, is.na(tau_S_obs), median(tau_S_obs, na.rm = TRUE)),
+         S_obs = exp(log(mean) - 0.5*tau_S_obs^2)) %>% 
+  select(year:location, pop, disposition, disposition_HW, method, mean, SD, S_obs, tau_S_obs) %>% 
   arrange(strata, location, year)
 
 names_S_obs <- disposition_HW$disposition
@@ -104,6 +108,7 @@ bio_data_origin <- bio_data %>%
 #     of smolt abundance based on the sample
 # (4) If Abund_SD == 0 (when Analysis=="Census": some years in Duncan_Creek and 
 #     Hamilton_Channel) treat as NA
+# (5) ?? Temporary ?? Replace NAs in tau_M_obs with median of known values
 juv_data <- read.csv(here("data", "Data_ChumJuvenileAbundance_2020-06-09.csv"), 
                      header = TRUE, stringsAsFactors = TRUE) %>% 
   rename(brood_year = Brood.Year, year = Outmigration.Year, strata = Strata, 
@@ -112,7 +117,8 @@ juv_data <- read.csv(here("data", "Data_ChumJuvenileAbundance_2020-06-09.csv"),
          M_obs = Abund_Median, mean = Abund_Mean, SD = Abund_SD, 
          L95 = Abund_L95, U95 = Abund_U95, CV = Abund_CV, comments = Comments) %>% 
   mutate(pop = location_pop$pop2[match(location, location_pop$location)],
-         tau_M_obs = replace(sqrt(log((SD/mean)^2 + 1)), SD==0, NA)) %>% 
+         tau_M_obs = replace(sqrt(log((SD/mean)^2 + 1)), SD==0, NA),
+         tau_M_obs = replace(tau_M_obs, is.na(tau_M_obs), median(tau_M_obs, na.rm = TRUE))) %>% 
   select(strata, location, pop, year, brood_year, origin:CV, tau_M_obs, comments) %>% 
   arrange(strata, location, year)
 
@@ -788,12 +794,12 @@ dev.off()
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_BH_fore"
-life_stage <- "S"   # "S" = spawners, "M" = smolts
+mod_name <- "LCRchum_BH"
+life_stage <- "M"   # "S" = spawners, "M" = smolts
 
-# dev.new(width=13,height=8)
-png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
-    width=13*0.9, height=8*0.9, units="in", res=200, type="cairo-png")
+dev.new(width=13,height=8)
+# png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
+#     width=13*0.9, height=8*0.9, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_spawner_smolt_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
@@ -851,7 +857,7 @@ for(i in levels(dat$pop))
 rm(list = c("mod_name","forecasting","life_stage","life_cycle","dat",
             "N_IPM","N_obs_IPM","N_obs","c1","c1t","c1tt","yi","tau"))
 ## @knitr
-dev.off()
+# dev.off()
 
 
 #--------------------------------------------------------------------------------
