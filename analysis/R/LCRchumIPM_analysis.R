@@ -771,9 +771,8 @@ for(i in levels(dat$pop))
   if (life_cycle == "LCRchum") M_fit_IPM <- M_fit_IPM * s_pop_EM[,ii]
   
   plot(colMedians(S_IPM[,indx]), colMedians(M_IPM[,indx]), pch = "",
-       xlim = range(0, S_obs[indx], colQuantiles(S_IPM[,indx], probs = 0.7), na.rm = TRUE),
-       ylim = range(0, M_obs[indx], colQuantiles(M_IPM[,indx], probs = 0.6), 
-                    colQuantiles(M_fit_IPM[,indx], probs = 0.95), na.rm = TRUE), 
+       xlim = range(0, S_obs[indx], colQuantiles(S_IPM[,indx], probs = 0.6), na.rm = TRUE),
+       ylim = range(0, M_obs[indx], colQuantiles(M_IPM[,indx], probs = 0.6), na.rm = TRUE), 
        las = 1, xlab = "", ylab = "", cex.axis = 1.2)
   mtext(i, side = 3, line = 0.5, cex = par("cex")*1.5)
   if(par("mfg")[2] == 1) 
