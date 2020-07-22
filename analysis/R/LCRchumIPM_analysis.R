@@ -704,7 +704,6 @@ rm(list=c("mod_name","life_cycle","SR_fun","mu_alpha","mu_Emax","S","S_grid","E_
 
 
 #--------------------------------------------------------------------------------
-# !!! NEEDS TO BE UPDATED !!!
 # Lower Columbia chum spawner-egg-smolt-spawner # 
 # Estimated S-R curves for each pop, overlaid with states and observed data
 #--------------------------------------------------------------------------------
@@ -712,9 +711,9 @@ rm(list=c("mod_name","life_cycle","SR_fun","mu_alpha","mu_Emax","S","S_grid","E_
 mod_name <- "LCRchum_BH"
 life_stage <- "M"   # "S" = spawners, "M" = smolts
 
-# dev.new(width=14.5,height=8)
-png(filename=here("analysis", "results", paste0("SR_fit_", mod_name, ".png")),
-    width=14.5*0.9, height=8*0.9, units="in", res=200, type="cairo-png")
+dev.new(width=14.5,height=8)
+# png(filename=here("analysis", "results", paste0("SR_fit_", mod_name, ".png")),
+#     width=14.5*0.9, height=8*0.9, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_SR_fits
 SR_eval <- function(alpha, Rmax = NULL, S, SR_fun) 
@@ -726,31 +725,51 @@ SR_eval <- function(alpha, Rmax = NULL, S, SR_fun)
 }
 
 scl <- switch(life_stage, M = 1e-6, S = 1)
-S_obs <- fish_data_SMS$S_obs
-M_obs <- fish_data_SMS$M_obs*scl
+life_cycle <- unlist(strsplit(mod_name, "_"))[1]
+dat <- switch(life_cycle, SS = fish_data, SMS = fish_data_SMS, LCRchum = fish_data_SMS)
+S_obs <- dat$S_obs
+M_obs <- dat$M_obs*scl
 S_IPM <- do.call(extract1, list(as.name(mod_name), "S"))
 M_IPM <- do.call(extract1, list(as.name(mod_name), "M"))*scl
 SR_fun <- unlist(strsplit(mod_name, "_"))[2]
-alpha <- do.call(extract1, list(as.name(mod_name), "alpha"))
-Rmax <- do.call(extract1, list(as.name(mod_name), "Rmax"))
 
+# S-R params
+if(life_cycle == "SMS") {
+  alpha <- do.call(extract1, list(as.name(mod_name), "alpha"))
+  Rmax <- do.call(extract1, list(as.name(mod_name), "Rmax"))
+} else if(life_cycle == "LCRchum") {
+  # fecundity
+  mu_E <- do.call(extract1, list(as.name(mod_name), "mu_E"))
+  ages <- substring(names(select(dat, starts_with("n_age"))), 6, 6)
+  # calculate alpha and egg deposition
+  q <- do.call(extract1, list(as.name(mod_name), "q"))
+  alpha <- apply(sweep(q, c(1,3), mu_E, "*"), 1:2, sum)*0.5  # age-weighted fecundity / 2
+  alpha <- exp(t(as.matrix(aggregate(t(log(alpha)), list(pop = dat$pop), mean)[,-1])))
+  Rmax <- do.call(extract1, list(as.name(mod_name), "Emax"))*1e6
+  # egg-smolt survival
+  eta_pop_EM <- do.call(extract1, list(as.name(mod_name), "eta_pop_EM"))
+  mu_EM <- do.call(extract1, list(as.name(mod_name), "mu_EM"))
+  s_pop_EM <- plogis(sweep(eta_pop_EM, 1, qlogis(mu_EM), "+"))
+}
+#colors
 c1 <- "slategray4"
 c1t <- transparent(c1, trans.val = 0.7)
-y <- sort(unique(fish_data_SMS$year))
+y <- sort(unique(dat$year))
 cy <- plasma(length(y), end = 0.9, direction = -1, alpha = 0.8)
 
 op <- par(mfrow=c(3,4), mar=c(1,3,4.1,1), oma=c(4.1,3.1,0,13))
 
-for(i in levels(fish_data_SMS$pop))
+for(i in levels(dat$pop))
 {
-  indx <- fish_data_SMS$pop == i
-  ii <- levels(fish_data_SMS$pop) == i
-  yi <- fish_data_SMS$year[indx]
+  indx <- dat$pop == i
+  ii <- levels(dat$pop) == i
+  yi <- dat$year[indx]
   cyi <- cy[match(yi, y)]
   S_upper <- max(S_obs[indx], colQuantiles(S_IPM[,indx], probs = 0.9), na.rm = TRUE)
   S <- matrix(seq(0, S_upper, length = 1000), nrow = nrow(alpha), ncol = 1000, byrow = TRUE)
   M_fit_IPM <- SR_eval(alpha = alpha[,ii], Rmax = Rmax[,ii], S = S, SR_fun = SR_fun)*scl
-
+  if (life_cycle == "LCRchum") M_fit_IPM <- M_fit_IPM * s_pop_EM[,ii]
+  
   plot(colMedians(S_IPM[,indx]), colMedians(M_IPM[,indx]), pch = "",
        xlim = range(0, S_obs[indx], colQuantiles(S_IPM[,indx], probs = 0.7), na.rm = TRUE),
        ylim = range(0, M_obs[indx], colQuantiles(M_IPM[,indx], probs = 0.6), 
@@ -783,11 +802,12 @@ legend(0.9, 0.5, c("observation", "state", "", y), fill = c(rep(NA,3), cy), bord
        col = c(rep("black",3), cy), pch = c(16, 3, rep(NA, length(y) + 1)), pt.cex = 1.2, 
        yjust = 0.5, xpd = NA, box.lwd = 0.5)
 
+if(life_cycle == "LRCchum") rm(list = c("mu_E","agess","q","eta_pop_M","mu_EM","s_pop_EM"))
 rm(list = c("mod_name","SR_fun","S_IPM","M_IPM","S_obs","M_obs","alpha","Rmax",
             "M_fit_IPM","c1","c1t","yi","y","cy","cyi","indx","life_stage","scl",
-            "ii","S_upper","op"))
+            "ii","S_upper","op","dat"))
 ## @knitr
-dev.off()
+# dev.off()
 
 
 #--------------------------------------------------------------------------------
