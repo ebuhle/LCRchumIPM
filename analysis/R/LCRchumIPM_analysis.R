@@ -60,7 +60,8 @@ spawner_data <- read.csv(here("data","Data_ChumSpawnerAbundance_2019-12-12.csv")
          mean = replace(mean, is.na(mean) & disposition_HW == "H", 0),
          mean = replace(mean, is.na(mean) & pop == "Duncan_Creek" & year >= 2004, 0),
          tau_S_obs = sqrt(log((SD/mean)^2 + 1)),
-         tau_S_obs = replace(tau_S_obs, is.na(tau_S_obs), median(tau_S_obs, na.rm = TRUE)),
+         tau_S_obs = replace(tau_S_obs, is.na(tau_S_obs) & disposition_HW == "W", 
+                             median(tau_S_obs, na.rm = TRUE)),
          S_obs = exp(log(mean) - 0.5*tau_S_obs^2)) %>% 
   select(year:location, pop, disposition, disposition_HW, method, mean, SD, S_obs, tau_S_obs) %>% 
   arrange(strata, location, year)
@@ -813,8 +814,8 @@ rm(list = c("mod_name","SR_fun","S_IPM","M_IPM","S_obs","M_obs","alpha","Rmax",
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_BH"
-life_stage <- "M"   # "S" = spawners, "M" = smolts
+mod_name <- "LCRchum_BH_2"
+life_stage <- "S"   # "S" = spawners, "M" = smolts
 
 dev.new(width=13,height=8)
 # png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
@@ -822,7 +823,7 @@ dev.new(width=13,height=8)
 
 ## @knitr plot_spawner_smolt_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
-forecasting <- ifelse(is.na(unlist(strsplit(mod_name, "_"))[3]), "no", "yes")
+forecasting <- ifelse(unlist(strsplit(mod_name, "_"))[3] == "fore", "yes", "no")
 dat <- switch(life_cycle, SS = fish_data_SS, 
               SMS = switch(forecasting, no = fish_data_SMS, yes = fish_data_SMS_fore),
               LCRchum = switch(forecasting, no = fish_data_SMS, yes = fish_data_SMS_fore))
