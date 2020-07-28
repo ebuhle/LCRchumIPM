@@ -49,21 +49,16 @@ hatcheries <- read.csv(here("data","Hatchery_Programs.csv"), header = TRUE, stri
 # (4) When calculating the observation error of log(S_obs), tau_S_obs, assume
 #     Abund.Mean and Abund.SD are the mean and SD of a lognormal posterior distribution
 #     of spawner abundance based on the sample
-# (5) ?? Temporary ?? Replace NAs in tau_S_obs with median of known values
-# (6) ?? Temporary ?? Calculate median (S_obs) based on mean and tau_S_obs
 spawner_data <- read.csv(here("data","Data_ChumSpawnerAbundance_2019-12-12.csv"), 
                          header = TRUE, stringsAsFactors = TRUE) %>% 
   rename(year = Return.Yr., strata = Strata, location = Location.Reach, 
-         disposition = Disposition, method = Method, mean = Abund.Mean, SD = Abund.SD) %>% 
+         disposition = Disposition, method = Method, S_obs = Abund.Mean, SD = Abund.SD) %>% 
   mutate(pop = location_pop$pop2[match(location, location_pop$location)],
          disposition_HW = disposition_HW$HW[match(disposition, disposition_HW$disposition)],
-         mean = replace(mean, is.na(mean) & disposition_HW == "H", 0),
-         mean = replace(mean, is.na(mean) & pop == "Duncan_Creek" & year >= 2004, 0),
-         tau_S_obs = ifelse(disposition_HW=="W", sqrt(log((SD/mean)^2 + 1)), 0),
-         tau_S_obs = replace(tau_S_obs, is.na(tau_S_obs), 
-                             median(tau_S_obs[disposition_HW=="W"], na.rm = TRUE)),
-         S_obs = exp(log(mean) - 0.5*tau_S_obs^2)) %>% 
-  select(year:location, pop, disposition, disposition_HW, method, mean, SD, S_obs, tau_S_obs) %>% 
+         S_obs = replace(S_obs, is.na(S_obs) & disposition_HW == "H", 0),
+         S_obs = replace(S_obs, is.na(S_obs) & pop == "Duncan_Creek" & year >= 2004, 0),
+         tau_S_obs = ifelse(disposition_HW=="W", sqrt(log((SD/S_obs)^2 + 1)), 0)) %>% 
+  select(year:location, pop, disposition, disposition_HW, method, S_obs, SD, tau_S_obs) %>% 
   arrange(strata, location, year)
 
 names_S_obs <- disposition_HW$disposition
@@ -109,7 +104,6 @@ bio_data_origin <- bio_data %>%
 #     of smolt abundance based on the sample
 # (4) If Abund_SD == 0 (when Analysis=="Census": some years in Duncan_Creek and 
 #     Hamilton_Channel) treat as NA
-# (5) ?? Temporary ?? Replace NAs in tau_M_obs with median of known values
 juv_data <- read.csv(here("data", "Data_ChumJuvenileAbundance_2020-06-09.csv"), 
                      header = TRUE, stringsAsFactors = TRUE) %>% 
   rename(brood_year = Brood.Year, year = Outmigration.Year, strata = Strata, 
@@ -118,8 +112,7 @@ juv_data <- read.csv(here("data", "Data_ChumJuvenileAbundance_2020-06-09.csv"),
          M_obs = Abund_Median, mean = Abund_Mean, SD = Abund_SD, 
          L95 = Abund_L95, U95 = Abund_U95, CV = Abund_CV, comments = Comments) %>% 
   mutate(pop = location_pop$pop2[match(location, location_pop$location)],
-         tau_M_obs = replace(sqrt(log((SD/mean)^2 + 1)), SD==0, NA),
-         tau_M_obs = replace(tau_M_obs, is.na(tau_M_obs), median(tau_M_obs, na.rm = TRUE))) %>% 
+         tau_M_obs = replace(sqrt(log((SD/mean)^2 + 1)), SD==0, NA)) %>% 
   select(strata, location, pop, year, brood_year, origin:CV, tau_M_obs, comments) %>% 
   arrange(strata, location, year)
 
@@ -815,7 +808,7 @@ rm(list = c("mod_name","SR_fun","S_IPM","M_IPM","S_obs","M_obs","alpha","Rmax",
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_BH"
-life_stage <- "S"   # "S" = spawners, "M" = smolts
+life_stage <- "M"   # "S" = spawners, "M" = smolts
 
 dev.new(width=13,height=8)
 # png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
@@ -947,9 +940,9 @@ dev.off()
 
 mod_name <- "LCRchum_BH"
 
-# dev.new(width=7,height=7)
-png(filename=here("analysis","results",paste0("fecundity_fit_", mod_name, ".png")),
-    width=7, height=7, units="in", res=200, type="cairo-png")
+dev.new(width=7,height=7)
+# png(filename=here("analysis","results",paste0("fecundity_fit_", mod_name, ".png")),
+#     width=7, height=7, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_fecundity_fit
 ages <- substring(names(select(fish_data_SMS, starts_with("n_age"))), 6, 6)
@@ -985,7 +978,7 @@ title(xlab = "Fecundity", ylab = "Probability density", cex.lab = 1.5, line = 0,
 
 rm(list = c("mod_name","c1","c1t","c1tt","ages","E_obs","E_seq","mu_E","sigma_E","E_fit"))
 ## @knitr
-dev.off()
+# dev.off()
 
 
 #--------------------------------------------------------------------------------
