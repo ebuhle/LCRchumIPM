@@ -235,6 +235,14 @@ fecundity_data %>% mutate(age_E = factor(age_E)) %>%  ggplot(aes(sample = E_obs)
   geom_qq(distribution = qnorm) + geom_qq_line(distribution = qnorm) +
   facet_grid(rows = vars(strata), cols = vars(age_E)) + theme_bw()
 
+# Smolts/spawner vs. spawners, grouped by population
+windows()
+fish_data_SMS %>% group_by(pop) %>% mutate(M0_obs = lead(M_obs), MperS = M0_obs/S_obs) %>% 
+  ggplot(aes(x = S_obs, y = MperS)) + scale_x_log10() + scale_y_log10() +
+  geom_point(size = 2) + labs(x = "spawners", y = "smolts / spawner") +
+  facet_wrap(vars(pop), nrow = 3, ncol = 4) + theme_bw() +
+  theme(panel.grid = element_blank())
+
 
 #===========================================================================
 # FIT RETROSPECTIVE MODELS
@@ -702,7 +710,7 @@ rm(list=c("mod_name","life_cycle","SR_fun","mu_alpha","mu_Emax","S","S_grid","E_
 # Estimated S-R curves for each pop, overlaid with states and observed data
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_BH"
+mod_name <- "LCRchum_Ricker"
 life_stage <- "M"   # "S" = spawners, "M" = smolts
 
 dev.new(width=14.5,height=8)
