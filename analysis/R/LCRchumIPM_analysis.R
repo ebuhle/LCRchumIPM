@@ -554,9 +554,9 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 
 mod_name <- "LCRchum_BH"
 
-dev.new(width = 7, height = 8)
-# png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
-#     width=7, height=8, units="in", res=200, type="cairo-png")
+# dev.new(width = 7, height = 8)
+png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
+    width=7, height=8, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_LCM_params
 life_cycle <- "LCRchum"
@@ -702,7 +702,7 @@ rm(list=c("mod_name","life_cycle","SR_fun","mu_alpha","mu_Emax","S","S_grid","E_
           "c1","c1t","c1tt","dd_ESU","dd_pop","dd_age","alpha","Emax","E_pop","ac","ages",
           "y","eta_year_EM","mu_EM","s_hat_EM","eta_year_MS","mu_MS","s_hat_MS","dat"))
 ## @knitr
-# dev.off()
+dev.off()
 
 
 #--------------------------------------------------------------------------------
@@ -937,6 +937,56 @@ legend(0.5, 1.1, paste("age", substring(names(n_age_obs), 6, 6), "  "), x.inters
        
 rm(list = c("mod_name","life_cycle","dat","q_IPM","n_age_obs","q_obs","op",
             "c1","c1t","c1tt","yi"))
+## @knitr
+dev.off()
+
+
+#--------------------------------------------------------------------------------
+# Time series of observed and fitted p_HOS for each pop
+#--------------------------------------------------------------------------------
+
+mod_name <- "LCRchum_BH"
+
+# dev.new(width=13,height=8.5)
+png(filename=here("analysis", "results", paste0("p_HOS_fit_", mod_name, ".png")),
+    width=13*0.9, height=8.5*0.9, units="in", res=200, type="cairo-png")
+
+## @knitr plot_p_HOS_ts
+life_cycle <- unlist(strsplit(mod_name, "_"))[1]
+dat <- switch(life_cycle, SS = fish_data_SS, SMS = fish_data_SMS, LCRchum = fish_data_SMS)
+p_HOS_IPM <- matrix(0, nrow(do.call(as.matrix, list(as.name(mod_name)))), nrow(dat))
+p_HOS_IPM[,dat$fit_p_HOS==1] <- do.call(extract1, list(as.name(mod_name), "p_HOS"))
+
+c1 <- "slategray4"
+c1t <- transparent(c1, trans.val = 0.5)
+
+par(mfrow=c(3,4), mar=c(1,3,4.1,1), oma=c(4.1,3.1,0,0))
+
+for(i in levels(dat$pop))
+{
+  yi <- dat$year[dat$pop==i]
+  plot(yi, rep(0.5, length(yi)), pch = "", xlim = range(dat$year), ylim = c(0,1), 
+       las = 1, cex.axis = 1.2, xaxt = "n", xlab = "", ylab = "")
+  axis(side = 1, at = yi[yi %% 5 == 0], cex.axis = 1.2)
+  rug(yi[yi %% 5 != 0], ticksize = -0.02)
+  mtext(i, side = 3, line = 0.5, cex = par("cex")*1.5)
+  if(par("mfg")[2] == 1) 
+    mtext(bquote(italic(p)[HOS]), side = 2, line = 3.5, cex = par("cex")*1.5)
+  if(par("mfg")[1] == par("mfg")[3]) 
+    mtext("Year", side = 1, line = 3, cex = par("cex")*1.5)
+  p_HOS_obs <- binconf(dat$n_H_obs[dat$pop==i], 
+                       dat$n_H_obs[dat$pop==i] + dat$n_W_obs[dat$pop==i], 
+                       alpha = 0.1)
+  lines(yi, colMedians(p_HOS_IPM[,dat$pop==i]), col = c1, lwd = 2)
+  polygon(c(yi, rev(yi)),
+          c(colQuantiles(p_HOS_IPM[,dat$pop==i], probs = 0.05),
+            rev(colQuantiles(p_HOS_IPM[,dat$pop==i], probs = 0.95))),
+          col = c1t, border = NA)
+  points(yi, p_HOS_obs[,"PointEst"], pch = ifelse(dat$fit_p_HOS[dat$pop==i], 16, 1), cex = 1.8)
+  segments(x0 = yi, y0 = p_HOS_obs[,"Lower"], y1 = p_HOS_obs[,"Upper"])
+}
+
+rm(list = c("mod_name","life_cycle","dat","p_HOS_IPM","p_HOS_obs","c1","c1t","yi"))
 ## @knitr
 dev.off()
 
