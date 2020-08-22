@@ -179,9 +179,11 @@ fecundity <- read.csv(here("data","Data_ChumFecundity_fromHatcheryPrograms_2017-
          mean_mass = Green.egg.avg.weight, comments = Comments) %>% 
   mutate(ID = as.character(ID))
 
-# drop cases with age not in c(3,4,5) or with estimated fecundity missing
+# drop cases with age not in c(3,4,5), with estimated fecundity missing, or
+# with reproductive effort <= 16%
 # add strata based on stock: Grays -> Coastal, I-205 -> Cascade, Lower Gorge -> Gorge
-fecundity_data <- fecundity %>% filter(age_E %in% 3:5 & !is.na(E_obs)) %>% 
+fecundity_data <- fecundity %>% 
+  filter(age_E %in% 3:5 & !is.na(E_obs) & !is.na(reproductive_effort) & reproductive_effort > 16) %>% 
   mutate(strata = recode(stock, Grays = "Coastal", `I-205` = "Cascade", `Lower Gorge` = "Gorge")) %>% 
   select(strata, year, ID, age_E, E_obs) %>% 
   arrange(strata, year, age_E) 
