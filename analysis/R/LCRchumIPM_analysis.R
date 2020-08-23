@@ -43,36 +43,36 @@ hatcheries <- read.csv(here("data","Hatchery_Programs.csv"), header = TRUE, stri
 
 # Spawner abundance data
 # Assumptions:
-# (1) NAs in hatchery dispositions (incl. Duncan Channel) are really zeros
-# (2) NAs in Duncan Creek from 2004-present are really zeros
+# (0) Fix coding error in data that assigns some Duncan Creek rows to Cascade stratum
+# (1) NAs in hatchery or spawning channel dispositions are really zeros
+# (2) NAs in Duncan Creek are really zeros
 # (3) All other NAs are real missing observations
 # (4) When calculating the observation error of log(S_obs), tau_S_obs, assume
 #     Abund.Mean and Abund.SD are the mean and SD of a lognormal posterior distribution
 #     of spawner abundance based on the sample
 spawner_data <- read.csv(here("data","Data_ChumSpawnerAbundance_2019-12-12.csv"), 
-                         header = TRUE, stringsAsFactors = TRUE) %>% 
+                         header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(year = Return.Yr., strata = Strata, location = Location.Reach, 
          disposition = Disposition, method = Method, S_obs = Abund.Mean, SD = Abund.SD) %>% 
-  mutate(pop = location_pop$pop2[match(location, location_pop$location)],
-         disposition_HW = disposition_HW$HW[match(disposition, disposition_HW$disposition)],
-         S_obs = replace(S_obs, is.na(S_obs) & disposition_HW == "H", 0),
-         S_obs = replace(S_obs, is.na(S_obs) & pop == "Duncan_Creek" & year >= 2004, 0),
-         tau_S_obs = ifelse(disposition_HW=="W", sqrt(log((SD/S_obs)^2 + 1)), 0)) %>% 
-  select(year:location, pop, disposition, disposition_HW, method, S_obs, SD, tau_S_obs) %>% 
+  mutate(strata = replace(strata, disposition == "Duncan_Channel" & strata != "Gorge", "Gorge"),
+         S_obs = replace(S_obs, is.na(S_obs) & grepl("Hatchery|Channel|Duncan_Creek", disposition), 0),
+         tau_S_obs = sqrt(log((SD/S_obs)^2 + 1))) %>% 
+  select(year:location, disposition, method, S_obs, SD, tau_S_obs) %>% 
   arrange(strata, location, year)
 
-names_S_obs <- disposition_HW$disposition
-names_B_take_obs <- disposition_HW$disposition[disposition_HW$HW == "H"]
+# broodstock take: 
+# all spawners taken from a given location to a different disposition
+# (summarized by location)
+broodstock_data <- spawner_data %>% group_by(location, year) %>% 
+  summarize(B_take_obs = sum(S_obs[disposition != location])) %>% 
+  rename(pop = location) %>% as.data.frame()
 
-spawner_data_agg <- spawner_data %>% group_by(strata, pop, year, disposition) %>% 
-  summarize(S_obs = sum(S_obs), tau_S_obs = unique(tau_S_obs)) %>% ungroup() %>% 
-  pivot_wider(id_cols = c(strata, pop, year), names_from = disposition,
-              values_from = c(S_obs, tau_S_obs), values_fill = list(S_obs = 0)) %>% 
-  add_column(S_obs = rowSums(select(., all_of(paste0("S_obs_", names_S_obs)))),
-             tau_S_obs = rowSums(select(., all_of(paste0("tau_S_obs_", names_S_obs))), na.rm = TRUE),
-             B_take_obs = rowSums(select(., all_of(paste0("S_obs_", names_B_take_obs))))) %>% 
-  mutate(tau_S_obs = replace(tau_S_obs, tau_S_obs == 0, NA)) %>% 
-  select(-matches(paste(names_S_obs, collapse = "|"))) %>%
+# total spawners:
+# all spawners with a given disposition, regardless of original return location
+# (summarized by disposition)
+spawner_data_agg <- spawner_data %>% group_by(strata, disposition, year) %>% 
+  summarize(S_obs = sum(S_obs), tau_S_obs = unique(tau_S_obs)) %>% 
+  rename(pop = disposition) %>% left_join(broodstock_data, by = c("pop","year")) %>% 
   as.data.frame()
 
 # Spawner age-, sex-, and origin-frequency (aka BioData)
@@ -185,8 +185,7 @@ fecundity <- read.csv(here("data","Data_ChumFecundity_fromHatcheryPrograms_2017-
 fecundity_data <- fecundity %>% 
   filter(age_E %in% 3:5 & !is.na(E_obs) & !is.na(reproductive_effort) & reproductive_effort > 16) %>% 
   mutate(strata = recode(stock, Grays = "Coastal", `I-205` = "Cascade", `Lower Gorge` = "Gorge")) %>% 
-  select(strata, year, ID, age_E, E_obs) %>% 
-  arrange(strata, year, age_E) 
+  select(strata, year, ID, age_E, E_obs) %>% arrange(strata, year, age_E) 
 ## @knitr
 
 #--------------------------------------------------------------
