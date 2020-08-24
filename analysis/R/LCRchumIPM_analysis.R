@@ -63,8 +63,8 @@ spawner_data <- read.csv(here("data","Data_ChumSpawnerAbundance_2019-12-12.csv")
 # broodstock take: 
 # all spawners taken from a given location to a different disposition
 # (summarized by location)
-broodstock_data <- spawner_data %>% group_by(location, year) %>% 
-  summarize(B_take_obs = sum(S_obs[disposition != location])) %>% 
+broodstock_data <- spawner_data %>%
+  group_by(location, year) %>% summarize(B_take_obs = sum(S_obs[disposition != location])) %>% 
   rename(pop = location) %>% as.data.frame()
 
 # total spawners:
@@ -119,36 +119,65 @@ bio_data_HW <- bio_data %>%
 # (4) If Abund_SD == 0 (when Analysis=="Census": some years in Duncan_Creek and 
 #     Hamilton_Channel) treat as NA
 juv_data <- read.csv(here("data", "Data_ChumJuvenileAbundance_2020-06-09.csv"), 
-                     header = TRUE, stringsAsFactors = TRUE) %>% 
+                     header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(brood_year = Brood.Year, year = Outmigration.Year, strata = Strata, 
          location = Location.Reach, origin = Origin, trap_type = TrapType, 
          analysis = Analysis, partial_spawners = Partial.Spawners, raw_catch = RawCatch,
          M_obs = Abund_Median, mean = Abund_Mean, SD = Abund_SD, 
          L95 = Abund_L95, U95 = Abund_U95, CV = Abund_CV, comments = Comments) %>% 
-  mutate(pop = location_pop$pop2[match(location, location_pop$location)],
-         tau_M_obs = replace(sqrt(log((SD/mean)^2 + 1)), SD==0, NA)) %>% 
-  select(strata, location, pop, year, brood_year, origin:CV, tau_M_obs, comments) %>% 
+  mutate(tau_M_obs = replace(sqrt(log((SD/mean)^2 + 1)), SD==0, NA)) %>% 
+  select(strata, location, year, brood_year, origin:CV, tau_M_obs, comments) %>% 
   arrange(strata, location, year)
 
 # drop hatchery or redundant pops and cases with leading or trailing NAs in M_obs
+# use only pooled Duncan Channel data for now, not North / South
 head_noNA <- function(x) { cumsum(!is.na(x)) > 0 }
-juv_data_incl <- juv_data %>% filter(pop %in% spawner_data$pop) %>% 
-  mutate(location = factor(location), pop = factor(pop, levels = levels(spawner_data$pop))) %>% 
-  group_by(pop) %>% filter(head_noNA(M_obs) & rev(head_noNA(rev(M_obs)))) %>% as.data.frame()
+juv_data_incl <- juv_data %>% group_by(location) %>% 
+  filter(head_noNA(M_obs) & rev(head_noNA(rev(M_obs)))) %>%
+  filter(!(location %in% c("Duncan_North","Duncan_South"))) %>% 
+  rename(pop = location) %>% as.data.frame()
 
 # Fish data formatted for salmonIPM
 # Drop age-2 and age-6 samples (each is < 0.1% of aged spawners)
 # Use A = 1 for now (so Rmax in units of spawners)
 fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("strata","pop","year")) %>% 
-  full_join(bio_data_origin, by = c("strata","pop","year")) %>% 
+  full_join(bio_data_HW, by = c("strata","pop","year")) %>% 
   full_join(juv_data_incl, by = c("strata","pop","year")) %>%
-  mutate(B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0)) %>% 
   rename_at(vars(contains("Age-")), list(~ paste0(sub("Age-","n_age",.), "_obs"))) %>% 
   select(-c(n_age2_obs, n_age6_obs)) %>% 
   rename(n_H_obs = H, n_W_obs = W) %>% mutate(A = 1, fit_p_HOS = NA, F_rate = 0) %>% 
   mutate_at(vars(contains("n_")), ~ replace(., is.na(.), 0)) %>% 
+  filter(!grepl("Hatchery|Duncan_Creek", pop)) %>% 
   select(strata, pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_W_obs, 
-         fit_p_HOS, B_take_obs, F_rate) %>% arrange(strata, pop, year) 
+         fit_p_HOS, B_take_obs, F_rate) %>%   arrange(strata, pop, year) 
+
+# pool Grays_MS and Grays_WF spawners and BioData
+# estimate moments of prior distribution on summed spawners by simulating from
+# MS and WF priors and assuming the sum is lognormal (which is approximately true,
+# but sum is not well approximated by moment matching mean and variance so Monte Carlo
+# is necessary) 
+# uses the fact that S_obs is actually the prior mean
+fish_data <- mutate(fish_data, pop = replace(pop, pop == "Grays_MS", "Grays_MSWF"))
+for(i in which(fish_data$pop=="Grays_MSWF")) {
+  indx_WF <- which(fish_data$pop=="Grays_WF" & fish_data$year==fish_data$year[i])
+  S_sum <- 
+    rlnorm(10000, 
+           log(fish_data$S_obs[i]) - 0.5*fish_data$tau_S_obs[i]^2, 
+           fish_data$tau_S_obs[i]) + 
+    rlnorm(10000, 
+           log(fish_data$S_obs[indx_WF]) - 0.5*fish_data$tau_S_obs[indx_WF]^2,
+           fish_data$tau_S_obs[indx_WF])
+  fish_data$tau_S_obs[i] <- sqrt(log(var(S_sum)/mean(S_sum)^2 + 1))
+  fish_data$S_obs[i] <- log(mean(S_sum)) - 0.5*fish_data$tau_S_obs[i]^2
+  fish_data[i,grepl("n_", names(fish_data))] <- 
+    colSums(fish_data[c(i,indx_WF), grepl("n_", names(fish_data))])
+  fish_data$B_take_obs[i] <- sum(fish_data$B_take_obs[i], fish_data$B_take_obs[indx_WF], 
+                                 na.rm = TRUE)
+}
+fish_data <- fish_data %>% filter(pop != "Grays_WF") %>% 
+  mutate(strata = factor(strata), pop = factor(pop))
+
+# subtract
 
 # fill in fit_p_HOS
 for(i in 1:nrow(fish_data)) {
