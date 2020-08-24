@@ -28,16 +28,6 @@ if(file.exists(here("analysis","results","LCRchumIPM.RData")))
 
 ## @knitr data
 
-# Mapping of location to population
-location_pop <- read.csv(here("data","Location.Reach_Population.csv"), 
-                         header = TRUE, stringsAsFactors = TRUE) %>% 
-  rename(strata = Strata, location = Location.Reach, pop1 = Population1, pop2 = Population2)
-
-# Mapping of disposition to hatchery vs. wild (i.e., broodstock vs. natural spawner)
-disposition_HW <- read.csv(here("data","Disposition_HW.csv"), 
-                           header = TRUE, stringsAsFactors = TRUE) %>% 
-  rename(disposition = Disposition) %>% arrange(HW)
-
 # Start dates of hatcheries associated with populations
 hatcheries <- read.csv(here("data","Hatchery_Programs.csv"), header = TRUE, stringsAsFactors = TRUE)
 
@@ -63,8 +53,8 @@ spawner_data <- read.csv(here("data","Data_ChumSpawnerAbundance_2019-12-12.csv")
 # broodstock take: 
 # all spawners taken from a given location to a different disposition
 # (summarized by location)
-broodstock_data <- spawner_data %>%
-  group_by(location, year) %>% summarize(B_take_obs = sum(S_obs[disposition != location])) %>% 
+broodstock_data <- spawner_data %>% group_by(strata, location, year) %>% 
+  summarize(B_take_obs = sum(S_obs[disposition != location])) %>% 
   rename(pop = location) %>% as.data.frame()
 
 # total spawners:
@@ -72,11 +62,12 @@ broodstock_data <- spawner_data %>%
 # (summarized by disposition)
 spawner_data_agg <- spawner_data %>% group_by(strata, disposition, year) %>% 
   summarize(S_obs = sum(S_obs), tau_S_obs = unique(tau_S_obs)) %>% 
-  rename(pop = disposition) %>% left_join(broodstock_data, by = c("pop","year")) %>% 
+  rename(pop = disposition) %>% left_join(broodstock_data, by = c("strata","pop","year")) %>% 
   mutate(B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0)) %>% as.data.frame()
 
 # Spawner age-, sex-, and origin-frequency (aka BioData)
 # Assumptions:
+# (0) Fix coding error in data that assigns some Duncan Creek rows to Cascade stratum
 # (1) The current generation of salmonIPM models must treat any known nonlocal-origin
 #     spawner as "hatchery-origin" to avoid counting as local recruitment, so "H"
 #     includes true hatchery fish based on origin *plus* any whose known origin 
@@ -87,7 +78,8 @@ bio_data <- read.csv(here("data","Data_ChumSpawnerBioData_2019-12-12.csv"),
                      header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(year = Return.Yr., strata = Strata, location = Location.Reach, 
          disposition = Disposition, origin = Origin, sex = Sex, age = Age, count = Count) %>% 
-  mutate(count = replace(count, is.na(count), 0),
+  mutate(strata = replace(strata, disposition == "Duncan_Channel" & strata != "Gorge", "Gorge"),
+         count = replace(count, is.na(count), 0),
          HW = ifelse((grepl("Hatchery", origin) | location != disposition | 
                        (origin != disposition & origin != "Natural_spawner")) &
                        !(origin %in% c("Duncan_Channel","Natural_spawner") & 
@@ -109,14 +101,12 @@ bio_data_HW <- bio_data %>%
 
 # Juvenile abundance data
 # Assumptions:
-# (1) Smolts from Duncan Channel represent all naturally produced offspring of spawners
-#     in Duncan Creek (hence Duncan_Channel -> Duncan_Creek in location_pop)
-# (2) Duncan_North + Duncan_South = Duncan_Channel, so the former two are redundant 
+# (1) Duncan_North + Duncan_South = Duncan_Channel, so the former two are redundant 
 #     (not really an assumption, although the equality isn't perfect in all years)
-# (3) When calculating the observation error of log(M_obs), tau_M_obs, assume
+# (2) When calculating the observation error of log(M_obs), tau_M_obs, assume
 #     Abund_Mean and Abund_SD are the mean and SD of a lognormal posterior distribution
 #     of smolt abundance based on the sample
-# (4) If Abund_SD == 0 (when Analysis=="Census": some years in Duncan_Creek and 
+# (3) If Abund_SD == 0 (when Analysis=="Census": some years in Duncan_Channel and 
 #     Hamilton_Channel) treat as NA
 juv_data <- read.csv(here("data", "Data_ChumJuvenileAbundance_2020-06-09.csv"), 
                      header = TRUE, stringsAsFactors = FALSE) %>% 
@@ -140,6 +130,7 @@ juv_data_incl <- juv_data %>% group_by(location) %>%
 # Fish data formatted for salmonIPM
 # Drop age-2 and age-6 samples (each is < 0.1% of aged spawners)
 # Use A = 1 for now (so Rmax in units of spawners)
+# Drop Duncan Creek and "populations" that are actually hatcheries
 fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("strata","pop","year")) %>% 
   full_join(bio_data_HW, by = c("strata","pop","year")) %>% 
   full_join(juv_data_incl, by = c("strata","pop","year")) %>%
@@ -147,19 +138,33 @@ fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("strata","pop","ye
   select(-c(n_age2_obs, n_age6_obs)) %>% 
   rename(n_H_obs = H, n_W_obs = W) %>% mutate(A = 1, fit_p_HOS = NA, F_rate = 0) %>% 
   mutate_at(vars(contains("n_")), ~ replace(., is.na(.), 0)) %>% 
+  mutate(B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0)) %>%
   filter(!grepl("Hatchery|Duncan_Creek", pop)) %>% 
   select(strata, pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_W_obs, 
-         fit_p_HOS, B_take_obs, F_rate) %>%   arrange(strata, pop, year) 
+         fit_p_HOS, B_take_obs, F_rate) %>% arrange(strata, pop, year) 
 
-# pool Grays_MS and Grays_WF spawners and BioData
-# estimate moments of prior distribution on summed spawners by simulating from
+# fill in fit_p_HOS
+for(i in 1:nrow(fish_data)) {
+  start_year <- ifelse(fish_data$pop[i] %in% hatcheries$pop,
+                       min(filter(hatcheries, pop == fish_data$pop[i])$start_brood_year) + 1,
+                       NA)
+  fish_data$fit_p_HOS[i] <- ifelse((!is.na(start_year) & fish_data$year[i] >= start_year) |
+                                     fish_data$n_H_obs[i] > 0, 1, 0)
+}
+
+# (1) Pool Grays MS and Grays WF spawners and BioData
+# Estimate moments of prior distribution on summed spawners by simulating from
 # MS and WF priors and assuming the sum is lognormal (which is approximately true,
 # but sum is not well approximated by moment matching mean and variance so Monte Carlo
-# is necessary) 
-# uses the fact that S_obs is actually the prior mean
+# is necessary). Uses the fact that S_obs is actually the prior mean.
+# (2) Subtract Crazy Johnson smolts from Grays MS smolts 
+# Estimate moments of prior distribution on differenced smolts by simulating from
+# MS and CJ priors and assuming the difference is lognormal (close for most years,
+# but 2015 & 2016 are left-skewed relative to lognormal).
 fish_data <- mutate(fish_data, pop = replace(pop, pop == "Grays_MS", "Grays_MSWF"))
 for(i in which(fish_data$pop=="Grays_MSWF")) {
   indx_WF <- which(fish_data$pop=="Grays_WF" & fish_data$year==fish_data$year[i])
+  indx_CJ <- which(fish_data$pop=="Grays_CJ" & fish_data$year==fish_data$year[i])
   S_sum <- 
     rlnorm(10000, 
            log(fish_data$S_obs[i]) - 0.5*fish_data$tau_S_obs[i]^2, 
@@ -173,31 +178,18 @@ for(i in which(fish_data$pop=="Grays_MSWF")) {
     colSums(fish_data[c(i,indx_WF), grepl("n_", names(fish_data))])
   fish_data$B_take_obs[i] <- sum(fish_data$B_take_obs[i], fish_data$B_take_obs[indx_WF], 
                                  na.rm = TRUE)
+  M_diff <- rlnorm(10000, log(fish_data$M_obs[i]), fish_data$tau_M_obs[i]) -
+    rlnorm(10000, log(fish_data$M_obs[indx_CJ]), fish_data$tau_M_obs[indx_CJ])
+  fish_data$M_obs[i] <- mean(log(M_diff[M_diff > 0]))
+  fish_data$tau_M_obs[i] <- sd(log(M_diff[M_diff > 0]))
 }
 fish_data <- fish_data %>% filter(pop != "Grays_WF") %>% 
   mutate(strata = factor(strata), pop = factor(pop))
 
-# subtract
-
-# fill in fit_p_HOS
-for(i in 1:nrow(fish_data)) {
-  pop_i <- as.character(fish_data$pop[i])
-  start_year <- ifelse(pop_i %in% hatcheries$pop,
-                       min(hatcheries$start_brood_year[hatcheries$pop == pop_i]) + 1,
-                       NA)
-  fish_data$fit_p_HOS[i] <- ifelse((!is.na(start_year) & fish_data$year[i] >= start_year) |
-                                     fish_data$n_H_obs[i] > 0, 1, 0)
-}
-
-# # drop cases with initial NAs in S_obs unless bio data is present
-# fish_data <- fish_data %>% mutate(n_age = rowSums(select(., n_age2_obs:n_age6_obs))) %>% 
-#   group_by(pop) %>%  filter(head_noNA(S_obs) | cumsum(n_age) > 0) %>% 
-#   select(-n_age) %>% as.data.frame()
-
 # subsets for models with specific stage structure
 # spawner-spawner: drop cases with initial NAs in S_obs, even if bio data is present
 fish_data_SS <- fish_data %>% group_by(pop) %>% filter(head_noNA(S_obs)) %>% as.data.frame()
-# spawner-spawner: drop cases with initial NAs in M_obs, even if bio data is present
+# spawner-smolt-spawner: drop cases with initial NAs in both S_obs and M_obs
 fish_data_SMS <- fish_data %>% group_by(pop) %>% 
   filter(head_noNA(S_obs) | head_noNA(M_obs)) %>% as.data.frame()
 
@@ -222,8 +214,8 @@ fecundity <- read.csv(here("data","Data_ChumFecundity_fromHatcheryPrograms_2017-
          mean_mass = Green.egg.avg.weight, comments = Comments) %>% 
   mutate(ID = as.character(ID))
 
-# drop cases with age not in c(3,4,5), with estimated fecundity missing, or
-# with reproductive effort <= 16%
+# drop cases with age not in c(3,4,5), with estimated fecundity missing, 
+# or with reproductive effort <= 16%
 # add strata based on stock: Grays -> Coastal, I-205 -> Cascade, Lower Gorge -> Gorge
 fecundity_data <- fecundity %>% 
   filter(age_E %in% 3:5 & !is.na(E_obs) & !is.na(reproductive_effort) & reproductive_effort > 16) %>% 
@@ -237,24 +229,25 @@ fecundity_data <- fecundity %>%
 
 # Time series of sex ratio by population
 windows()
-bio_data %>% filter(origin_HW=="W") %>% group_by(pop, year, sex) %>% 
+bio_data %>% filter(HW=="W" & !grepl("Hacthery|Duncan_Creek", disposition)) %>% 
+  group_by(disposition, year, sex) %>% 
   summarize(n = sum(count)) %>% 
-  dcast(pop + year ~ sex, value.var = "n", fun.aggregate = sum) %>% 
+  dcast(disposition + year ~ sex, value.var = "n", fun.aggregate = sum) %>% 
   mutate(total = Female + Male) %>% 
   data.frame(., with(., binconf(x = Female, n = total))) %>%
   mutate(prop_female = PointEst) %>% 
   ggplot(aes(x = year, y = prop_female, ymin = Lower, ymax = Upper)) + 
   geom_abline(intercept = 0.5, slope = 0, color = "gray") + 
   geom_point(size = 2) + geom_line() + geom_errorbar(width = 0) +
-  facet_wrap(vars(pop), nrow = 3, ncol = 4) + theme_bw() +
+  facet_wrap(vars(disposition), nrow = 3, ncol = 4) + theme_bw() +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
   
 # Histogram of spawner age by sex and H/W origin
 windows()
-bio_data %>% mutate(age = substring(age,5,5)) %>% group_by(origin_HW, sex, age) %>% 
+bio_data %>% mutate(age = substring(age,5,5)) %>% group_by(HW, sex, age) %>% 
   summarize(n = sum(count)) %>% mutate(prop = n/sum(n)) %>% 
   ggplot(aes(x = age, y = prop)) + geom_bar(stat = "identity") + 
-  facet_wrap(vars(origin_HW, sex), nrow = 2, ncol = 2) + theme_bw()
+  facet_wrap(vars(HW, sex), nrow = 2, ncol = 2) + theme_bw()
 
 # Boxplots of fecundity by age
 windows()
