@@ -73,25 +73,39 @@ broodstock_data <- spawner_data %>% group_by(location, year) %>%
 spawner_data_agg <- spawner_data %>% group_by(strata, disposition, year) %>% 
   summarize(S_obs = sum(S_obs), tau_S_obs = unique(tau_S_obs)) %>% 
   rename(pop = disposition) %>% left_join(broodstock_data, by = c("pop","year")) %>% 
-  as.data.frame()
+  mutate(B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0)) %>% as.data.frame()
 
 # Spawner age-, sex-, and origin-frequency (aka BioData)
+# Assumptions:
+# (1) The current generation of salmonIPM models must treat any known nonlocal-origin
+#     spawner as "hatchery-origin" to avoid counting as local recruitment, so "H"
+#     includes true hatchery fish based on origin *plus* any whose known origin 
+#     or return location do not match their disposition *unless* they are NOR or
+#     Duncan Channel fish returning to Duncan Creek and disposed to Duncan Channel,
+#     which are in fact local recruitment.
 bio_data <- read.csv(here("data","Data_ChumSpawnerBioData_2019-12-12.csv"), 
-                     header = TRUE, stringsAsFactors = TRUE) %>% 
+                     header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(year = Return.Yr., strata = Strata, location = Location.Reach, 
          disposition = Disposition, origin = Origin, sex = Sex, age = Age, count = Count) %>% 
-  mutate(pop = location_pop$pop2[match(location, location_pop$location)],
-         origin_HW = ifelse(origin == "Natural_spawner", "W", "H"),
-         count = ifelse(is.na(count), 0, count)) %>% 
-  select(year:location, pop, disposition, origin, origin_HW, sex:count) %>%
+  mutate(count = replace(count, is.na(count), 0),
+         HW = ifelse((grepl("Hatchery", origin) | location != disposition | 
+                       (origin != disposition & origin != "Natural_spawner")) &
+                       !(origin %in% c("Duncan_Channel","Natural_spawner") & 
+                          location == "Duncan_Creek" & 
+                          disposition == "Duncan_Channel"), 
+                     "H", "W")) %>% 
+  select(year:location, disposition, origin, HW, sex:count) %>%
   arrange(strata, location, year, origin, age, sex)
 
-# age of wild spawners only
-bio_data_age <- bio_data %>% filter(origin_HW == "W") %>%  
-  dcast(year + strata + pop ~ age, value.var = "count", fun.aggregate = sum)
+# age of wild (i.e., potentially local) spawners only
+bio_data_age <- bio_data %>% filter(HW == "W") %>%
+  dcast(year + strata + disposition ~ age, value.var = "count", fun.aggregate = sum) %>% 
+  rename(pop = disposition)
 
-bio_data_origin <- bio_data %>% 
-  dcast(year + strata + pop ~ origin_HW, value.var = "count", fun.aggregate = sum)
+# H/W (nonlocal/potentially local)  
+bio_data_HW <- bio_data %>%
+  dcast(year + strata + disposition ~ HW, value.var = "count", fun.aggregate = sum) %>% 
+  rename(pop = disposition)
 
 # Juvenile abundance data
 # Assumptions:
