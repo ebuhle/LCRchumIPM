@@ -104,8 +104,8 @@ bio_data_HW <- bio_data %>%
 # (1) Duncan_North + Duncan_South = Duncan_Channel, so the former two are redundant 
 #     (not really an assumption, although the equality isn't perfect in all years)
 # (2) When calculating the observation error of log(M_obs), tau_M_obs, assume
-#     Abund_Mean and Abund_SD are the mean and SD of a lognormal posterior distribution
-#     of smolt abundance based on the sample
+#     Abund_Median and Abund_SD are the median and SD of a lognormal posterior 
+#     distribution of smolt abundance based on the sample
 # (3) If Abund_SD == 0 (when Analysis=="Census": some years in Duncan_Channel and 
 #     Hamilton_Channel) treat as NA
 juv_data <- read.csv(here("data", "Data_ChumJuvenileAbundance_2020-06-09.csv"), 
@@ -173,14 +173,14 @@ for(i in which(fish_data$pop=="Grays_MSWF")) {
            log(fish_data$S_obs[indx_WF]) - 0.5*fish_data$tau_S_obs[indx_WF]^2,
            fish_data$tau_S_obs[indx_WF])
   fish_data$tau_S_obs[i] <- sqrt(log(var(S_sum)/mean(S_sum)^2 + 1))
-  fish_data$S_obs[i] <- log(mean(S_sum)) - 0.5*fish_data$tau_S_obs[i]^2
+  fish_data$S_obs[i] <- exp(log(mean(S_sum)) - 0.5*fish_data$tau_S_obs[i]^2)
   fish_data[i,grepl("n_", names(fish_data))] <- 
     colSums(fish_data[c(i,indx_WF), grepl("n_", names(fish_data))])
   fish_data$B_take_obs[i] <- sum(fish_data$B_take_obs[i], fish_data$B_take_obs[indx_WF], 
                                  na.rm = TRUE)
   M_diff <- rlnorm(10000, log(fish_data$M_obs[i]), fish_data$tau_M_obs[i]) -
     rlnorm(10000, log(fish_data$M_obs[indx_CJ]), fish_data$tau_M_obs[indx_CJ])
-  fish_data$M_obs[i] <- mean(log(M_diff[M_diff > 0]))
+  fish_data$M_obs[i] <- exp(mean(log(M_diff[M_diff > 0])))
   fish_data$tau_M_obs[i] <- sd(log(M_diff[M_diff > 0]))
 }
 fish_data <- fish_data %>% filter(pop != "Grays_WF") %>% 
@@ -852,8 +852,8 @@ rm(list = c("mod_name","SR_fun","S_IPM","M_IPM","S_obs","M_obs","alpha","Rmax",
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_BH"
-life_stage <- "M"   # "S" = spawners, "M" = smolts
+mod_name <- "SS_BH"
+life_stage <- "S"   # "S" = spawners, "M" = smolts
 
 dev.new(width=13,height=8)
 # png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
@@ -1171,7 +1171,7 @@ rm("mod_name","life_stage","life_cycle","dat","y","y1","pop","N_IPM","N1_IPM",
 # S-R curves and posterior distributions of parameters
 #--------------------------------------------------------------------
 
-mod_name <- "SMS_BH"
+mod_name <- "SS_BH"
 
 dev.new(width = 7, height = 7)
 # png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
