@@ -138,53 +138,62 @@ fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("strata","pop","ye
   select(-c(n_age2_obs, n_age6_obs)) %>% 
   rename(n_H_obs = H, n_W_obs = W) %>% mutate(A = 1, fit_p_HOS = NA, F_rate = 0) %>% 
   mutate_at(vars(contains("n_")), ~ replace(., is.na(.), 0)) %>% 
-  mutate(B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0)) %>%
   filter(!grepl("Hatchery|Duncan_Creek", pop)) %>% 
-  select(strata, pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_W_obs, 
-         fit_p_HOS, B_take_obs, F_rate) %>% arrange(strata, pop, year) 
+  mutate(strata = factor(strata), pop = factor(pop), downstream_trap = NA,
+         B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0)) %>%
+  select(strata, pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, downstream_trap,
+         n_age3_obs:n_W_obs, fit_p_HOS, B_take_obs, F_rate) %>% arrange(strata, pop, year) 
 
 # fill in fit_p_HOS
 for(i in 1:nrow(fish_data)) {
-  start_year <- ifelse(fish_data$pop[i] %in% hatcheries$pop,
-                       min(filter(hatcheries, pop == fish_data$pop[i])$start_brood_year) + 1,
+  pop_i <- as.character(fish_data$pop[i])
+  start_year <- ifelse(pop_i %in% hatcheries$pop,
+                       min(hatcheries$start_brood_year[hatcheries$pop == pop_i]) + 1,
                        NA)
   fish_data$fit_p_HOS[i] <- ifelse((!is.na(start_year) & fish_data$year[i] >= start_year) |
                                      fish_data$n_H_obs[i] > 0, 1, 0)
 }
 
-# (1) Pool Grays MS and Grays WF spawners and BioData
-# Estimate moments of prior distribution on summed spawners by simulating from
-# MS and WF priors and assuming the sum is lognormal (which is approximately true,
-# but sum is not well approximated by moment matching mean and variance so Monte Carlo
-# is necessary). Uses the fact that S_obs is actually the prior mean.
-# (2) Subtract Crazy Johnson smolts from Grays MS smolts 
-# Estimate moments of prior distribution on differenced smolts by simulating from
-# MS and CJ priors and assuming the difference is lognormal (close for most years,
-# but 2015 & 2016 are left-skewed relative to lognormal).
-fish_data <- mutate(fish_data, pop = replace(pop, pop == "Grays_MS", "Grays_MSWF"))
-for(i in which(fish_data$pop=="Grays_MSWF")) {
-  indx_WF <- which(fish_data$pop=="Grays_WF" & fish_data$year==fish_data$year[i])
-  indx_CJ <- which(fish_data$pop=="Grays_CJ" & fish_data$year==fish_data$year[i])
-  S_sum <- 
-    rlnorm(10000, 
-           log(fish_data$S_obs[i]) - 0.5*fish_data$tau_S_obs[i]^2, 
-           fish_data$tau_S_obs[i]) + 
-    rlnorm(10000, 
-           log(fish_data$S_obs[indx_WF]) - 0.5*fish_data$tau_S_obs[indx_WF]^2,
-           fish_data$tau_S_obs[indx_WF])
-  fish_data$tau_S_obs[i] <- sqrt(log(var(S_sum)/mean(S_sum)^2 + 1))
-  fish_data$S_obs[i] <- exp(log(mean(S_sum)) - 0.5*fish_data$tau_S_obs[i]^2)
-  fish_data[i,grepl("n_", names(fish_data))] <- 
-    colSums(fish_data[c(i,indx_WF), grepl("n_", names(fish_data))])
-  fish_data$B_take_obs[i] <- sum(fish_data$B_take_obs[i], fish_data$B_take_obs[indx_WF], 
-                                 na.rm = TRUE)
-  M_diff <- rlnorm(10000, log(fish_data$M_obs[i]), fish_data$tau_M_obs[i]) -
-    rlnorm(10000, log(fish_data$M_obs[indx_CJ]), fish_data$tau_M_obs[indx_CJ])
-  fish_data$M_obs[i] <- exp(mean(log(M_diff[M_diff > 0])))
-  fish_data$tau_M_obs[i] <- sd(log(M_diff[M_diff > 0]))
-}
-fish_data <- fish_data %>% filter(pop != "Grays_WF") %>% 
-  mutate(strata = factor(strata), pop = factor(pop))
+# assign Grays_WF and Grays_CJ smolts to the downstream trap in Grays_MS
+# where they will be counted (or double-counted, in the case of Grays_CJ),
+# assuming no mortality between the upstream tributary and the downstream trap
+for(i in which(fish_data$pop %in% c("Grays_WF", "Grays_CJ")))
+  fish_data$downstream_trap[i] <- which(fish_data$pop == "Grays_MS" & 
+                                          fish_data$year == fish_data$year[i])
+
+# # (1) Pool Grays MS and Grays WF spawners and BioData
+# # Estimate moments of prior distribution on summed spawners by simulating from
+# # MS and WF priors and assuming the sum is lognormal (which is approximately true,
+# # but sum is not well approximated by moment matching mean and variance so Monte Carlo
+# # is necessary). Uses the fact that S_obs is actually the prior mean.
+# # (2) Subtract Crazy Johnson smolts from Grays MS smolts 
+# # Estimate moments of prior distribution on differenced smolts by simulating from
+# # MS and CJ priors and assuming the difference is lognormal (close for most years,
+# # but 2015 & 2016 are left-skewed relative to lognormal).
+# fish_data <- mutate(fish_data, pop = replace(pop, pop == "Grays_MS", "Grays_MSWF"))
+# for(i in which(fish_data$pop=="Grays_MSWF")) {
+#   indx_WF <- which(fish_data$pop=="Grays_WF" & fish_data$year==fish_data$year[i])
+#   indx_CJ <- which(fish_data$pop=="Grays_CJ" & fish_data$year==fish_data$year[i])
+#   S_sum <- 
+#     rlnorm(10000, 
+#            log(fish_data$S_obs[i]) - 0.5*fish_data$tau_S_obs[i]^2, 
+#            fish_data$tau_S_obs[i]) + 
+#     rlnorm(10000, 
+#            log(fish_data$S_obs[indx_WF]) - 0.5*fish_data$tau_S_obs[indx_WF]^2,
+#            fish_data$tau_S_obs[indx_WF])
+#   fish_data$tau_S_obs[i] <- sqrt(log(var(S_sum)/mean(S_sum)^2 + 1))
+#   fish_data$S_obs[i] <- exp(log(mean(S_sum)) - 0.5*fish_data$tau_S_obs[i]^2)
+#   fish_data[i,grepl("n_", names(fish_data))] <- 
+#     colSums(fish_data[c(i,indx_WF), grepl("n_", names(fish_data))])
+#   fish_data$B_take_obs[i] <- sum(fish_data$B_take_obs[i], fish_data$B_take_obs[indx_WF], 
+#                                  na.rm = TRUE)
+#   M_diff <- rlnorm(10000, log(fish_data$M_obs[i]), fish_data$tau_M_obs[i]) -
+#     rlnorm(10000, log(fish_data$M_obs[indx_CJ]), fish_data$tau_M_obs[indx_CJ])
+#   fish_data$M_obs[i] <- exp(mean(log(M_diff[M_diff > 0])))
+#   fish_data$tau_M_obs[i] <- sd(log(M_diff[M_diff > 0]))
+# }
+# fish_data <- fish_data %>% filter(pop != "Grays_WF") %>% 
+#   mutate(strata = factor(strata), pop = factor(pop))
 
 # subsets for models with specific stage structure
 # spawner-spawner: drop cases with initial NAs in S_obs, even if bio data is present
@@ -208,17 +217,17 @@ fish_data_SMS_fore <- fish_data_SMS %>% group_by(pop) %>%
 # Fecundity data
 # Note that L95% and U95% are reversed
 fecundity <- read.csv(here("data","Data_ChumFecundity_fromHatcheryPrograms_2017-01-25.csv"),
-                      header = TRUE, stringsAsFactors = TRUE) %>% 
+                      header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(stock = Stock, year = BY, ID = Female.., age_E = Age, L95 = U95., U95 = L95.,
          reproductive_effort = Reproductive.Effort, E_obs = Estimated.Fecundity,
          mean_mass = Green.egg.avg.weight, comments = Comments) %>% 
-  mutate(ID = as.character(ID))
+  mutate(stock = factor(stock))
 
 # drop cases with age not in c(3,4,5), with estimated fecundity missing, 
 # or with reproductive effort <= 16%
 # add strata based on stock: Grays -> Coastal, I-205 -> Cascade, Lower Gorge -> Gorge
 fecundity_data <- fecundity %>% 
-  filter(age_E %in% 3:5 & !is.na(E_obs) & !is.na(reproductive_effort) & reproductive_effort > 16) %>% 
+  filter(age_E %in% 3:5 & !is.na(E_obs) & !is.na(reproductive_effort) & reproductive_effort >= 16) %>% 
   mutate(strata = recode(stock, Grays = "Coastal", `I-205` = "Cascade", `Lower Gorge` = "Gorge")) %>% 
   select(strata, year, ID, age_E, E_obs) %>% arrange(strata, year, age_E) 
 ## @knitr
@@ -380,7 +389,7 @@ SMS_exp <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
 
 ## @knitr print_SMS_exp
 print(SMS_exp, prob = c(0.025,0.5,0.975),
-      pars = c("alpha","phi_M","phi_MS","p","p_HOS","S","M","s_MS","q","LL"), 
+      pars = c("alpha","phi_M","phi_MS","gamma","p","p_HOS","S","M","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
@@ -396,7 +405,7 @@ SMS_BH <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
 
 ## @knitr print_SMS_BH
 print(SMS_BH, prob = c(0.025,0.5,0.975),
-      pars = c("alpha","Rmax","phi_M","phi_MS","p","p_HOS","S","M","s_MS","q","LL"), 
+      pars = c("alpha","Rmax","phi_M","phi_MS","gamma","p","p_HOS","S","M","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
@@ -412,7 +421,7 @@ SMS_Ricker <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
 
 ## @knitr print_SMS_Ricker
 print(SMS_Ricker, prob = c(0.025,0.5,0.975),
-      pars = c("alpha","Rmax","phi_M","phi_MS","p","p_HOS","S","M","s_MS","q","LL"), 
+      pars = c("alpha","Rmax","phi_M","phi_MS","gamma","p","p_HOS","S","M","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
@@ -589,11 +598,11 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 # Time series of egg-smolt survival and SAR
 #--------------------------------------------------------------------
 
-mod_name <- "LCRchum_BH"
+mod_name <- "LCRchum_Ricker"
 
-# dev.new(width = 7, height = 8)
-png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
-    width=7, height=8, units="in", res=200, type="cairo-png")
+dev.new(width = 7, height = 8)
+# png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
+#     width=7, height=8, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_LCM_params
 life_cycle <- "LCRchum"
@@ -686,7 +695,7 @@ for(a in 1:length(ages))
 title(ylab = "Probability density", line = 1, cex.lab = 1.5)
 text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "C", cex = 1.5)
 legend("topright", paste("age", ages, "  "), x.intersp = 0.5, col = ac, lwd = 2, 
-       xjust = 0.5, box.lwd = 0.5)
+       xjust = 0.5, bty = "n")
 
 # Posterior densities of log(Emax)
 dd_ESU <- density(mu_Emax)
@@ -739,7 +748,7 @@ rm(list=c("mod_name","life_cycle","SR_fun","mu_alpha","mu_Emax","S","S_grid","E_
           "c1","c1t","c1tt","dd_ESU","dd_pop","dd_age","alpha","Emax","E_pop","ac","ages",
           "y","eta_year_EM","mu_EM","s_hat_EM","eta_year_MS","mu_MS","s_hat_MS","dat"))
 ## @knitr
-dev.off()
+# dev.off()
 
 
 #--------------------------------------------------------------------------------
@@ -852,8 +861,8 @@ rm(list = c("mod_name","SR_fun","S_IPM","M_IPM","S_obs","M_obs","alpha","Rmax",
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "SS_BH"
-life_stage <- "S"   # "S" = spawners, "M" = smolts
+mod_name <- "LCRchum_Ricker"
+life_stage <- "M"   # "S" = spawners, "M" = smolts
 
 dev.new(width=13,height=8)
 # png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
@@ -872,6 +881,9 @@ tau <- do.call(extract1, list(as.name(mod_name),
                               switch(life_cycle, SS = "tau",
                                      SMS = switch(life_stage, M = "tau_M", S = "tau_S"),
                                      LCRchum = switch(life_stage, M = "tau_M", S = "tau_S"))))
+if(life_cycle == "LCRchum" & life_stage == "M")
+  N_IPM[,na.omit(dat$downstream_trap)] <- N_IPM[,na.omit(dat$downstream_trap)] + 
+  N_IPM[,which(!is.na(dat$downstream_trap))]
 N_obs_IPM <- N_IPM * rlnorm(length(N_IPM), 0, tau)
 
 c1 <- "slategray4"
@@ -922,11 +934,11 @@ rm(list = c("mod_name","forecasting","life_stage","life_cycle","dat",
 # Time series of observed and fitted spawner age structure for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_BH"
+mod_name <- "LCRchum_Ricker"
 
-# dev.new(width=13,height=8.5)
-png(filename=here("analysis", "results", paste0("q_fit_", mod_name, ".png")),
-    width=13*0.9, height=8.5*0.9, units="in", res=200, type="cairo-png")
+dev.new(width=13,height=8.5)
+# png(filename=here("analysis", "results", paste0("q_fit_", mod_name, ".png")),
+#     width=13*0.9, height=8.5*0.9, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_spawner_age_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
@@ -975,18 +987,18 @@ legend(0.5, 1.1, paste("age", substring(names(n_age_obs), 6, 6), "  "), x.inters
 rm(list = c("mod_name","life_cycle","dat","q_IPM","n_age_obs","q_obs","op",
             "c1","c1t","c1tt","yi"))
 ## @knitr
-dev.off()
+# dev.off()
 
 
 #--------------------------------------------------------------------------------
 # Time series of observed and fitted p_HOS for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_BH"
+mod_name <- "LCRchum_Ricker"
 
-# dev.new(width=13,height=8.5)
-png(filename=here("analysis", "results", paste0("p_HOS_fit_", mod_name, ".png")),
-    width=13*0.9, height=8.5*0.9, units="in", res=200, type="cairo-png")
+dev.new(width=13,height=8.5)
+# png(filename=here("analysis", "results", paste0("p_HOS_fit_", mod_name, ".png")),
+#     width=13*0.9, height=8.5*0.9, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_p_HOS_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
@@ -1025,7 +1037,7 @@ for(i in levels(dat$pop))
 
 rm(list = c("mod_name","life_cycle","dat","p_HOS_IPM","p_HOS_obs","c1","c1t","yi"))
 ## @knitr
-dev.off()
+# dev.off()
 
 
 #--------------------------------------------------------------------------------
@@ -1033,7 +1045,7 @@ dev.off()
 # Observed and fitted distributions of fecundity by age
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_BH"
+mod_name <- "LCRchum_Ricker"
 
 dev.new(width=7,height=7)
 # png(filename=here("analysis","results",paste0("fecundity_fit_", mod_name, ".png")),
@@ -1171,7 +1183,7 @@ rm("mod_name","life_stage","life_cycle","dat","y","y1","pop","N_IPM","N1_IPM",
 # S-R curves and posterior distributions of parameters
 #--------------------------------------------------------------------
 
-mod_name <- "SS_BH"
+mod_name <- "SMS_BH"
 
 dev.new(width = 7, height = 7)
 # png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
@@ -1196,13 +1208,13 @@ mu_Rmax <- as.vector(do.call(extract1, list(as.name(mod_name), "mu_Rmax")))
 # S <- matrix(seq(0, quantile(dat$S_obs/dat$A, 0.9, na.rm = TRUE), length = 100),
 #             nrow = length(mu_alpha), ncol = 100, byrow = TRUE)
 scl <- ifelse(life_cycle == "SS", 1, 1e-6)
-S <- matrix(seq(0, quantile(S/dat$A, 0.9, na.rm = TRUE), length = 100),
+Smat <- matrix(seq(0, quantile(S/dat$A, 0.9, na.rm = TRUE), length = 100),
             nrow = length(mu_alpha), ncol = 100, byrow = TRUE)
-R_ESU <- SR_eval(alpha = exp(mu_alpha), Rmax = exp(mu_Rmax), S = S, SR_fun = SR_fun)
+R_ESU <- SR_eval(alpha = exp(mu_alpha), Rmax = exp(mu_Rmax), S = Smat, SR_fun = SR_fun)
 alpha <- do.call(extract1, list(as.name(mod_name), "alpha"))
 Rmax <- do.call(extract1, list(as.name(mod_name), "Rmax"))
 R_pop <- sapply(1:ncol(alpha), function(i) {
-  colMedians(SR_eval(alpha = alpha[,i], Rmax = Rmax[,i], S = S, SR_fun = SR_fun))
+  colMedians(SR_eval(alpha = alpha[,i], Rmax = Rmax[,i], S = Smat, SR_fun = SR_fun))
 })
 
 c1 <- "slategray4"
@@ -1212,12 +1224,12 @@ c1tt <- transparent(c1, trans.val = 0.7)
 par(mfrow = c(2,2), mar = c(5.1,5.1,1,1))
 
 # Recruits vs. spawners
-plot(S[1,], colMedians(R_ESU*scl), type = "l", lwd=3, col = c1, las = 1,
+plot(Smat[1,], colMedians(R_ESU*scl), type = "l", lwd=3, col = c1, las = 1,
      cex.axis = 1.2, cex.lab = 1.5, xaxs = "i", yaxs = "i", #yaxt = "n", 
      ylim = range(R_pop*scl), xlab="Spawners", ylab = "")
 for(i in 1:ncol(R_pop))
-  lines(S[1,], R_pop[,i]*scl, col = c1t)
-polygon(c(S[1,], rev(S[1,])), 
+  lines(Smat[1,], R_pop[,i]*scl, col = c1t)
+polygon(c(Smat[1,], rev(Smat[1,])), 
         c(colQuantiles(R_ESU*scl, probs = 0.05), 
           rev(colQuantiles(R_ESU*scl, probs = 0.95))), 
         col = c1tt, border = NA)
@@ -1227,15 +1239,15 @@ title(ylab = ifelse(life_cycle=="SS", "Recruits", "Smolts (millions)"),
 text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "A", cex = 1.5)
 
 # log(recruits/spawner) vs. spawners
-plot(S[1,], colMedians(log(R_ESU/S)), type = "l", lwd=3, col = c1, las = 1,
+plot(Smat[1,], colMedians(log(R_ESU/Smat)), type = "l", lwd=3, col = c1, las = 1,
      cex.axis = 1.2, cex.lab = 1.5, xaxs = "i", yaxs = "i", xlab="Spawners", 
      ylab = ifelse(life_cycle=="SS", "log(recruits/spawner)", "log(smolts/spawner)"),
-     ylim = range(colQuantiles(log(R_ESU/S), probs = c(0.05,0.95)), na.rm = TRUE))
+     ylim = range(colQuantiles(log(R_ESU/Smat), probs = c(0.05,0.95)), na.rm = TRUE))
 for(i in 1:ncol(R_pop))
-  lines(S[1,], log(R_pop[,i]/S[1,]), col = c1t)
-polygon(c(S[1,], rev(S[1,])),
-        c(colQuantiles(log(R_ESU/S), probs = 0.05),
-          rev(colQuantiles(log(R_ESU/S), probs = 0.95))),
+  lines(Smat[1,], log(R_pop[,i]/Smat[1,]), col = c1t)
+polygon(c(Smat[1,], rev(Smat[1,])),
+        c(colQuantiles(log(R_ESU/Smat), probs = 0.05),
+          rev(colQuantiles(log(R_ESU/Smat), probs = 0.95))),
         col = c1tt, border = NA)
 rug(S, col = c1)
 text(par("usr")[2], par("usr")[4], adj = c(1.5,1.5), "B", cex = 1.5)
@@ -1272,7 +1284,7 @@ title(xlab = bquote(log(italic(R)[max])), ylab = "Probability density",
 text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "D", cex = 1.5)
 
 rm(list=c("mod_name","life_cycle","SR_fun","scl","mu_alpha","mu_Rmax","S","R_ESU",
-          "c1","c1t","c1tt","dd_ESU","dd_pop","alpha","Rmax","R_pop","S"))
+          "c1","c1t","c1tt","dd_ESU","dd_pop","alpha","Rmax","R_pop","Smat"))
 ## @knitr
 # dev.off()
 
