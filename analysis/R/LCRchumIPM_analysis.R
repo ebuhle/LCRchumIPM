@@ -34,8 +34,8 @@ hatcheries <- read.csv(here("data","Hatchery_Programs.csv"), header = TRUE, stri
 # Spawner abundance data
 # Assumptions:
 # (0) Fix coding error in data that assigns some Duncan Creek rows to Cascade stratum
-# (1) NAs in hatchery or spawning channel dispositions are really zeros
-# (2) NAs in Duncan Creek are really zeros
+# (1) NAs in hatchery dispositions are really zeros
+# (2) NAs in Duncan Creek and Duncan Channel are really zeros
 # (3) All other NAs are real missing observations
 # (4) When calculating the observation error of log(S_obs), tau_S_obs, assume
 #     Abund.Mean and Abund.SD are the mean and SD of a lognormal posterior distribution
@@ -45,7 +45,7 @@ spawner_data <- read.csv(here("data","Data_ChumSpawnerAbundance_2019-12-12.csv")
   rename(year = Return.Yr., strata = Strata, location = Location.Reach, 
          disposition = Disposition, method = Method, S_obs = Abund.Mean, SD = Abund.SD) %>% 
   mutate(strata = replace(strata, disposition == "Duncan_Channel" & strata != "Gorge", "Gorge"),
-         S_obs = replace(S_obs, is.na(S_obs) & grepl("Hatchery|Channel|Duncan_Creek", disposition), 0),
+         S_obs = replace(S_obs, is.na(S_obs) & grepl("Hatchery|Duncan", disposition), 0),
          tau_S_obs = sqrt(log((SD/S_obs)^2 + 1))) %>% 
   select(year:location, disposition, method, S_obs, SD, tau_S_obs) %>% 
   arrange(strata, location, year)
@@ -862,7 +862,7 @@ rm(list = c("mod_name","SR_fun","S_IPM","M_IPM","S_obs","M_obs","alpha","Rmax",
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_BH"
-life_stage <- "S"   # "S" = spawners, "M" = smolts
+life_stage <- "M"   # "S" = spawners, "M" = smolts
 
 # dev.new(width=13,height=8)
 png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
@@ -996,9 +996,9 @@ dev.off()
 
 mod_name <- "LCRchum_BH"
 
-dev.new(width=13,height=8.5)
-# png(filename=here("analysis", "results", paste0("p_HOS_fit_", mod_name, ".png")),
-#     width=13*0.9, height=8.5*0.9, units="in", res=200, type="cairo-png")
+# dev.new(width=13,height=8.5)
+png(filename=here("analysis", "results", paste0("p_HOS_fit_", mod_name, ".png")),
+    width=13*0.9, height=8.5*0.9, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_p_HOS_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
@@ -1037,7 +1037,7 @@ for(i in levels(dat$pop))
 
 rm(list = c("mod_name","life_cycle","dat","p_HOS_IPM","p_HOS_obs","c1","c1t","yi"))
 ## @knitr
-# dev.off()
+dev.off()
 
 
 #--------------------------------------------------------------------------------
