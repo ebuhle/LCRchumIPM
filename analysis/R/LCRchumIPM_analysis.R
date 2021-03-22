@@ -26,6 +26,10 @@ if(file.exists(here("analysis","results","LCRchumIPM.RData")))
 # DATA
 #===========================================================================
 
+### NOTES
+# (1) St_Cloud 2002, 2007, 2008 have extremely low S_obs (single digits vs. hundreds 
+#     in surrounding years. Is this real?
+
 ## @knitr data
 
 # Start dates of hatcheries associated with populations
@@ -471,7 +475,7 @@ LCRchum_exp <- salmonIPM(fish_data = fish_data_SMS,  fecundity_data = fecundity_
                          pars = c("B_rate_all","mu_Emax","sigma_Emax","Emax"), 
                          include = FALSE, log_lik = TRUE, 
                          chains = 3, iter = 1500, warmup = 500,
-                         control = list(adapt_delta = 0.99, max_treedepth = 14))
+                         control = list(adapt_delta = 0.99, max_treedepth = 15))
 
 ## @knitr print_LCRchum_exp
 print(LCRchum_exp, prob = c(0.025,0.5,0.975),
@@ -488,12 +492,12 @@ LCRchum_BH <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundity_da
                         ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "BH",
                         pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
                         chains = 3, iter = 1500, warmup = 500,
-                        control = list(adapt_delta = 0.99, max_treedepth = 14))
+                        control = list(adapt_delta = 0.95, max_treedepth = 13))
 
 ## @knitr print_LCRchum_BH
 print(LCRchum_BH, prob = c(0.025,0.5,0.975),
-      pars = c("Emax","eta_pop_EM","eta_year_EM","eta_year_MS","eta_pop_p",
-               "p","tau_M","tau_S","p_HOS","E","S","M","s_EM","s_MS","q","LL"), 
+      pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p",
+               "p","tau_M","tau_S","p_HOS","S","M","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
@@ -505,7 +509,7 @@ LCRchum_Ricker <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundit
                             ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
                             pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
                             chains = 3, iter = 1500, warmup = 500,
-                            control = list(adapt_delta = 0.99, max_treedepth = 14))
+                            control = list(adapt_delta = 0.99, max_treedepth = 15))
 
 ## @knitr print_LCRchum_Ricker
 print(LCRchum_Ricker, prob = c(0.025,0.5,0.975),
@@ -600,9 +604,9 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 
 mod_name <- "LCRchum_BH"
 
-# dev.new(width = 7, height = 8)
-png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
-    width=7, height=8, units="in", res=200, type="cairo-png")
+dev.new(width = 7, height = 8)
+# png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
+#     width=7, height=8, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_LCM_params
 life_cycle <- "LCRchum"
@@ -620,7 +624,7 @@ SR_eval <- function(alpha, Rmax = NULL, S, SR_fun)
 # fecundity
 mu_E <- do.call(extract1, list(as.name(mod_name), "mu_E"))
 ages <- substring(names(select(dat, starts_with("n_age"))), 6, 6)
-# calculate alpha and egg deposition
+# egg deposition
 q <- do.call(extract1, list(as.name(mod_name), "q"))
 alpha <- apply(sweep(q, c(1,3), mu_E, "*"), 1:2, sum)*0.5  # age-weighted fecundity / 2
 mu_pop_alpha <- t(as.matrix(aggregate(t(log(alpha)), list(pop = dat$pop), mean)[,-1]))
@@ -748,7 +752,7 @@ rm(list=c("mod_name","life_cycle","SR_fun","mu_alpha","mu_Emax","S","S_grid","E_
           "c1","c1t","c1tt","dd_ESU","dd_pop","dd_age","alpha","Emax","E_pop","ac","ages",
           "y","eta_year_EM","mu_EM","s_hat_EM","eta_year_MS","mu_MS","s_hat_MS","dat"))
 ## @knitr
-dev.off()
+# dev.off()
 
 
 #--------------------------------------------------------------------------------
@@ -862,11 +866,11 @@ rm(list = c("mod_name","SR_fun","S_IPM","M_IPM","S_obs","M_obs","alpha","Rmax",
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_BH"
-life_stage <- "M"   # "S" = spawners, "M" = smolts
+life_stage <- "S"   # "S" = spawners, "M" = smolts
 
-# dev.new(width=13,height=8)
-png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
-    width=13*0.9, height=8*0.9, units="in", res=200, type="cairo-png")
+dev.new(width=13,height=8)
+# png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
+#     width=13*0.9, height=8*0.9, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_spawner_smolt_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
@@ -927,7 +931,7 @@ for(i in levels(dat$pop))
 rm(list = c("mod_name","forecasting","life_stage","life_cycle","dat",
             "N_IPM","N_obs_IPM","N_obs","c1","c1t","c1tt","yi","tau"))
 ## @knitr
-dev.off()
+# dev.off()
 
 
 #--------------------------------------------------------------------------------
