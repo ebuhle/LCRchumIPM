@@ -63,7 +63,7 @@ data.frame(pop = pop, year = year, psi1_l = colQuantiles(psi1, probs = 0.05),
   geom_ribbon(fill = "darkblue", alpha = 0.5) +
   geom_line(lwd = 1, col = "darkblue") + 
   geom_abline(intercept = 1, slope = 0) +
-  facet_wrap(vars(pop), ncol = 4) + theme_bw()
+  ylab("M / E") + facet_wrap(vars(pop), ncol = 4) + theme_bw()
   
 # So if M frequently exceeds E, the annual and/or unique log-recruitment process errors
 # must be disproportionately positive, right?

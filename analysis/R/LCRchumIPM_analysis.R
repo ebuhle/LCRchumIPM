@@ -196,12 +196,10 @@ fecundity <- read.csv(here("data","Data_ChumFecundity_fromHatcheryPrograms_2017-
 # drop cases with age not in c(3,4,5), with estimated fecundity missing, 
 # or with reproductive effort <= 16%
 # add strata based on stock: Grays -> Coastal, I-205 -> Cascade, Lower Gorge -> Gorge
-# recode age as c(3,4+) based on similar fecundity
 fecundity_data <- fecundity %>% 
   filter(age_E %in% 3:5 & !is.na(E_obs) & !is.na(reproductive_effort) & reproductive_effort >= 16) %>% 
-  mutate(strata = recode(stock, Grays = "Coastal", `I-205` = "Cascade", `Lower Gorge` = "Gorge"),
-         age_E_full = age_E, age_E = ifelse(age_E_full == 3, 3, 4)) %>% 
-  select(strata, year, ID, age_E_full, age_E, E_obs) %>% arrange(strata, year, age_E_full) 
+  mutate(strata = recode(stock, Grays = "Coastal", `I-205` = "Cascade", `Lower Gorge` = "Gorge")) %>% 
+  select(strata, year, ID, age_E, E_obs) %>% arrange(strata, year, age_E) 
 ## @knitr
 
 #--------------------------------------------------------------
@@ -232,26 +230,26 @@ bio_data %>% mutate(age = substring(age,5,5)) %>% group_by(HW, sex, age) %>%
 
 # Boxplots of fecundity by age
 windows()
-fecundity_data %>% mutate(age_E_full = factor(age_E_full)) %>% 
-  ggplot(aes(x = age_E_full, y = E_obs)) + geom_boxplot() + theme_bw()
+fecundity_data %>% mutate(age_E = factor(age_E)) %>% 
+  ggplot(aes(x = age_E, y = E_obs)) + geom_boxplot() + theme_bw()
 
 # Boxplots of fecundity by age, grouped by strata
 windows()
-fecundity_data %>% mutate(age_E = factor(age_E_full)) %>% 
-  ggplot(aes(x = age_E_full, y = E_obs)) + geom_boxplot() + 
+fecundity_data %>% mutate(age_E = factor(age_E)) %>% 
+  ggplot(aes(x = age_E, y = E_obs)) + geom_boxplot() + 
   facet_wrap(vars(strata), nrow = 1, ncol = 3) + theme_bw()
 
 # Histograms of fecundity, grouped by age and strata
 windows()
-fecundity_data %>% mutate(age_E_full = factor(age_E_full)) %>%  ggplot(aes(x = E_obs)) +
+fecundity_data %>% mutate(age_E = factor(age_E)) %>%  ggplot(aes(x = E_obs)) +
   geom_histogram(aes(y = stat(density)), bins = 15, color = "white", fill = "darkgray") + 
-  facet_grid(rows = vars(strata), cols = vars(age_E_full)) + theme_bw()
+  facet_grid(rows = vars(strata), cols = vars(age_E)) + theme_bw()
 
 # Normal QQ plots of fecundity, grouped by age and strata
 windows()
-fecundity_data %>% mutate(age_E_full = factor(age_E_full)) %>%  ggplot(aes(sample = E_obs)) +
+fecundity_data %>% mutate(age_E = factor(age_E)) %>%  ggplot(aes(sample = E_obs)) +
   geom_qq(distribution = qnorm) + geom_qq_line(distribution = qnorm) +
-  facet_grid(rows = vars(strata), cols = vars(age_E_full)) + theme_bw()
+  facet_grid(rows = vars(strata), cols = vars(age_E)) + theme_bw()
 
 # Smolts/spawner vs. spawners, grouped by population
 windows()
