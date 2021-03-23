@@ -242,7 +242,7 @@ fecundity_data <- fecundity %>%
 
 # Time series of sex ratio by population
 windows()
-bio_data %>% filter(HW=="W" & !grepl("Hacthery|Duncan_Creek", disposition)) %>% 
+bio_data %>% filter(HW=="W" & !grepl("Hatchery|Duncan_Creek", disposition)) %>% 
   group_by(disposition, year, sex) %>% 
   summarize(n = sum(count)) %>% 
   dcast(disposition + year ~ sex, value.var = "n", fun.aggregate = sum) %>% 
@@ -866,7 +866,7 @@ rm(list = c("mod_name","SR_fun","S_IPM","M_IPM","S_obs","M_obs","alpha","Rmax",
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_BH"
-life_stage <- "S"   # "S" = spawners, "M" = smolts
+life_stage <- "M"   # "S" = spawners, "M" = smolts
 
 dev.new(width=13,height=8)
 # png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
