@@ -165,40 +165,6 @@ for(i in which(fish_data$pop %in% c("Grays_WF", "Grays_CJ")))
   fish_data$downstream_trap[i] <- which(fish_data$pop == "Grays_MS" & 
                                           fish_data$year == fish_data$year[i])
 
-# # (1) Pool Grays MS and Grays WF spawners and BioData
-# # Estimate moments of prior distribution on summed spawners by simulating from
-# # MS and WF priors and assuming the sum is lognormal (which is approximately true,
-# # but sum is not well approximated by moment matching mean and variance so Monte Carlo
-# # is necessary). Uses the fact that S_obs is actually the prior mean.
-# # (2) Subtract Crazy Johnson smolts from Grays MS smolts 
-# # Estimate moments of prior distribution on differenced smolts by simulating from
-# # MS and CJ priors and assuming the difference is lognormal (close for most years,
-# # but 2015 & 2016 are left-skewed relative to lognormal).
-# fish_data <- mutate(fish_data, pop = replace(pop, pop == "Grays_MS", "Grays_MSWF"))
-# for(i in which(fish_data$pop=="Grays_MSWF")) {
-#   indx_WF <- which(fish_data$pop=="Grays_WF" & fish_data$year==fish_data$year[i])
-#   indx_CJ <- which(fish_data$pop=="Grays_CJ" & fish_data$year==fish_data$year[i])
-#   S_sum <- 
-#     rlnorm(10000, 
-#            log(fish_data$S_obs[i]) - 0.5*fish_data$tau_S_obs[i]^2, 
-#            fish_data$tau_S_obs[i]) + 
-#     rlnorm(10000, 
-#            log(fish_data$S_obs[indx_WF]) - 0.5*fish_data$tau_S_obs[indx_WF]^2,
-#            fish_data$tau_S_obs[indx_WF])
-#   fish_data$tau_S_obs[i] <- sqrt(log(var(S_sum)/mean(S_sum)^2 + 1))
-#   fish_data$S_obs[i] <- exp(log(mean(S_sum)) - 0.5*fish_data$tau_S_obs[i]^2)
-#   fish_data[i,grepl("n_", names(fish_data))] <- 
-#     colSums(fish_data[c(i,indx_WF), grepl("n_", names(fish_data))])
-#   fish_data$B_take_obs[i] <- sum(fish_data$B_take_obs[i], fish_data$B_take_obs[indx_WF], 
-#                                  na.rm = TRUE)
-#   M_diff <- rlnorm(10000, log(fish_data$M_obs[i]), fish_data$tau_M_obs[i]) -
-#     rlnorm(10000, log(fish_data$M_obs[indx_CJ]), fish_data$tau_M_obs[indx_CJ])
-#   fish_data$M_obs[i] <- exp(mean(log(M_diff[M_diff > 0])))
-#   fish_data$tau_M_obs[i] <- sd(log(M_diff[M_diff > 0]))
-# }
-# fish_data <- fish_data %>% filter(pop != "Grays_WF") %>% 
-#   mutate(strata = factor(strata), pop = factor(pop))
-
 # subsets for models with specific stage structure
 # spawner-spawner: drop cases with initial NAs in S_obs, even if bio data is present
 fish_data_SS <- fish_data %>% group_by(pop) %>% filter(head_noNA(S_obs)) %>% as.data.frame()
