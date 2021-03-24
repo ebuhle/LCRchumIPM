@@ -143,10 +143,10 @@ fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("strata","pop","ye
   rename(n_H_obs = H, n_W_obs = W) %>% mutate(A = 1, fit_p_HOS = NA, F_rate = 0) %>% 
   mutate_at(vars(contains("n_")), ~ replace(., is.na(.), 0)) %>% 
   filter(!grepl("Hatchery|Duncan_Creek", pop)) %>% 
-  mutate(strata = factor(strata), pop = factor(pop), downstream_trap = NA,
+  mutate(strata = factor(strata), pop = factor(pop), 
          B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0)) %>%
-  select(strata, pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, downstream_trap,
-         n_age3_obs:n_W_obs, fit_p_HOS, B_take_obs, F_rate) %>% arrange(strata, pop, year) 
+  select(strata, pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_W_obs, 
+         fit_p_HOS, B_take_obs, F_rate) %>% arrange(strata, pop, year) 
 
 # fill in fit_p_HOS
 for(i in 1:nrow(fish_data)) {
@@ -158,19 +158,20 @@ for(i in 1:nrow(fish_data)) {
                                      fish_data$n_H_obs[i] > 0, 1, 0)
 }
 
-# assign Grays_WF and Grays_CJ smolts to the downstream trap in Grays_MS
-# where they will be counted (or double-counted, in the case of Grays_CJ),
-# assuming no mortality between the upstream tributary and the downstream trap
-for(i in which(fish_data$pop %in% c("Grays_WF", "Grays_CJ")))
-  fish_data$downstream_trap[i] <- which(fish_data$pop == "Grays_MS" & 
-                                          fish_data$year == fish_data$year[i])
-
 # subsets for models with specific stage structure
 # spawner-spawner: drop cases with initial NAs in S_obs, even if bio data is present
 fish_data_SS <- fish_data %>% group_by(pop) %>% filter(head_noNA(S_obs)) %>% as.data.frame()
 # spawner-smolt-spawner: drop cases with initial NAs in both S_obs and M_obs
-fish_data_SMS <- fish_data %>% group_by(pop) %>% 
-  filter(head_noNA(S_obs) | head_noNA(M_obs)) %>% as.data.frame()
+fish_data_SMS <- fish_data %>% group_by(pop) %>% filter(head_noNA(S_obs) | head_noNA(M_obs)) %>% 
+  add_column(downstream_trap = NA, .after = "tau_M_obs")  %>% as.data.frame()
+
+# fish_data_SMS: 
+# assign Grays_WF and Grays_CJ smolts to the downstream trap in Grays_MS
+# where they will be counted (or double-counted, in the case of Grays_CJ),
+# assuming no mortality between the upstream tributary and the downstream trap
+for(i in which(fish_data_SMS$pop %in% c("Grays_WF", "Grays_CJ")))
+  fish_data_SMS$downstream_trap[i] <- which(fish_data_SMS$pop == "Grays_MS" & 
+                                          fish_data_SMS$year == fish_data_SMS$year[i])
 
 # pad data with future years to generate forecasts
 # use 5-year (1-generation) time horizon
@@ -181,8 +182,15 @@ fish_data_SMS_fore <- fish_data_SMS %>% group_by(pop) %>%
          fit_p_HOS = 0, B_take_obs = 0, F_rate = 0) %>% 
   mutate_at(vars(starts_with("n_")), ~ 0) %>% 
   full_join(fish_data_SMS) %>% arrange(pop, year) %>% 
-  mutate(forecast = year > max(fish_data_SMS$year)) %>% 
+  mutate(forecast = year > max(fish_data_SMS$year), downstream_trap = NA) %>% 
   select(strata:year, forecast, A:F_rate) %>% as.data.frame()
+
+# fish_data_SMS_fore: 
+# assign Grays_WF and Grays_CJ smolts to the downstream trap in Grays_MS
+# (need to do this again b/c row indices have changed)
+for(i in which(fish_data_SMS_fore$pop %in% c("Grays_WF", "Grays_CJ")))
+  fish_data_SMS_fore$downstream_trap[i] <- which(fish_data_SMS_fore$pop == "Grays_MS" & 
+                                                   fish_data_SMS_fore$year == fish_data_SMS_fore$year[i])
 
 # Fecundity data
 # Note that L95% and U95% are reversed
@@ -313,121 +321,62 @@ print(SS_Ricker, prob = c(0.025,0.5,0.975),
 
 launch_shinystan(SS_Ricker)
 
-#--------------------------------------------------------------
-# Model selection using LOO
-#--------------------------------------------------------------
-
-# Observationwise log-likelihood of each fitted model
-# Here an observation is a row of fish_data, and the total likelihood includes 
-# components for spawner abundance, age-frequency, and hatchery/wild-frequency
-## @knitr loo_SS
-LL_SS <- lapply(list(exp = SS_exp, BH = SS_BH, Ricker = SS_Ricker),
-                loo::extract_log_lik, parameter_name = "LL", merge_chains = FALSE)
-
-# Relative ESS of posterior draws of observationwise likelihood 
-r_eff_SS <- lapply(LL_SS, function(x) relative_eff(exp(x)))
-
-# PSIS-LOO
-LOO_SS <- lapply(1:length(LL_SS), function(i) loo(LL_SS[[i]], r_eff = r_eff_SS[[i]]))
-names(LOO_SS) <- names(LL_SS)
-
-## Compare all three models
-loo_compare(LOO_SS)
-
-## Exponential vs. Ricker
-loo_compare(LOO_SS[c("exp","Ricker")])
-
-## Exponential vs. Beverton-Holt
-loo_compare(LOO_SS[c("exp","BH")])
-
-## Beverton-Holt vs. Ricker
-loo_compare(LOO_SS[c("BH","Ricker")])
-## @knitr
-
 
 #--------------------------------------------------------------
 # Spawner-smolt-spawner IPM
+#
+# NOTE: Deprecated because certain features of the data
+# are incompatible with the model (e.g., pooling of smolts
+# from Grays_MS and Grays_WF and double-counting of Grays_CJ)
 #--------------------------------------------------------------
 
-# Density-independent
-## @knitr fit_SMS_exp
-SMS_exp <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
-                     stan_model = "IPM_SMS_pp", SR_fun = "exp",
-                     pars = c("B_rate_all","mu_Rmax","sigma_Rmax","Rmax"), include = FALSE, 
-                     log_lik = TRUE, chains = 3, iter = 1500, warmup = 500,
-                     control = list(adapt_delta = 0.99, max_treedepth = 13))
-
-## @knitr print_SMS_exp
-print(SMS_exp, prob = c(0.025,0.5,0.975),
-      pars = c("alpha","phi_M","phi_MS","gamma","p","p_HOS","S","M","s_MS","q","LL"), 
-      include = FALSE, use_cache = FALSE)
-## @knitr
-
-launch_shinystan(SMS_exp)
-
-# Beverton-Holt
-## @knitr fit_SMS_BH
-SMS_BH <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
-                    stan_model = "IPM_SMS_pp", SR_fun = "BH",
-                    pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
-                    chains = 3, iter = 1500, warmup = 500,
-                    control = list(adapt_delta = 0.99, max_treedepth = 13))
-
-## @knitr print_SMS_BH
-print(SMS_BH, prob = c(0.025,0.5,0.975),
-      pars = c("alpha","Rmax","phi_M","phi_MS","gamma","p","p_HOS","S","M","s_MS","q","LL"), 
-      include = FALSE, use_cache = FALSE)
-## @knitr
-
-launch_shinystan(SMS_BH)
-
-# Ricker
-## @knitr fit_SMS_Ricker
-SMS_Ricker <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
-                        stan_model = "IPM_SMS_pp", SR_fun = "Ricker",
-                        pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
-                        chains = 3, iter = 1500, warmup = 500,
-                        control = list(adapt_delta = 0.99, max_treedepth = 13))
-
-## @knitr print_SMS_Ricker
-print(SMS_Ricker, prob = c(0.025,0.5,0.975),
-      pars = c("alpha","Rmax","phi_M","phi_MS","gamma","p","p_HOS","S","M","s_MS","q","LL"), 
-      include = FALSE, use_cache = FALSE)
-## @knitr
-
-launch_shinystan(SMS_Ricker)
-
-
-#--------------------------------------------------------------
-# Model selection using LOO
-#--------------------------------------------------------------
-
-# Observationwise log-likelihood of each fitted model
-# Here an observation is a row of fish_data, and the total likelihood includes 
-# components for smolt abundance, spawner abundance, age-frequency, and H/W-frequency
-## @knitr loo_SMS
-LL_SMS <- lapply(list(exp = SMS_exp, BH = SMS_BH, Ricker = SMS_Ricker),
-             loo::extract_log_lik, parameter_name = "LL", merge_chains = FALSE)
-
-# Relative ESS of posterior draws of observationwise likelihood 
-r_eff_SMS <- lapply(LL_SMS, function(x) relative_eff(exp(x)))
-
-# PSIS-LOO
-LOO_SMS <- lapply(1:length(LL_SMS), function(i) loo(LL_SMS[[i]], r_eff = r_eff_SMS[[i]]))
-names(LOO_SMS) <- names(LL_SMS)
-
-## Compare all three models
-loo_compare(LOO_SMS)
-
-## Exponential vs. Ricker
-loo_compare(LOO_SMS[c("exp","Ricker")])
-
-## Exponential vs. Beverton-Holt
-loo_compare(LOO_SMS[c("exp","BH")])
-
-## Beverton-Holt vs. Ricker
-loo_compare(LOO_SMS[c("BH","Ricker")])
-## @knitr
+# # Density-independent
+# ## @knitr fit_SMS_exp
+# SMS_exp <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
+#                      stan_model = "IPM_SMS_pp", SR_fun = "exp",
+#                      pars = c("B_rate_all","mu_Rmax","sigma_Rmax","Rmax"), include = FALSE, 
+#                      log_lik = TRUE, chains = 3, iter = 1500, warmup = 500,
+#                      control = list(adapt_delta = 0.99, max_treedepth = 13))
+# 
+# ## @knitr print_SMS_exp
+# print(SMS_exp, prob = c(0.025,0.5,0.975),
+#       pars = c("alpha","phi_M","phi_MS","gamma","p","p_HOS","S","M","s_MS","q","LL"), 
+#       include = FALSE, use_cache = FALSE)
+# ## @knitr
+# 
+# launch_shinystan(SMS_exp)
+# 
+# # Beverton-Holt
+# ## @knitr fit_SMS_BH
+# SMS_BH <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
+#                     stan_model = "IPM_SMS_pp", SR_fun = "BH",
+#                     pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
+#                     chains = 3, iter = 1500, warmup = 500,
+#                     control = list(adapt_delta = 0.99, max_treedepth = 13))
+# 
+# ## @knitr print_SMS_BH
+# print(SMS_BH, prob = c(0.025,0.5,0.975),
+#       pars = c("alpha","Rmax","phi_M","phi_MS","gamma","p","p_HOS","S","M","s_MS","q","LL"), 
+#       include = FALSE, use_cache = FALSE)
+# ## @knitr
+# 
+# launch_shinystan(SMS_BH)
+# 
+# # Ricker
+# ## @knitr fit_SMS_Ricker
+# SMS_Ricker <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
+#                         stan_model = "IPM_SMS_pp", SR_fun = "Ricker",
+#                         pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
+#                         chains = 3, iter = 1500, warmup = 500,
+#                         control = list(adapt_delta = 0.99, max_treedepth = 13))
+# 
+# ## @knitr print_SMS_Ricker
+# print(SMS_Ricker, prob = c(0.025,0.5,0.975),
+#       pars = c("alpha","Rmax","phi_M","phi_MS","gamma","p","p_HOS","S","M","s_MS","q","LL"), 
+#       include = FALSE, use_cache = FALSE)
+# ## @knitr
+# 
+# launch_shinystan(SMS_Ricker)
 
 
 #--------------------------------------------------------------
@@ -475,12 +424,12 @@ LCRchum_Ricker <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundit
                             ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
                             pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
                             chains = 3, iter = 1500, warmup = 500,
-                            control = list(adapt_delta = 0.99, max_treedepth = 15))
+                            control = list(adapt_delta = 0.95, max_treedepth = 13))
 
 ## @knitr print_LCRchum_Ricker
 print(LCRchum_Ricker, prob = c(0.025,0.5,0.975),
-      pars = c("Emax","eta_pop_EM","eta_year_EM","eta_year_MS","eta_pop_p",
-               "p","tau_M","tau_S","p_HOS","E","S","M","s_EM","s_MS","q","LL"), 
+      pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p",
+               "p","tau_M","tau_S","p_HOS","E_hat","M","S","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
