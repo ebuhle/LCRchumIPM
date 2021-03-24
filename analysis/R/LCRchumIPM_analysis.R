@@ -463,7 +463,7 @@ LCRchum_BH <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundity_da
 ## @knitr print_LCRchum_BH
 print(LCRchum_BH, prob = c(0.025,0.5,0.975),
       pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p",
-               "p","tau_M","tau_S","p_HOS","S","M","s_MS","q","LL"), 
+               "p","tau_M","tau_S","p_HOS","E_hat","M","S","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
 

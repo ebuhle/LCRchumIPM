@@ -27,18 +27,18 @@ M_obs <- fish_data_SMS$M_obs
 # NB: This assumes egg production is density-independent and deterministic
 #     (or "potential eggs", if you like)
 f <- apply(sweep(q, c(1,3), mu_E, "*"), 1:2, sum)
-E <- 0.5*S*f # states
+E_hat <- 0.5*S*f # states
 E1 <- sweep(f, 2, 0.5*S_obs, "*") # use observed spawners
 
 # back-calculate egg-to-smolt survival based on E and either M or M_obs
 # note 1-yr lag between eggs and smolts
 # NB: This somewhat misleadingly assumes all the process error is in survival,
 #     since eggs are calculated deterministically -- it could just as well be reversed
-psi1 <- array(NA, dim(E))
-psi2 <- array(NA, dim(E))
+psi1 <- array(NA, dim(E_hat))
+psi2 <- array(NA, dim(E_hat))
 for(i in levels(pop)) {
-  psi1[,pop==i][,-sum(pop==i)] <- M[,pop==i][,-1] / E[,pop==i][,-sum(pop==i)]
-  psi2[,pop==i][,-sum(pop==i)] <- sweep(1/E[,pop==i][,-sum(pop==i)], 2, M_obs[pop==i][-1], "*")
+  psi1[,pop==i][,-sum(pop==i)] <- M[,pop==i][,-1] / E_hat[,pop==i][,-sum(pop==i)]
+  psi2[,pop==i][,-sum(pop==i)] <- sweep(1/E_hat[,pop==i][,-sum(pop==i)], 2, M_obs[pop==i][-1], "*")
 }
 
 # posterior distribution of mu_psi
@@ -63,7 +63,7 @@ data.frame(pop = pop, year = year, psi1_l = colQuantiles(psi1, probs = 0.05),
   geom_ribbon(fill = "darkblue", alpha = 0.5) +
   geom_line(lwd = 1, col = "darkblue") + 
   geom_abline(intercept = 1, slope = 0) +
-  ylab("M / E") + facet_wrap(vars(pop), ncol = 4) + theme_bw()
+  ylab("M / E_hat") + facet_wrap(vars(pop), ncol = 3) + theme_bw()
   
 # So if M frequently exceeds E, the annual and/or unique log-recruitment process errors
 # must be disproportionately positive, right?
@@ -96,11 +96,29 @@ bio_data %>% rename(pop = disposition) %>% filter(HW=="W" & !grepl("Hatchery|Dun
   mutate(total = Female + Male, prop_female = Female/total) %>% 
   right_join(fish_data_SMS, by = c("pop","year")) %>% mutate(zeta_M = zeta_M) %>% 
   ggplot(aes(x = prop_female, y = zeta_M)) + geom_point(size = 1) + 
-  facet_wrap(vars(pop), ncol = 4) + theme_bw()
+  facet_wrap(vars(pop), ncol = 3) + theme_bw()
 
+# Let's look at the brood years that give rise to these estimates of M >= E_hat
+dat <- fish_data_SMS %>% group_by(pop) %>% 
+  mutate(M0_obs = lead(M_obs), tau_M0_obs = lead(tau_M_obs)) %>% ungroup() %>% as.data.frame() %>% 
+  mutate(S = colMedians(S), f = colMedians(f), E_hat = colMedians(E_hat), 
+         M0 = stan_mean(mod,"M0"), M0_div_E_hat = colMedians(psi1)) %>%
+  select(pop, year, S_obs, tau_S_obs, S, f, E_hat, M0_obs, tau_M0_obs, M0, M0_div_E_hat)
+
+dat %>% filter(M0_div_E_hat >= 1) %>% format(digits=2)
+# just the pops with smolt data
+dat %>% filter(M0_div_E_hat >= 1 & pop %in% c("Duncan_Channel","Grays_CJ","Grays_MS","Hamilton_Channel","Hardy_Creek")) %>% 
+  format(digits=2)
+
+# Spawner-recruit pairs that produced M > E_hat
+dat %>% filter(!is.na(M0_div_E_hat)) %>% 
+  ggplot(aes(x = E_hat/1e3, y = M0/1e3, pch = M0_div_E_hat >= 1)) +
+  geom_point(size = 2.5, color = "darkblue", alpha = 0.7) + scale_shape_manual(values = c(1,16)) +
+  geom_abline(intercept = 0, slope = 1) + labs(x = "E_hat (thousands)", y = "M (thousands)") +
+  facet_wrap(vars(pop), ncol = 3, scales = "free") + theme_bw() + theme(legend.position = "none")
 
 # clean up
-rm(list = c('mod','S','mu_E','q','M','S_obs','M_obs','f','E','pop','year',
+rm(list = c('mod','S','mu_E','q','M','S_obs','M_obs','f','E_hat','pop','year',
             'psi','mu_psi','psi1','psi2'))
 
 
