@@ -171,7 +171,7 @@ fish_data_SMS <- fish_data %>% group_by(pop) %>% filter(head_noNA(S_obs) | head_
 # assuming no mortality between the upstream tributary and the downstream trap
 for(i in which(fish_data_SMS$pop %in% c("Grays_WF", "Grays_CJ")))
   fish_data_SMS$downstream_trap[i] <- which(fish_data_SMS$pop == "Grays_MS" & 
-                                          fish_data_SMS$year == fish_data_SMS$year[i])
+                                              fish_data_SMS$year == fish_data_SMS$year[i])
 
 # pad data with future years to generate forecasts
 # use 5-year (1-generation) time horizon

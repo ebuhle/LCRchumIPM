@@ -101,19 +101,20 @@ dat <- fish_data_SMS %>% group_by(pop) %>%
   mutate(S = colMedians(S), f = colMedians(f), E_hat = colMedians(E_hat), 
          M0 = stan_mean(mod,"M0"), M0_downstream = lead(stan_mean(mod,"M_downstream")),
          M0_div_E_hat = colMedians(psi1)) %>%
-  select(pop, year, S_obs, tau_S_obs, S, f, E_hat, M0_obs, tau_M0_obs, M0, M0_downstream, M0_div_E_hat)
+  select(pop, year, S_obs, tau_S_obs, S, f, E_hat, M0_obs, tau_M0_obs, M0, 
+         downstream_trap, M0_downstream, M0_div_E_hat)
 
-dat %>% filter(M0_div_E_hat >= 1) %>% format(digits=2)
+dat %>% filter(M0_div_E_hat >= 1) %>% select(-downstream_trap) %>% format(digits=2)
 # just the pops with smolt data
-dat %>% filter(M0_div_E_hat >= 1 & 
-                 pop %in% c("Duncan_Channel","Grays_CJ","Grays_MS","Grays_WF",
-                            "Hamilton_Channel","Hardy_Creek")) %>% 
+dat %>% select(-downstream_trap) %>% 
+  filter(M0_div_E_hat >= 1 & pop %in% c("Duncan_Channel","Grays_CJ","Grays_MS",
+                                        "Grays_WF","Hamilton_Channel","Hardy_Creek")) %>% 
   format(digits=2)
 
 # Spawner-recruit pairs that produced M > E_hat
 # filled circles indicate pairs that have a corresponding (S_obs, M_obs) pair
 dat %>% filter(!is.na(M0_div_E_hat)) %>% 
-  ggplot(aes(x = E_hat/1e3, y = M0/1e3, pch = !is.na(S_obs) & !is.na(M0_obs))) +
+  ggplot(aes(x = E_hat/1e3, y = M0/1e3, pch = !is.na(S_obs) & (!is.na(M0_obs) | !is.na(downstream_trap)))) +
   geom_point(size = 2.5, color = "darkblue", alpha = 0.7) + scale_shape_manual(values = c(1,16)) +
   geom_abline(intercept = 0, slope = 1) + labs(x = "E_hat (thousands)", y = "M (thousands)") +
   facet_wrap(vars(pop), ncol = 3, scales = "free") + theme_bw() + theme(legend.position = "none")
