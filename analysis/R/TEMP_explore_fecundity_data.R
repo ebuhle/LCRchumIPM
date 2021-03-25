@@ -15,6 +15,9 @@ ggplot(dat,aes(y=`Estimated Fecundity`,x=BodyWeight,color=PartialSpawn))+
   facet_wrap(~Age)
 
 quants<-c(0.025, 0.25, 0.5, 0.75, 0.975)
-print(data.frame(dat%>%
+dat%>%
   group_by(Age,PartialSpawn)%>%
-  summarise(Fecundity = quantile(`Estimated Fecundity`, quants), q = quants)))
+  summarise(Fecundity = quantile(`Estimated Fecundity`, quants), q = quants)%>%
+  as.data.frame()%>%
+  pivot_wider(names_from=q,values_from=Fecundity)
+  print()
