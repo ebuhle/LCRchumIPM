@@ -135,6 +135,8 @@ juv_data_incl <- juv_data %>% group_by(location) %>%
 # Drop age-2 and age-6 samples (each is < 0.1% of aged spawners)
 # Use A = 1 for now (so Rmax in units of spawners)
 # Drop Duncan Creek and "populations" that are actually hatcheries
+# Change S_obs and tau_S_obs to NA in Hamilton Channel 2011-2012 based on
+# https://github.com/mdscheuerell/chumIPM/issues/6#issuecomment-807885445
 fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("strata","pop","year")) %>% 
   full_join(bio_data_HW, by = c("strata","pop","year")) %>% 
   full_join(juv_data_incl, by = c("strata","pop","year")) %>%
@@ -143,7 +145,9 @@ fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("strata","pop","ye
   rename(n_H_obs = H, n_W_obs = W) %>% mutate(A = 1, fit_p_HOS = NA, F_rate = 0) %>% 
   mutate_at(vars(contains("n_")), ~ replace(., is.na(.), 0)) %>% 
   filter(!grepl("Hatchery|Duncan_Creek", pop)) %>% 
-  mutate(strata = factor(strata), pop = factor(pop), 
+  mutate(S_obs = replace(S_obs, pop == "Hamilton_Channel" & year %in% 2011:2012, NA),
+         tau_S_obs = replace(tau_S_obs, pop == "Hamilton_Channel" & year %in% 2011:2012, NA),
+         strata = factor(strata), pop = factor(pop), 
          B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0)) %>%
   select(strata, pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_W_obs, 
          fit_p_HOS, B_take_obs, F_rate) %>% arrange(strata, pop, year) 
@@ -205,7 +209,7 @@ fecundity <- read.csv(here("data","Data_ChumFecundity_fromHatcheryPrograms_2017-
 # or with reproductive effort <= 16%
 # add strata based on stock: Grays -> Coastal, I-205 -> Cascade, Lower Gorge -> Gorge
 fecundity_data <- fecundity %>% 
-  filter(age_E %in% 3:5 & !is.na(E_obs) & !is.na(reproductive_effort) & reproductive_effort >= 16) %>% 
+  filter(age_E %in% 3:5 & !is.na(E_obs) & !is.na(reproductive_effort) & reproductive_effort > 16) %>% 
   mutate(strata = recode(stock, Grays = "Coastal", `I-205` = "Cascade", `Lower Gorge` = "Gorge")) %>% 
   select(strata, year, ID, age_E, E_obs) %>% arrange(strata, year, age_E) 
 ## @knitr

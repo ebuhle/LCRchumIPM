@@ -8,6 +8,11 @@
 
 mod <- LCRchum_Ricker
 
+# data
+pop <- fish_data_SMS$pop
+year <- fish_data_SMS$year
+S_obs <- fish_data_SMS$S_obs
+M_obs <- fish_data_SMS$M_obs
 # states
 S <- extract1(mod,"S")
 mu_E <- extract1(mod,"mu_E")
@@ -16,12 +21,9 @@ mu_psi <- extract1(mod,"mu_psi")
 psi <- extract1(mod,"psi")
 eta_year_M <- extract1(mod,"eta_year_M")
 zeta_M <- stan_mean(mod,"zeta_M")   # only means available
+epsilon_M <- outer(extract1(mod,"sigma_M"), zeta_M)
+error_M <- eta_year_M[,as.numeric(factor(year))] + epsilon_M
 M <- extract1(mod,"M")
-# data
-pop <- fish_data_SMS$pop
-year <- fish_data_SMS$year
-S_obs <- fish_data_SMS$S_obs
-M_obs <- fish_data_SMS$M_obs
 
 # weighted fecundity and eggs (assuming 50:50 sex ratio)
 # NB: This assumes egg production is density-independent and deterministic
@@ -91,8 +93,9 @@ bio_data %>% rename(pop = disposition) %>% filter(HW=="W" & !grepl("Hatchery|Dun
   group_by(pop, year, sex) %>% summarize(n = sum(count)) %>% 
   dcast(pop + year ~ sex, value.var = "n", fun.aggregate = sum) %>% 
   mutate(total = Female + Male, prop_female = Female/total) %>% 
-  right_join(fish_data_SMS, by = c("pop","year")) %>% mutate(zeta_M = zeta_M) %>% 
-  ggplot(aes(x = prop_female, y = zeta_M)) + geom_point(size = 1) + 
+  right_join(fish_data_SMS, by = c("pop","year")) %>% 
+  mutate(error_M = colMeans(error_M)) %>% 
+  ggplot(aes(x = prop_female, y = error_M)) + geom_point(size = 1) + 
   facet_wrap(vars(pop), ncol = 3) + theme_bw()
 
 # Let's look at the brood years that give rise to these estimates of M >= E_hat
