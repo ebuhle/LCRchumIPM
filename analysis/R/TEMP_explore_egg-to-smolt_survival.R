@@ -66,7 +66,7 @@ data.frame(pop = pop, year = year, psi1_l = colQuantiles(psi1, probs = 0.05),
   
 # So if M frequently exceeds E, the annual and/or unique log-recruitment process errors
 # must be disproportionately positive, right?
-# => Not really
+# => Not really => The problem is the mean relationship (psi too close to 1)
 par(mar = c(8,4,1,1))
 boxplot(split(zeta_M, pop), ylab = "zeta_M", las = 2)
 abline(h = 0)
@@ -99,11 +99,13 @@ bio_data %>% rename(pop = disposition) %>% filter(HW=="W" & !grepl("Hatchery|Dun
   facet_wrap(vars(pop), ncol = 3) + theme_bw()
 
 # Let's look at the brood years that give rise to these estimates of M >= E_hat
-dat <- fish_data_SMS %>% group_by(pop) %>% 
-  mutate(M0_obs = lead(M_obs), tau_M0_obs = lead(tau_M_obs)) %>% ungroup() %>% as.data.frame() %>% 
+dat <- fish_data_SMS %>% 
   mutate(S = colMedians(S), f = colMedians(f), E_hat = colMedians(E_hat), 
-         M0 = stan_mean(mod,"M0"), M0_downstream = lead(stan_mean(mod,"M_downstream")),
+         M0 = stan_mean(mod,"M0"), M_downstream = stan_mean(mod,'M_downstream'),
          M0_div_E_hat = colMedians(psi1)) %>%
+  group_by(pop) %>% 
+  mutate(M0_obs = lead(M_obs), tau_M0_obs = lead(tau_M_obs), M0_downstream = lead(M_downstream)) %>% 
+  ungroup() %>% as.data.frame() %>% 
   select(pop, year, S_obs, tau_S_obs, S, f, E_hat, M0_obs, tau_M0_obs, M0, 
          downstream_trap, M0_downstream, M0_div_E_hat)
 
@@ -116,10 +118,10 @@ dat %>% select(-downstream_trap) %>%
 
 # Spawner-recruit pairs that produced M > E_hat
 # filled circles indicate pairs that have a corresponding (S_obs, M_obs) pair
-dat %>% filter(!is.na(M0_div_E_hat)) %>% 
-  ggplot(aes(x = E_hat/1e3, y = M0/1e3, pch = !is.na(S_obs) & (!is.na(M0_obs) | !is.na(downstream_trap)))) +
+dat %>% 
+  ggplot(aes(x = E_hat/1e3, y = M0/E_hat, pch = !is.na(S_obs) & (!is.na(M0_obs) | !is.na(downstream_trap)))) +
   geom_point(size = 2.5, color = "darkblue", alpha = 0.7) + scale_shape_manual(values = c(1,16)) +
-  geom_abline(intercept = 0, slope = 1) + labs(x = "E_hat (thousands)", y = "M (thousands)") +
+  geom_hline(yintercept = 1) + labs(x = "E_hat (thousands)", y = "M / E_hat") +
   facet_wrap(vars(pop), ncol = 3, scales = "free") + theme_bw() + theme(legend.position = "none")
 
 # clean up

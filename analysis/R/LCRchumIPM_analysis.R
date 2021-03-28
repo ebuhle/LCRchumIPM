@@ -26,10 +26,6 @@ if(file.exists(here("analysis","results","LCRchumIPM.RData")))
 # DATA
 #===========================================================================
 
-### NOTES
-# (1) St_Cloud 2002, 2007, 2008 have extremely low S_obs (single digits vs. hundreds 
-#     in surrounding years. Is this real?
-
 ## @knitr data
 
 # Start dates of hatcheries associated with populations
@@ -85,10 +81,9 @@ bio_data <- read.csv(here("data","Data_ChumSpawnerBioData_2019-12-12.csv"),
   mutate(strata = replace(strata, disposition == "Duncan_Channel" & strata != "Gorge", "Gorge"),
          count = replace(count, is.na(count), 0),
          HW = ifelse((grepl("Hatchery", origin) | location != disposition | 
-                       (origin != disposition & origin != "Natural_spawner")) &
+                        (origin != disposition & origin != "Natural_spawner")) &
                        !(origin %in% c("Duncan_Channel","Natural_spawner") & 
-                          location == "Duncan_Creek" & 
-                          disposition == "Duncan_Channel"), 
+                           location == "Duncan_Creek" & disposition == "Duncan_Channel"), 
                      "H", "W")) %>% 
   select(year:location, disposition, origin, HW, sex:count) %>%
   arrange(strata, location, year, origin, age, sex)
@@ -137,9 +132,14 @@ juv_data_incl <- juv_data %>% group_by(location) %>%
 # Drop Duncan Creek and "populations" that are actually hatcheries
 # Change S_obs and tau_S_obs to NA in Hamilton Channel 2011-2012 based on
 # https://github.com/mdscheuerell/chumIPM/issues/6#issuecomment-807885445
+# Pad data as necessary so Grays_MS, Grays_WF, and Grays_CJ have the same set of years
+# (since their estimated smolts will be summed)  
 fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("strata","pop","year")) %>% 
   full_join(bio_data_HW, by = c("strata","pop","year")) %>% 
   full_join(juv_data_incl, by = c("strata","pop","year")) %>%
+  full_join({ complete(select(filter(., strata == "Coastal"), c(strata,pop,year)), 
+                       pop, year, fill = list(strata = "Coastal")) },
+            by = c("strata","pop","year")) %>%
   rename_at(vars(contains("Age-")), list(~ paste0(sub("Age-","n_age",.), "_obs"))) %>% 
   select(-c(n_age2_obs, n_age6_obs)) %>% 
   rename(n_H_obs = H, n_W_obs = W) %>% mutate(A = 1, fit_p_HOS = NA, F_rate = 0) %>% 
@@ -173,9 +173,9 @@ fish_data_SMS <- fish_data %>% group_by(pop) %>% filter(head_noNA(S_obs) | head_
 # assign Grays_WF and Grays_CJ smolts to the downstream trap in Grays_MS
 # where they will be counted (or double-counted, in the case of Grays_CJ),
 # assuming no mortality between the upstream tributary and the downstream trap
-for(i in which(fish_data_SMS$pop %in% c("Grays_WF", "Grays_CJ")))
-  fish_data_SMS$downstream_trap[i] <- which(fish_data_SMS$pop == "Grays_MS" & 
-                                              fish_data_SMS$year == fish_data_SMS$year[i])
+fish_data_SMS <- fish_data_SMS %>%
+  mutate(downstream_trap = replace(downstream_trap, pop %in% c("Grays_WF","Grays_CJ"),
+                                   which(pop == "Grays_MS")))
 
 # pad data with future years to generate forecasts
 # use 5-year (1-generation) time horizon
@@ -192,9 +192,9 @@ fish_data_SMS_fore <- fish_data_SMS %>% group_by(pop) %>%
 # fish_data_SMS_fore: 
 # assign Grays_WF and Grays_CJ smolts to the downstream trap in Grays_MS
 # (need to do this again b/c row indices have changed)
-for(i in which(fish_data_SMS_fore$pop %in% c("Grays_WF", "Grays_CJ")))
-  fish_data_SMS_fore$downstream_trap[i] <- which(fish_data_SMS_fore$pop == "Grays_MS" & 
-                                                   fish_data_SMS_fore$year == fish_data_SMS_fore$year[i])
+fish_data_SMS_fore <- fish_data_SMS_fore %>%
+  mutate(downstream_trap = replace(downstream_trap, pop %in% c("Grays_WF","Grays_CJ"),
+                                   which(pop == "Grays_MS")))
 
 # Fecundity data
 # Note that L95% and U95% are reversed
@@ -428,7 +428,7 @@ LCRchum_Ricker <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundit
                             ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
                             pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
                             chains = 3, iter = 1500, warmup = 500,
-                            control = list(adapt_delta = 0.95, max_treedepth = 13))
+                            control = list(adapt_delta = 0.99, max_treedepth = 14))
 
 ## @knitr print_LCRchum_Ricker
 print(LCRchum_Ricker, prob = c(0.025,0.5,0.975),
