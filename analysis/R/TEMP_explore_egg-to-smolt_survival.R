@@ -89,7 +89,7 @@ abline(h = 1)
 
 # Maybe positive smolt recruitment process errors are associated with high F:M ratios?
 # => Not even a hint of a relationship
-bio_data %>% rename(pop = disposition) %>% filter(HW=="W" & !grepl("Hatchery|Duncan_Creek", pop)) %>% 
+bio_data %>% rename(pop = disposition) %>% filter(!grepl("Hatchery|Duncan_Creek", pop)) %>% 
   group_by(pop, year, sex) %>% summarize(n = sum(count)) %>% 
   dcast(pop + year ~ sex, value.var = "n", fun.aggregate = sum) %>% 
   mutate(total = Female + Male, prop_female = Female/total) %>% 
@@ -100,9 +100,8 @@ bio_data %>% rename(pop = disposition) %>% filter(HW=="W" & !grepl("Hatchery|Dun
 
 # Let's look at the brood years that give rise to these estimates of M >= E_hat
 dat <- fish_data_SMS %>% 
-  mutate(S = colMedians(S), f = colMedians(f), E_hat = colMedians(E_hat), 
-         M0 = stan_mean(mod,"M0"), M_downstream = stan_mean(mod,'M_downstream'),
-         M0_div_E_hat = colMedians(psi1)) %>%
+  mutate(S = colMedians(S), f = colMedians(f), E_hat = colMedians(E_hat), M0 = stan_mean(mod,"M0"), 
+         M_downstream = stan_mean(mod,'M_downstream'), M0_div_E_hat = colMedians(psi1)) %>%
   group_by(pop) %>% 
   mutate(M0_obs = lead(M_obs), tau_M0_obs = lead(tau_M_obs), M0_downstream = lead(M_downstream)) %>% 
   ungroup() %>% as.data.frame() %>% 
@@ -116,10 +115,14 @@ dat %>% select(-downstream_trap) %>%
                                         "Grays_WF","Hamilton_Channel","Hardy_Creek")) %>% 
   format(digits=2)
 
+# write out this data frame
+write.csv(dat, file = here("analysis","results","TEMP_fish_data_egg-to-smolt.csv"), row.names = FALSE)
+
 # Spawner-recruit pairs that produced M > E_hat
 # filled circles indicate pairs that have a corresponding (S_obs, M_obs) pair
 dat %>% 
-  ggplot(aes(x = E_hat/1e3, y = M0/E_hat, pch = !is.na(S_obs) & (!is.na(M0_obs) | !is.na(downstream_trap)))) +
+  ggplot(aes(x = E_hat/1e3, y = M0/E_hat, 
+         pch = !is.na(S_obs) & (!is.na(M0_obs) | !is.na(M0_obs[downstream_trap])))) +
   geom_point(size = 2.5, color = "darkblue", alpha = 0.7) + scale_shape_manual(values = c(1,16)) +
   geom_hline(yintercept = 1) + labs(x = "E_hat (thousands)", y = "M / E_hat") +
   facet_wrap(vars(pop), ncol = 3, scales = "free") + theme_bw() + theme(legend.position = "none")

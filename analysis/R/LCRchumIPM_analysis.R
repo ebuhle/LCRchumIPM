@@ -226,7 +226,7 @@ bio_data %>% filter(HW=="W" & !grepl("Hatchery|Duncan_Creek", disposition)) %>%
   dcast(disposition + year ~ sex, value.var = "n", fun.aggregate = sum) %>% 
   mutate(total = Female + Male) %>% 
   data.frame(., with(., binconf(x = Female, n = total))) %>%
-  mutate(prop_female = PointEst) %>% 
+  rename(prop_female = PointEst) %>% 
   ggplot(aes(x = year, y = prop_female, ymin = Lower, ymax = Upper)) + 
   geom_abline(intercept = 0.5, slope = 0, color = "gray") + 
   geom_point(size = 2) + geom_line() + geom_errorbar(width = 0) +
