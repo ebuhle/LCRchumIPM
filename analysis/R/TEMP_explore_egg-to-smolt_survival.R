@@ -94,8 +94,8 @@ bio_data %>% rename(pop = disposition) %>% filter(!grepl("Hatchery|Duncan_Creek"
   dcast(pop + year ~ sex, value.var = "n", fun.aggregate = sum) %>% 
   mutate(total = Female + Male, prop_female = Female/total) %>% 
   right_join(fish_data_SMS, by = c("pop","year")) %>% 
-  mutate(error_M = colMeans(error_M)) %>% 
-  ggplot(aes(x = prop_female, y = error_M)) + geom_point(size = 1) + 
+  mutate(error_M = colMeans(error_M), M0_div_E_hat = colMedians(psi1)) %>% 
+  ggplot(aes(x = prop_female, y = M0_div_E_hat)) + geom_point(size = 1) + 
   facet_wrap(vars(pop), ncol = 3) + theme_bw()
 
 # Let's look at the brood years that give rise to these estimates of M >= E_hat
