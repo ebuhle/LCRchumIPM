@@ -69,7 +69,7 @@ bio_data <- read.csv(here("data","Data_ChumSpawnerBioData_2019-12-12.csv"),
   rename(year = Return.Yr., strata = Strata, location = Location.Reach, 
          disposition = Disposition, origin = Origin, sex = Sex, age = Age, count = Count) %>% 
   mutate(strata = replace(strata, disposition == "Duncan_Channel" & strata != "Gorge", "Gorge"),
-         count = replace(count, is.na(count), 0),
+         count = replace(count, is.na(count), 0), sex = substring(sex,1,1),
          HW = ifelse((grepl("Hatchery", origin) | location != disposition | 
                         (origin != disposition & origin != "Natural_spawner")) &
                        !(origin %in% c("Duncan_Channel","Natural_spawner") & 
@@ -87,6 +87,11 @@ bio_data_age <- bio_data %>% filter(HW == "W") %>%
 bio_data_HW <- bio_data %>%
   dcast(year + strata + disposition ~ HW, value.var = "count", fun.aggregate = sum) %>% 
   rename(pop = disposition)
+
+# sex composition of spawners, regardless of origin
+bio_data_sex <- bio_data %>% 
+  dcast(year + strata + disposition ~ sex, value.var = "count", fun.aggregate = sum) %>% 
+  rename(pop = disposition) %>% select(year:pop, M, `F`)
 
 # Juvenile abundance data
 # Assumptions:
@@ -126,20 +131,22 @@ juv_data_incl <- juv_data %>% group_by(location) %>%
 # (since their estimated smolts will be summed)  
 fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("strata","pop","year")) %>% 
   full_join(bio_data_HW, by = c("strata","pop","year")) %>% 
+  full_join(bio_data_sex, by = c("strata","pop","year")) %>% 
   full_join(juv_data_incl, by = c("strata","pop","year")) %>%
   full_join({ complete(select(filter(., strata == "Coastal"), c(strata,pop,year)), 
                        pop, year, fill = list(strata = "Coastal")) },
             by = c("strata","pop","year")) %>%
   rename_at(vars(contains("Age-")), list(~ paste0(sub("Age-","n_age",.), "_obs"))) %>% 
   select(-c(n_age2_obs, n_age6_obs)) %>% 
-  rename(n_H_obs = H, n_W_obs = W) %>% mutate(A = 1, fit_p_HOS = NA, F_rate = 0) %>% 
+  rename(n_H_obs = H, n_W_obs = W, n_M_obs = M, n_F_obs= `F`) %>% 
+  mutate(A = 1, fit_p_HOS = NA, F_rate = 0) %>% 
   mutate_at(vars(contains("n_")), ~ replace(., is.na(.), 0)) %>% 
   filter(!grepl("Hatchery|Duncan_Creek", pop)) %>% 
   mutate(S_obs = replace(S_obs, pop == "Hamilton_Channel" & year %in% 2011:2012, NA),
          tau_S_obs = replace(tau_S_obs, pop == "Hamilton_Channel" & year %in% 2011:2012, NA),
          strata = factor(strata), pop = factor(pop), 
          B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0)) %>%
-  select(strata, pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_W_obs, 
+  select(strata, pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_F_obs, 
          fit_p_HOS, B_take_obs, F_rate) %>% arrange(strata, pop, year) 
 
 # fill in fit_p_HOS

@@ -247,7 +247,7 @@ LCRchum_Ricker <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundit
 
 ## @knitr print_LCRchum_Ricker
 print(LCRchum_Ricker, prob = c(0.025,0.5,0.975),
-      pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p",
+      pars = c("p_F","psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p",
                "p","tau_M","tau_S","p_HOS","E_hat","M","S","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
@@ -599,8 +599,8 @@ rm(list = c("mod_name","SR_fun","S_IPM","M_IPM","S_obs","M_obs","alpha","Rmax",
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_BH"
-life_stage <- "M"   # "S" = spawners, "M" = smolts
+mod_name <- "LCRchum_Ricker"
+life_stage <- "S"   # "S" = spawners, "M" = smolts
 
 dev.new(width=13,height=8)
 # png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),

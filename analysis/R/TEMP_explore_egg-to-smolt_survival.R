@@ -16,6 +16,7 @@ M_obs <- fish_data_SMS$M_obs
 # states
 S <- extract1(mod,"S")
 mu_E <- extract1(mod,"mu_E")
+p_F <- extract1(mod,"p_F")
 q <- extract1(mod,"q")
 mu_psi <- extract1(mod,"mu_psi")
 psi <- extract1(mod,"psi")
@@ -29,8 +30,8 @@ M <- extract1(mod,"M")
 # NB: This assumes egg production is density-independent and deterministic
 #     (or "potential eggs", if you like)
 f <- apply(sweep(q, c(1,3), mu_E, "*"), 1:2, sum)
-E_hat <- 0.5*S*f # states
-E1 <- sweep(f, 2, 0.5*S_obs, "*") # use observed spawners
+E_hat <- p_F*S*f # states
+E1 <- sweep(f, 2, colMedians(p_F)*S_obs, "*") # use observed spawners
 
 # back-calculate egg-to-smolt survival based on E and either M or M_obs
 # note 1-yr lag between eggs and smolts
@@ -88,15 +89,28 @@ plot(colMedians(eta_year_M)[as.numeric(factor(year))], colMedians(psi1), xlab = 
 abline(h = 1)
 
 # Maybe positive smolt recruitment process errors are associated with high F:M ratios?
-# => Not even a hint of a relationship
+# => Even with sex ratio in the model, relationship is weak
 bio_data %>% rename(pop = disposition) %>% filter(!grepl("Hatchery|Duncan_Creek", pop)) %>% 
   group_by(pop, year, sex) %>% summarize(n = sum(count)) %>% 
   dcast(pop + year ~ sex, value.var = "n", fun.aggregate = sum) %>% 
-  mutate(total = Female + Male, prop_female = Female/total) %>% 
+  mutate(total = `F` + M, prop_female = `F`/total) %>% 
   right_join(fish_data_SMS, by = c("pop","year")) %>% 
   mutate(error_M = colMeans(error_M), M0_div_E_hat = colMedians(psi1)) %>% 
   ggplot(aes(x = prop_female, y = M0_div_E_hat)) + geom_point(size = 1) + 
   facet_wrap(vars(pop), ncol = 3) + theme_bw()
+
+# Now that we've added sex composition to the model,
+# plot the estimates and data
+cbind(fish_data_SMS, colQuantiles(p_F, probs = c(0.05,0.95))) %>%
+  mutate(total = n_M_obs + n_F_obs) %>% 
+  cbind(., with(., binconf(x = n_F_obs, n = total))) %>%
+  rename(prop_female = PointEst) %>% 
+  ggplot(aes(x = year, y = prop_female, ymin = Lower, ymax = Upper)) + 
+  geom_abline(intercept = 0.5, slope = 0, color = "gray") + 
+  geom_ribbon(aes(ymin = `5%`, ymax = `95%`), fill = "darkblue", alpha = 0.5) +
+  geom_point(size = 2) + geom_line() + geom_errorbar(width = 0) +
+  facet_wrap(vars(pop), nrow = 3, ncol = 4) + theme_bw() +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 
 # Let's look at the brood years that give rise to these estimates of M >= E_hat
 dat <- fish_data_SMS %>% 
