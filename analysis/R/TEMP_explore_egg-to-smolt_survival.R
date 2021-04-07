@@ -109,8 +109,7 @@ cbind(fish_data_SMS, colQuantiles(p_F, probs = c(0.05,0.95))) %>%
   geom_abline(intercept = 0.5, slope = 0, color = "gray") + 
   geom_ribbon(aes(ymin = `5%`, ymax = `95%`), fill = "darkblue", alpha = 0.5) +
   geom_point(size = 2) + geom_line() + geom_errorbar(width = 0) +
-  facet_wrap(vars(pop), nrow = 3, ncol = 4) + theme_bw() +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+  facet_wrap(vars(pop), ncol = 3) + theme_bw()
 
 # Let's look at the brood years that give rise to these estimates of M >= E_hat
 dat <- fish_data_SMS %>% 
