@@ -30,7 +30,7 @@ hatcheries <- read.csv(here("data","Hatchery_Programs.csv"), header = TRUE, stri
 # (4) When calculating the observation error of log(S_obs), tau_S_obs, assume
 #     Abund.Mean and Abund.SD are the mean and SD of a lognormal posterior distribution
 #     of spawner abundance based on the sample
-spawner_data <- read.csv(here("data","Data_ChumSpawnerAbundance_2019-12-12.csv"), 
+spawner_data <- read.csv(here("data","Data_Abundance_Spawners_Chum_2021-04-06.csv"), 
                          header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(year = Return.Yr., strata = Strata, location = Location.Reach, 
          disposition = Disposition, method = Method, S_obs = Abund.Mean, SD = Abund.SD) %>% 
@@ -64,7 +64,7 @@ spawner_data_agg <- spawner_data %>% group_by(strata, disposition, year) %>%
 #     or return location do not match their disposition *unless* they are NOR or
 #     Duncan Channel fish returning to Duncan Creek and disposed to Duncan Channel,
 #     which are in fact local recruitment.
-bio_data <- read.csv(here("data","Data_ChumSpawnerBioData_2019-12-12.csv"), 
+bio_data <- read.csv(here("data","Data_BioData_Spawners_Chum_2021-04-06.csv"), 
                      header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(year = Return.Yr., strata = Strata, location = Location.Reach, 
          disposition = Disposition, origin = Origin, sex = Sex, age = Age, count = Count) %>% 
@@ -102,7 +102,7 @@ bio_data_sex <- bio_data %>%
 #     distribution of smolt abundance based on the sample
 # (3) If Abund_SD == 0 (when Analysis=="Census": some years in Duncan_Channel and 
 #     Hamilton_Channel) treat as NA
-juv_data <- read.csv(here("data", "Data_ChumJuvenileAbundance_2020-06-09.csv"), 
+juv_data <- read.csv(here("data", "Data_Abundance_Juveniles_Chum_2021-04-07.csv"), 
                      header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(brood_year = Brood.Year, year = Outmigration.Year, strata = Strata, 
          location = Location.Reach, origin = Origin, trap_type = TrapType, 

@@ -39,13 +39,13 @@ bio_data %>% filter(HW=="W" & !grepl("Hatchery|Duncan_Creek", disposition)) %>%
   group_by(disposition, year, sex) %>% 
   summarize(n = sum(count)) %>% 
   dcast(disposition + year ~ sex, value.var = "n", fun.aggregate = sum) %>% 
-  mutate(total = Female + Male) %>% 
-  data.frame(., with(., binconf(x = Female, n = total))) %>%
+  mutate(total = `F` + M) %>% 
+  data.frame(., with(., binconf(x = `F`, n = total))) %>%
   rename(prop_female = PointEst) %>% 
   ggplot(aes(x = year, y = prop_female, ymin = Lower, ymax = Upper)) + 
   geom_abline(intercept = 0.5, slope = 0, color = "gray") + 
   geom_point(size = 2) + geom_line() + geom_errorbar(width = 0) +
-  facet_wrap(vars(disposition), nrow = 3, ncol = 4) + theme_bw() +
+  facet_wrap(vars(disposition), ncol = 4) + theme_bw() +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 
 # Histogram of spawner age by sex and H/W origin
@@ -672,11 +672,11 @@ rm(list = c("mod_name","forecasting","life_stage","life_cycle","dat",
 # Time series of observed and fitted spawner age structure for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_BH"
+mod_name <- "LCRchum_Ricker"
 
-# dev.new(width=13,height=8.5)
-png(filename=here("analysis", "results", paste0("q_fit_", mod_name, ".png")),
-    width=13*0.9, height=8.5*0.9, units="in", res=200, type="cairo-png")
+dev.new(width=13,height=8.5)
+# png(filename=here("analysis", "results", paste0("q_fit_", mod_name, ".png")),
+#     width=13*0.9, height=8.5*0.9, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_spawner_age_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
@@ -725,7 +725,7 @@ legend(0.5, 1.1, paste("age", substring(names(n_age_obs), 6, 6), "  "), x.inters
 rm(list = c("mod_name","life_cycle","dat","q_IPM","n_age_obs","q_obs","op",
             "c1","c1t","c1tt","yi"))
 ## @knitr
-dev.off()
+# dev.off()
 
 
 #--------------------------------------------------------------------------------
@@ -832,11 +832,11 @@ dev.off()
 # observation error SDs
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_BH"
+mod_name <- "LCRchum_Ricker"
 
-# dev.new(width=6,height=8)
-png(filename=here("analysis","results",paste0("tau_fit_", mod_name, ".png")),
-    width=6, height=8, units="in", res=200, type="cairo-png")
+dev.new(width=6,height=8)
+# png(filename=here("analysis","results",paste0("tau_fit_", mod_name, ".png")),
+#     width=6, height=8, units="in", res=200, type="cairo-png")
 
 ## @knitr plot_obs_error_fit
 tau_M_obs <- fish_data_SMS$tau_M_obs
@@ -880,7 +880,7 @@ lines(tau_S_seq, colMedians(tau_S_fit), col = c1, lwd = 3)
 rm(list = c("mod_name","tau_M_obs","tau_M_seq","mu_tau_M","sigma_tau_M","tau_M_fit",
             "tau_S_obs","tau_S_seq","mu_tau_S","sigma_tau_S","tau_S_fit","c1","c1t"))
 ## @knitr
-dev.off()
+# dev.off()
 
 
 #--------------------------------------------------------------------------------
