@@ -108,8 +108,6 @@ print(SS_exp, prob = c(0.025,0.5,0.975),
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
-launch_shinystan(SS_exp)
-
 # Beverton-Holt
 ## @knitr fit_SS_BH
 SS_BH <- salmonIPM(fish_data = fish_data_SS, stan_model = "IPM_SS_pp", SR_fun = "BH",
@@ -123,8 +121,6 @@ print(SS_BH, prob = c(0.025,0.5,0.975),
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
-launch_shinystan(SS_BH)
-
 # Ricker
 ## @knitr fit_SS_Ricker
 SS_Ricker <- salmonIPM(fish_data = fish_data_SS, stan_model = "IPM_SS_pp", SR_fun = "Ricker",
@@ -137,65 +133,6 @@ print(SS_Ricker, prob = c(0.025,0.5,0.975),
       pars = c("alpha","Rmax","phi","p_HOS","q","gamma","p","S","R","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
-
-launch_shinystan(SS_Ricker)
-
-
-#--------------------------------------------------------------
-# Spawner-smolt-spawner IPM
-#
-# NOTE: Deprecated because certain features of the data
-# are incompatible with the model (e.g., pooling of smolts
-# from Grays_MS and Grays_WF and double-counting of Grays_CJ)
-#--------------------------------------------------------------
-
-# # Density-independent
-# ## @knitr fit_SMS_exp
-# SMS_exp <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
-#                      stan_model = "IPM_SMS_pp", SR_fun = "exp",
-#                      pars = c("B_rate_all","mu_Rmax","sigma_Rmax","Rmax"), include = FALSE, 
-#                      log_lik = TRUE, chains = 3, iter = 1500, warmup = 500,
-#                      control = list(adapt_delta = 0.99, max_treedepth = 13))
-# 
-# ## @knitr print_SMS_exp
-# print(SMS_exp, prob = c(0.025,0.5,0.975),
-#       pars = c("alpha","phi_M","phi_MS","gamma","p","p_HOS","S","M","s_MS","q","LL"), 
-#       include = FALSE, use_cache = FALSE)
-# ## @knitr
-# 
-# launch_shinystan(SMS_exp)
-# 
-# # Beverton-Holt
-# ## @knitr fit_SMS_BH
-# SMS_BH <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
-#                     stan_model = "IPM_SMS_pp", SR_fun = "BH",
-#                     pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
-#                     chains = 3, iter = 1500, warmup = 500,
-#                     control = list(adapt_delta = 0.99, max_treedepth = 13))
-# 
-# ## @knitr print_SMS_BH
-# print(SMS_BH, prob = c(0.025,0.5,0.975),
-#       pars = c("alpha","Rmax","phi_M","phi_MS","gamma","p","p_HOS","S","M","s_MS","q","LL"), 
-#       include = FALSE, use_cache = FALSE)
-# ## @knitr
-# 
-# launch_shinystan(SMS_BH)
-# 
-# # Ricker
-# ## @knitr fit_SMS_Ricker
-# SMS_Ricker <- salmonIPM(fish_data = fish_data_SMS, ages = list(M = 1),
-#                         stan_model = "IPM_SMS_pp", SR_fun = "Ricker",
-#                         pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
-#                         chains = 3, iter = 1500, warmup = 500,
-#                         control = list(adapt_delta = 0.99, max_treedepth = 13))
-# 
-# ## @knitr print_SMS_Ricker
-# print(SMS_Ricker, prob = c(0.025,0.5,0.975),
-#       pars = c("alpha","Rmax","phi_M","phi_MS","gamma","p","p_HOS","S","M","s_MS","q","LL"), 
-#       include = FALSE, use_cache = FALSE)
-# ## @knitr
-# 
-# launch_shinystan(SMS_Ricker)
 
 
 #--------------------------------------------------------------
@@ -218,8 +155,6 @@ print(LCRchum_exp, prob = c(0.025,0.5,0.975),
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
-launch_shinystan(LCRchum_exp)
-
 # Beverton-Holt
 ## @knitr fit_LCRchum_BH
 LCRchum_BH <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundity_data,
@@ -235,8 +170,6 @@ print(LCRchum_BH, prob = c(0.025,0.5,0.975),
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
-launch_shinystan(LCRchum_BH)
-
 # Ricker
 ## @knitr fit_LCRchum_Ricker
 LCRchum_Ricker <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundity_data,
@@ -251,8 +184,6 @@ print(LCRchum_Ricker, prob = c(0.025,0.5,0.975),
                "p","tau_M","tau_S","p_HOS","E_hat","M","S","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
-
-launch_shinystan(LCRchum_Ricker)
 
 
 #--------------------------------------------------------------
