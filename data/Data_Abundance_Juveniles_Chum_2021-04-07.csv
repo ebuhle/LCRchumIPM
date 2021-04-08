@@ -209,11 +209,11 @@ Chum,Fry.Smolt,2015,2016,Cascade,Lewis_Hatchery,Hatchery,NA,NA,N,NA,74756,74756,
 Chum,Fry.Smolt,2016,2017,Cascade,Lewis_Hatchery,Hatchery,NA,NA,N,NA,102291,102291,NA,NA,NA,NA,
 Chum,Fry.Smolt,2017,2018,Cascade,Lewis_Hatchery,Hatchery,NA,NA,N,NA,83181,83181,NA,NA,NA,NA,
 Chum,Fry.Smolt,2018,2019,Cascade,Lewis_Hatchery,Hatchery,NA,NA,N,NA,103722,103722,NA,NA,NA,NA,
-Chum,Fry.Smolt,2019,2020,Gorge,Duncan_Channel,Wild,Weir,multi_yr_ARIMA,Y,2248,20441,10010,38695,3055,103494,1.89,Only fished North trap; essentially no fish placed in South channel due to low water in fall of 2019
+Chum,Fry.Smolt,2019,2020,Gorge,Duncan_Channel,Wild,Weir,multi_yr_ARIMA,N,2248,20441,10010,38695,3055,103494,1.89,Only fished North trap; essentially no fish placed in South channel due to low water in fall of 2019
 Chum,Fry.Smolt,2019,2020,Gorge,Duncan_Hatchery,Hatchery,NA,NA,NA,NA,110471,110471,NA,NA,NA,NA,
-Chum,Fry.Smolt,2019,2020,Gorge,Duncan_North,Wild,Weir,P-Spline,Y,2248,20441,10010,38695,3055,103494,1.89,
+Chum,Fry.Smolt,2019,2020,Gorge,Duncan_North,Wild,Weir,P-Spline,N,2248,20441,10010,38695,3055,103494,1.89,
 Chum,Fry.Smolt,2019,2020,Gorge,Duncan_South,Wild,Weir,NA,NA,NA,NA,NA,NA,NA,NA,NA,Only fished North trap; essentially no fish placed in South channel due to low water in fall of 2019
-Chum,Fry.Smolt,2019,2020,Coastal,Grays_CJ,Wild,Rotary Screw,BTSPAS,NA,4595,8254.735,8189,822.776,6832,10123.15,0.10,
+Chum,Fry.Smolt,2019,2020,Coastal,Grays_CJ,Wild,Rotary Screw,BTSPAS,NA,4595,8254.735,8189,822.776,6832,10123.15,0.1,
 Chum,Fry.Smolt,2019,2020,Coastal,Grays_Hatchery,Hatchery,NA,NA,NA,NA,195482,195482,NA,NA,NA,NA,
 Chum,Fry.Smolt,2019,2020,Coastal,Grays_MS,Wild,Rotary Screw,BTSPAS,NA,69708,954560.528,940323.5,103218.003,795597.05,1199892.05,0.108,
 Chum,Fry.Smolt,2019,2020,Gorge,Hamilton_Channel,Wild,Weir,multi_yr_ARIMA,NA,33082,103095,88490,55250,50245,244972,0.53,
