@@ -211,3 +211,67 @@ fecundity_data <- fecundity %>%
   select(strata, year, ID, age_E, E_obs) %>% arrange(strata, year, age_E) 
 ## @knitr
 
+
+#===========================================================================
+# DATA EXPLORATION
+#===========================================================================
+
+EDA <- FALSE
+
+if(EDA)
+{
+  
+  # Time series of sex ratio by population
+  windows()
+  bio_data %>% filter(HW=="W" & !grepl("Hatchery|Duncan_Creek", disposition)) %>% 
+    group_by(disposition, year, sex) %>% 
+    summarize(n = sum(count)) %>% 
+    dcast(disposition + year ~ sex, value.var = "n", fun.aggregate = sum) %>% 
+    mutate(total = `F` + M) %>% 
+    data.frame(., with(., binconf(x = `F`, n = total))) %>%
+    rename(prop_female = PointEst) %>% 
+    ggplot(aes(x = year, y = prop_female, ymin = Lower, ymax = Upper)) + 
+    geom_abline(intercept = 0.5, slope = 0, color = "gray") + 
+    geom_point(size = 2) + geom_line() + geom_errorbar(width = 0) +
+    facet_wrap(vars(disposition), ncol = 4) + theme_bw() +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+  
+  # Histogram of spawner age by sex and H/W origin
+  windows()
+  bio_data %>% mutate(age = substring(age,5,5)) %>% group_by(HW, sex, age) %>% 
+    summarize(n = sum(count)) %>% mutate(prop = n/sum(n)) %>% 
+    ggplot(aes(x = age, y = prop)) + geom_bar(stat = "identity") + 
+    facet_wrap(vars(HW, sex), nrow = 2, ncol = 2) + theme_bw()
+  
+  # Boxplots of fecundity by age
+  windows()
+  fecundity_data %>% mutate(age_E = factor(age_E)) %>% 
+    ggplot(aes(x = age_E, y = E_obs)) + geom_boxplot() + theme_bw()
+  
+  # Boxplots of fecundity by age, grouped by strata
+  windows()
+  fecundity_data %>% mutate(age_E = factor(age_E)) %>% 
+    ggplot(aes(x = age_E, y = E_obs)) + geom_boxplot() + 
+    facet_wrap(vars(strata), nrow = 1, ncol = 3) + theme_bw()
+  
+  # Histograms of fecundity, grouped by age and strata
+  windows()
+  fecundity_data %>% mutate(age_E = factor(age_E)) %>%  ggplot(aes(x = E_obs)) +
+    geom_histogram(aes(y = stat(density)), bins = 15, color = "white", fill = "darkgray") + 
+    facet_grid(rows = vars(strata), cols = vars(age_E)) + theme_bw()
+  
+  # Normal QQ plots of fecundity, grouped by age and strata
+  windows()
+  fecundity_data %>% mutate(age_E = factor(age_E)) %>%  ggplot(aes(sample = E_obs)) +
+    geom_qq(distribution = qnorm) + geom_qq_line(distribution = qnorm) +
+    facet_grid(rows = vars(strata), cols = vars(age_E)) + theme_bw()
+  
+  # Smolts/spawner vs. spawners, grouped by population
+  windows()
+  fish_data_SMS %>% group_by(pop) %>% mutate(M0_obs = lead(M_obs), MperS = M0_obs/S_obs) %>% 
+    ggplot(aes(x = S_obs, y = MperS)) + scale_x_log10() + scale_y_log10() +
+    geom_point(size = 2) + labs(x = "spawners", y = "smolts / spawner") +
+    facet_wrap(vars(pop), nrow = 3, ncol = 4) + theme_bw() +
+    theme(panel.grid = element_blank())
+  
+}
