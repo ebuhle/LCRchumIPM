@@ -209,14 +209,15 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 # Time series of egg-smolt survival and SAR
 #--------------------------------------------------------------------
 
-mod_name <- "LCRchum_BH"
+mod_name <- "LCRchum_Ricker"
+save_plot <- FALSE
 
-dev.new(width = 7, height = 8)
-# png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
-#     width=7, height=8, units="in", res=200, type="cairo-png")
+if(save_plot) {
+  png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
+      width=7, height=8, units="in", res=200, type="cairo-png")
+} else dev.new(width = 7, height = 8)
 
 ## @knitr plot_LCM_params
-life_cycle <- "LCRchum"
 dat <- fish_data_SMS
 SR_fun <- unlist(strsplit(mod_name, "_"))[2]
 
@@ -233,24 +234,27 @@ mu_E <- do.call(extract1, list(as.name(mod_name), "mu_E"))
 ages <- substring(names(select(dat, starts_with("n_age"))), 6, 6)
 # egg deposition
 q <- do.call(extract1, list(as.name(mod_name), "q"))
-alpha <- apply(sweep(q, c(1,3), mu_E, "*"), 1:2, sum)*0.5  # age-weighted fecundity / 2
+p_F <- do.call(extract1, list(as.name(mod_name), "p_F"))
+mu_psi <- do.call(extract1, list(as.name(mod_name), "mu_psi"))
+psi <- do.call(extract1, list(as.name(mod_name), "psi"))
+alpha <- apply(sweep(q, c(1,3), mu_E, "*"), 1:2, sum) * p_F * psi[,as.numeric(factor(dat$pop))]
 mu_pop_alpha <- t(as.matrix(aggregate(t(log(alpha)), list(pop = dat$pop), mean)[,-1]))
 mu_alpha <- rowMeans2(log(alpha))
-mu_Emax <- as.vector(do.call(extract1, list(as.name(mod_name), "mu_Emax")))
-Emax <- do.call(extract1, list(as.name(mod_name), "Emax"))
+mu_Mmax <- as.vector(do.call(extract1, list(as.name(mod_name), "mu_Mmax")))
+Mmax <- do.call(extract1, list(as.name(mod_name), "Mmax"))
 S <- colMedians(do.call(extract1, list(as.name(mod_name), "S")))
 S_grid <- matrix(seq(0, quantile(S/dat$A, 0.9, na.rm = TRUE), length = 100),
                  nrow = length(mu_alpha), ncol = 100, byrow = TRUE)
-E_ESU <- SR_eval(alpha = exp(mu_alpha), Rmax = 1e6*exp(mu_Emax), S = S_grid, SR_fun = SR_fun)
-E_pop <- sapply(1:ncol(Emax), function(i) {
-  colMedians(SR_eval(alpha = alpha[,i], Rmax = 1e6*Emax[,i], S = S_grid, SR_fun = SR_fun))
+M_ESU <- SR_eval(alpha = exp(mu_alpha), Rmax = exp(mu_Mmax)*1e3, S = S_grid, SR_fun = SR_fun)
+M_pop <- sapply(1:ncol(Mmax), function(i) {
+  colMedians(SR_eval(alpha = alpha[,i], Rmax = Mmax[,i]*1e3, S = S_grid, SR_fun = SR_fun))
 })
-# egg-smolt survival
+# smolt recruitment process errors
 y <- sort(unique(dat$year))
-eta_year_EM <- do.call(extract1, list(as.name(mod_name), "eta_year_EM"))
-mu_EM <- do.call(extract1, list(as.name(mod_name), "mu_EM"))
-s_hat_EM <- plogis(sweep(eta_year_EM, 1, qlogis(mu_EM), "+"))
-s_EM <- do.call(extract1, list(as.name(mod_name), "s_EM"))
+eta_year_M <- do.call(extract1, list(as.name(mod_name), "eta_year_M"))
+sigma_M <- do.call(extract1, list(as.name(mod_name), "sigma_M"))
+zeta_M <- do.call(stan_mean, list(as.name(mod_name), "zeta_M"))
+epsilon_M <- outer(sigma_M, zeta_M, "*")
 # SAR
 eta_year_MS <- do.call(extract1, list(as.name(mod_name), "eta_year_MS"))
 mu_MS <- do.call(extract1, list(as.name(mod_name), "mu_MS"))
@@ -262,35 +266,19 @@ c1t <- transparent(c1, trans.val = 0.5)
 c1tt <- transparent(c1, trans.val = 0.7)
 ac <- viridis(length(ages), end = 0.8, alpha = 0.7) 
 
-par(mfrow = c(3,2), mar = c(5.1,5.1,1,1))
+par(mfrow = c(3,2), mar = c(5.1,5.1,1,1.5))
 
-# Egg deposition vs. spawners
-plot(S_grid[1,], colMedians(E_ESU)*1e-6, type = "l", lwd=3, col = c1, las = 1,
+# Smolts vs. egg deposition
+plot(S_grid[1,], colMedians(M_ESU)*1e-6, type = "l", lwd=3, col = c1, las = 1,
      cex.axis = 1.2, cex.lab = 1.5, xaxs = "i", yaxs = "i", #yaxt = "n", 
-     ylim = range(E_pop*1e-6), xlab = "Spawners", ylab = "")
-for(i in 1:ncol(E_pop)) 
-  lines(S_grid[1,], E_pop[,i]*1e-6, col = c1t)
+     ylim = range(M_pop*1e-6), xlab = "Spawners", ylab = "Smolts (millions)")
+for(i in 1:ncol(M_pop)) 
+  lines(S_grid[1,], M_pop[,i]*1e-6, col = c1t)
 polygon(c(S_grid[1,], rev(S_grid[1,])), 
-        c(colQuantiles(E_ESU, probs = 0.05)*1e-6, 
-          rev(colQuantiles(E_ESU, probs = 0.95)*1e-6)), 
+        c(colQuantiles(M_ESU, probs = 0.05), rev(colQuantiles(M_ESU, probs = 0.95)))*1e-6, 
         col = c1tt, border = NA)
 rug(S, col = c1)
-title(ylab = "Egg deposition (millions)", line = 3.5, cex.lab = 1.5)
 text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "A", cex = 1.5)
-
-# log(recruits/spawner) vs. spawners
-plot(S_grid[1,], colMedians(log(E_ESU/S_grid)), type = "l", lwd=3, col = c1, las = 1,
-     cex.axis = 1.2, cex.lab = 1.5, xaxs = "i", yaxs = "i", 
-     xlab="Spawners", ylab = "log(eggs/spawner)",
-     ylim = range(colQuantiles(log(E_ESU/S_grid), probs = c(0.05,0.95)), na.rm = TRUE))
-for(i in 1:ncol(E_pop))
-  lines(S_grid[1,], log(E_pop[,i]/S_grid[1,]), col = c1t)
-polygon(c(S_grid[1,], rev(S_grid[1,])),
-        c(colQuantiles(log(E_ESU/S_grid), probs = 0.05),
-          rev(colQuantiles(log(E_ESU/S_grid), probs = 0.95))),
-        col = c1tt, border = NA)
-rug(S, col = c1)
-text(par("usr")[2], par("usr")[4], adj = c(1.5,1.5), "B", cex = 1.5)
 
 # Posterior distributions of fecundity by age
 dd_age <- vector("list", length(ages))
@@ -298,51 +286,68 @@ for(a in 1:length(dd_age))
   dd_age[[a]] <- density(mu_E[,a])
 
 plot(dd_age[[1]]$x, dd_age[[1]]$y, pch = "", las = 1, cex.axis = 1.2, cex.lab = 1.5,
-     xlab = "Mean fecundity", ylab = "", xaxs = "i", yaxt = "n",
+     xlab = bquote("Mean fecundity (" * mu[italic(E)] * ")"), ylab = "", 
      xlim = range(sapply(dd_age, function(m) m$x)),
-     ylim = range(sapply(dd_age, function(m) m$y)))
+     ylim = range(sapply(dd_age, function(m) m$y)),
+     xaxs = "i", yaxt = "n")
 for(a in 1:length(ages))
   lines(dd_age[[a]]$x, dd_age[[a]]$y, col = ac[a], lwd = 2)
 title(ylab = "Probability density", line = 1, cex.lab = 1.5)
-text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "C", cex = 1.5)
+text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "B", cex = 1.5)
 legend("topright", paste("age", ages, "  "), x.intersp = 0.5, col = ac, lwd = 2, 
        xjust = 0.5, bty = "n")
 
-# Posterior densities of log(Emax)
-dd_ESU <- density(mu_Emax)
+# Posterior densities of psi
+dd_ESU <- density(mu_psi)
 dd_pop <- vector("list", length(levels(dat$pop)))
 for(i in 1:length(dd_pop))
-  dd_pop[[i]] <- density(log(Emax[,i]))
+  dd_pop[[i]] <- density(psi[,i])
 
-plot(dd_ESU$x, dd_ESU$y, type = "l", lwd = 3, col = c1, las = 1, xaxs = "i", yaxt = "n",
-     cex.axis = 1.2, cex.lab = 1.5, xlab = bquote(log(italic(E)[max])), ylab = "",
-     xlim = range(c(dd_ESU$x, sapply(dd_pop, function(m) m$x))),
+plot(dd_ESU$x, dd_ESU$y, type = "l", lwd = 3, col = c1, las = 1, 
+     xaxs = "i", yaxt = "n", cex.axis = 1.2, cex.lab = 1.5, 
+     xlab = bquote("Maximum egg-to-smolt survival (" * psi * ")"), ylab = "",
+     xlim = c(0,1), ylim = range(c(dd_ESU$y, sapply(dd_pop, function(m) m$y))))
+for(i in 1:length(dd_pop))
+  lines(dd_pop[[i]]$x, dd_pop[[i]]$y, col = c1t)
+title(ylab = "Probability density", line = 1, cex.lab = 1.5)
+text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "C", cex = 1.5)
+
+# Posterior densities of log(Mmax)
+dd_ESU <- density(mu_Mmax)
+dd_pop <- vector("list", length(levels(dat$pop)))
+for(i in 1:length(dd_pop))
+  dd_pop[[i]] <- density(log(Mmax[,i]))
+
+plot(dd_ESU$x, dd_ESU$y, type = "l", lwd = 3, col = c1, las = 1, 
+     xaxs = "i", yaxt = "n", cex.axis = 1.2, cex.lab = 1.5, 
+     xlab = bquote("log maximum smolt production (" * italic(M)[max] * ")"), ylab = "",
+     xlim = range(c(dd_ESU$x, min(sapply(dd_pop, function(m) m$x)))),
      ylim = range(c(dd_ESU$y, sapply(dd_pop, function(m) m$y))))
 for(i in 1:length(dd_pop))
   lines(dd_pop[[i]]$x, dd_pop[[i]]$y, col = c1t)
 title(ylab = "Probability density", line = 1, cex.lab = 1.5)
 text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "D", cex = 1.5)
 
-# Egg-smolt survival
-plot(y, colMedians(s_hat_EM), type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
-     ylim = range(0, colQuantiles(s_hat_EM, probs = 0.95), 
-                  colQuantiles(s_EM, probs = 0.95)), 
+# Smolt recruitment process errors
+plot(y, colMedians(eta_year_M), type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
+     ylim = range(colQuantiles(eta_year_M, probs = c(0.05, 0.95)), 
+                  colQuantiles(epsilon_M, probs = c(0.05, 0.95))), 
      xaxs = "i", xaxt = "n", xlab = "Outmigration year", ylab = "")
-mtext("Egg-to-smolt survival", side = 2, line = 3.7, cex = par("cex")*1.5)
+mtext("Smolt process error", side = 2, line = 3.7, cex = par("cex")*1.5)
 polygon(c(y, rev(y)), 
-        c(colQuantiles(s_hat_EM, probs = 0.05), rev(colQuantiles(s_hat_EM, probs = 0.95))),
+        c(colQuantiles(eta_year_M, probs = 0.05), 
+          rev(colQuantiles(eta_year_M, probs = 0.95))),
         col = c1tt, border = NA)
-lines(y, colMedians(s_hat_EM), col = c1t, lwd = 3)
+lines(y, colMedians(eta_year_M), col = c1t, lwd = 3)
 for(j in levels(dat$pop))
-  lines(dat$year[dat$pop == j], colMedians(s_EM[,dat$pop == j]), col = c1t)
+  lines(dat$year[dat$pop == j], colMedians(epsilon_M[,dat$pop == j]), col = c1t)
 axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
 rug(y[y %% 5 != 0], ticksize = -0.02)
 text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "E", cex = 1.5)
 
 # SAR
 plot(y, colMedians(s_hat_MS), type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
-     ylim = range(0, colQuantiles(s_hat_MS, probs = 0.95), 
-                  colQuantiles(s_MS, probs = 0.95)), 
+     ylim = range(0, colQuantiles(s_hat_MS, probs = 0.95), colMedians(s_MS)), 
      xaxs = "i", xaxt = "n", xlab = "Outmigration year", ylab = "")
 mtext("SAR", side = 2, line = 3.7, cex = par("cex")*1.5)
 polygon(c(y, rev(y)), 
@@ -355,11 +360,11 @@ axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
 rug(y[y %% 5 != 0], ticksize = -0.02)
 text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "F", cex = 1.5)
 
-rm(list=c("mod_name","life_cycle","SR_fun","mu_alpha","mu_Emax","S","S_grid","E_ESU",
-          "c1","c1t","c1tt","dd_ESU","dd_pop","dd_age","alpha","Emax","E_pop","ac","ages",
-          "y","eta_year_EM","mu_EM","s_hat_EM","eta_year_MS","mu_MS","s_hat_MS","dat"))
+rm(list=c("mod_name","SR_fun","mu_alpha","mu_Mmax","S","S_grid","M_ESU",
+          "c1","c1t","c1tt","dd_ESU","dd_pop","dd_age","alpha","Mmax","M_pop","ac","ages",
+          "y","eta_year_M","sigma_M","zeta_M","epsilon_M","eta_year_MS","mu_MS","s_hat_MS","dat"))
 ## @knitr
-# dev.off()
+if(save_plot) dev.off()
 
 
 #--------------------------------------------------------------------------------
