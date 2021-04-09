@@ -111,6 +111,22 @@ cbind(fish_data_SMS, colQuantiles(p_F, probs = c(0.05,0.95))) %>%
   geom_point(size = 2) + geom_line() + geom_errorbar(width = 0) +
   facet_wrap(vars(pop), ncol = 3) + theme_bw()
 
+# Same as above, but with violins instead of intervals
+# to pick up bimodal p_F posteriors (NOTE: takes a while)
+d <- data.frame(pop = pop, year = year, t(as.matrix(mod, "p_F"))) %>% 
+  pivot_longer(cols = starts_with("X"), values_to = "p_F", names_to = "iter", 
+               names_prefix = "X", names_transform = list(iter = as.numeric))
+
+fish_data_SMS %>% mutate(total = n_M_obs + n_F_obs) %>% 
+  cbind(., with(., binconf(x = n_F_obs, n = total))) %>%
+  rename(prop_female = PointEst) %>% 
+  ggplot(aes(x = year, y = prop_female, ymin = Lower, ymax = Upper)) + 
+  geom_abline(intercept = 0.5, slope = 0, color = "gray") + 
+  geom_violin(aes(x = year, y = p_F, group = year), data = d, inherit.aes = FALSE,
+              scale = "width", color = NA, fill = "darkblue", alpha = 0.5) +
+  geom_point(size = 2) + geom_line() + geom_errorbar(width = 0) +
+  facet_wrap(vars(pop), ncol = 3) + theme_bw()
+
 # Let's look at the brood years that give rise to these estimates of M >= E_hat
 dat <- fish_data_SMS %>% 
   mutate(S = colMedians(S), f = colMedians(f), E_hat = colMedians(E_hat), M0 = stan_mean(mod,"M0"), 
