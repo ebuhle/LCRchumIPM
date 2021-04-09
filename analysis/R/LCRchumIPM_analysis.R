@@ -372,11 +372,10 @@ if(save_plot) dev.off()
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-life_stage <- "S"   # "S" = spawners, "M" = smolts
+life_stage <- "M"   # "S" = spawners, "M" = smolts
+save_plot <- FALSE
 
-dev.new(width=13,height=8)
-# png(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
-#     width=13*0.9, height=8*0.9, units="in", res=200, type="cairo-png")
+dev.new(width=12,height=8)
 
 ## @knitr plot_spawner_smolt_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
@@ -385,7 +384,7 @@ dat <- switch(life_cycle, SS = fish_data_SS,
               SMS = switch(forecasting, no = fish_data_SMS, yes = fish_data_SMS_fore),
               LCRchum = switch(forecasting, no = fish_data_SMS, yes = fish_data_SMS_fore))
 
-N_obs <- dat[,paste0(life_stage, "_obs")]
+# N_obs <- dat[,paste0(life_stage, "_obs")]
 N_IPM <- do.call(extract1, list(as.name(mod_name), life_stage))
 tau <- do.call(extract1, list(as.name(mod_name),
                               switch(life_cycle, SS = "tau",
@@ -393,51 +392,38 @@ tau <- do.call(extract1, list(as.name(mod_name),
                                      LCRchum = switch(life_stage, M = "tau_M", S = "tau_S"))))
 if(life_cycle == "LCRchum" & life_stage == "M")
   N_IPM[,na.omit(dat$downstream_trap)] <- N_IPM[,na.omit(dat$downstream_trap)] + 
-  N_IPM[,which(!is.na(dat$downstream_trap))]
+                                          N_IPM[,which(!is.na(dat$downstream_trap))]
 N_obs_IPM <- N_IPM * rlnorm(length(N_IPM), 0, tau)
 
 c1 <- "slategray4"
 c1t <- transparent(c1, trans.val = 0.5)
 c1tt <- transparent(c1, trans.val = 0.7)
-pc <- ifelse(is.na(dat[,paste0("tau_", life_stage, "_obs")]), 1, 16)
 
-par(mfrow=c(3,4), mar=c(1,3,4.1,1), oma=c(4.1,3.1,0,0))
+dat %>% mutate(N_IPM_L = colQuantiles(N_IPM, probs = 0.05),
+               N_IPM_U = colQuantiles(N_IPM, probs = 0.95),
+               N_obs_IPM_L = colQuantiles(N_obs_IPM, probs = 0.05),
+               N_obs_IPM_U = colQuantiles(N_obs_IPM, probs = 0.95),
+               pch = switch(life_stage, M = ifelse(is.na(tau_M_obs), 1, 16),
+                            S = ifelse(is.na(tau_S_obs), 1, 16))) %>% 
+  ggplot(aes(x = year, y = !!sym(paste0(life_stage, "_obs")))) +
+  geom_ribbon(aes(ymin = N_IPM_L, ymax = N_IPM_U), fill = c1t) +
+  geom_ribbon(aes(ymin = N_obs_IPM_L, ymax = N_obs_IPM_U), fill = c1tt) +
+  geom_point(aes(shape = pch), size = 2.5) + scale_shape_identity() +
+  labs(x = "Year", y = switch(life_stage, M = "Smolts (thousands)", S = "Spawners")) + 
+  scale_x_continuous(minor_breaks = function(v) min(v):max(v)) + 
+  scale_y_log10(labels = function(y) y*switch(life_stage, M = 1e-3, S = 1)) + 
+  facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) +
+  theme(panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank(),
+        strip.background = element_rect(fill = NA))
 
-for(i in levels(dat$pop))
-{
-  yi <- dat$year[dat$pop==i]
-  plot(yi, N_obs[dat$pop==i], pch = "",
-       xlim = range(dat$year),
-       ylim = range(pmax(N_obs[dat$pop==i], 1),
-                    colQuantiles(N_obs_IPM[,dat$pop==i], probs = c(0.05,0.95)), na.rm = T), 
-       las = 1, xaxt = "n", yaxt = "n", xlab = "", ylab = "", log = "y")
-  axis(side = 1, at = yi[yi %% 5 == 0], cex.axis = 1.2)
-  rug(yi[yi %% 5 != 0], ticksize = -0.02)
-  # tck <- maglab(10^par("usr")[3:4], log = TRUE)
-  # axis(2, at = tck$labat, labels = tck$exp, cex.axis = 1.2, las = 1)
-  magaxis(2, minorn = 0, crunch = FALSE, tcl = -0.4, las = 1, cex.axis = 1.2)
-  mtext(i, side = 3, line = 0.5, cex = par("cex")*1.5)
-  if(par("mfg")[2] == 1) 
-    mtext(switch(life_stage, M = "Smolts", S = "Spawners"), 
-          side = 2, line = 3.5, cex = par("cex")*1.5)
-  if(par("mfg")[1] == par("mfg")[3]) 
-    mtext("Year", side = 1, line = 3, cex = par("cex")*1.5)
-  lines(yi, colMedians(N_IPM[,dat$pop==i]), col = c1, lwd = 3)
-  polygon(c(yi, rev(yi)), 
-          c(colQuantiles(N_IPM[,dat$pop==i], probs = 0.05), 
-            rev(colQuantiles(N_IPM[,dat$pop==i], probs = 0.95))),
-          col = c1t, border = NA)
-  polygon(c(yi, rev(yi)), 
-          c(colQuantiles(N_obs_IPM[,dat$pop==i], probs = 0.05), 
-            rev(colQuantiles(N_obs_IPM[,dat$pop==i], probs = 0.95))),
-          col = c1tt, border = NA)
-  points(yi, N_obs[dat$pop==i], pch = pc[dat$pop==i], lwd = 2, cex = 1.8)
-}
-
-rm(list = c("mod_name","forecasting","life_stage","life_cycle","dat",
-            "N_IPM","N_obs_IPM","N_obs","c1","c1t","c1tt","yi","tau"))
 ## @knitr
-# dev.off()
+
+if(save_plot)   
+  ggsave(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
+         width=12*0.9, height=8*0.9, units="in", dpi=300, type="cairo-png")
+               
+rm(list = c("mod_name","forecasting","life_stage","life_cycle","dat",
+            "N_IPM","N_obs_IPM","c1","c1t","c1tt","tau"))
 
 
 #--------------------------------------------------------------------------------
