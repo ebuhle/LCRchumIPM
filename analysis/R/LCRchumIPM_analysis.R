@@ -381,14 +381,12 @@ dev.new(width=12,height=8)
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
 forecasting <- ifelse(identical(unlist(strsplit(mod_name, "_"))[3], "fore"), "yes", "no")
 dat <- switch(life_cycle, SS = fish_data_SS, 
-              SMS = switch(forecasting, no = fish_data_SMS, yes = fish_data_SMS_fore),
               LCRchum = switch(forecasting, no = fish_data_SMS, yes = fish_data_SMS_fore))
 
 # N_obs <- dat[,paste0(life_stage, "_obs")]
 N_IPM <- do.call(extract1, list(as.name(mod_name), life_stage))
 tau <- do.call(extract1, list(as.name(mod_name),
                               switch(life_cycle, SS = "tau",
-                                     SMS = switch(life_stage, M = "tau_M", S = "tau_S"),
                                      LCRchum = switch(life_stage, M = "tau_M", S = "tau_S"))))
 if(life_cycle == "LCRchum" & life_stage == "M")
   N_IPM[,na.omit(dat$downstream_trap)] <- N_IPM[,na.omit(dat$downstream_trap)] + 
