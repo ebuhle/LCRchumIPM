@@ -333,7 +333,7 @@ plot(y, colMedians(eta_year_M), type = "n", las = 1, cex.axis = 1.2, cex.lab = 1
      ylim = range(colQuantiles(eta_year_M, probs = c(0.05, 0.95)), 
                   colQuantiles(epsilon_M, probs = c(0.05, 0.95))), 
      xaxs = "i", xaxt = "n", xlab = "Outmigration year", ylab = "")
-mtext("Smolt process error", side = 2, line = 3.7, cex = par("cex")*1.5)
+mtext("Smolt recruitment anomaly", side = 2, line = 3.7, cex = par("cex")*1.5)
 polygon(c(y, rev(y)), 
         c(colQuantiles(eta_year_M, probs = 0.05), 
           rev(colQuantiles(eta_year_M, probs = 0.95))),
@@ -372,7 +372,7 @@ if(save_plot) dev.off()
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-life_stage <- "M"   # "S" = spawners, "M" = smolts
+life_stage <- "S"   # "S" = spawners, "M" = smolts
 save_plot <- FALSE
 
 dev.new(width=12,height=8)
@@ -380,32 +380,32 @@ dev.new(width=12,height=8)
 ## @knitr plot_spawner_smolt_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
 forecasting <- ifelse(identical(unlist(strsplit(mod_name, "_"))[3], "fore"), "yes", "no")
-dat <- switch(life_cycle, SS = fish_data_SS, 
-              LCRchum = switch(forecasting, no = fish_data_SMS, yes = fish_data_SMS_fore))
 
 # N_obs <- dat[,paste0(life_stage, "_obs")]
-N_IPM <- do.call(extract1, list(as.name(mod_name), life_stage))
+N <- do.call(extract1, list(as.name(mod_name), life_stage))
 tau <- do.call(extract1, list(as.name(mod_name),
                               switch(life_cycle, SS = "tau",
                                      LCRchum = switch(life_stage, M = "tau_M", S = "tau_S"))))
 if(life_cycle == "LCRchum" & life_stage == "M")
-  N_IPM[,na.omit(dat$downstream_trap)] <- N_IPM[,na.omit(dat$downstream_trap)] + 
-                                          N_IPM[,which(!is.na(dat$downstream_trap))]
-N_obs_IPM <- N_IPM * rlnorm(length(N_IPM), 0, tau)
+  N[,na.omit(dat$downstream_trap)] <- N[,na.omit(dat$downstream_trap)] + 
+                                      N[,which(!is.na(dat$downstream_trap))]
+N_obs <- N * rlnorm(length(N), 0, tau)
 
 c1 <- "slategray4"
 c1t <- transparent(c1, trans.val = 0.5)
 c1tt <- transparent(c1, trans.val = 0.7)
 
-dat %>% mutate(N_IPM_L = colQuantiles(N_IPM, probs = 0.05),
-               N_IPM_U = colQuantiles(N_IPM, probs = 0.95),
-               N_obs_IPM_L = colQuantiles(N_obs_IPM, probs = 0.05),
-               N_obs_IPM_U = colQuantiles(N_obs_IPM, probs = 0.95),
-               pch = switch(life_stage, M = ifelse(is.na(tau_M_obs), 1, 16),
-                            S = ifelse(is.na(tau_S_obs), 1, 16))) %>% 
+switch(life_cycle, SS = fish_data_SS, 
+       LCRchum = switch(forecasting, no = fish_data_SMS, yes = fish_data_SMS_fore)) %>% 
+  mutate(N_L = colQuantiles(N, probs = 0.05),
+         N_U = colQuantiles(N, probs = 0.95),
+         N_obs_L = colQuantiles(N_obs, probs = 0.05),
+         N_obs_U = colQuantiles(N_obs, probs = 0.95),
+         pch = switch(life_stage, M = ifelse(is.na(tau_M_obs), 1, 16),
+                      S = ifelse(is.na(tau_S_obs), 1, 16))) %>% 
   ggplot(aes(x = year, y = !!sym(paste0(life_stage, "_obs")))) +
-  geom_ribbon(aes(ymin = N_IPM_L, ymax = N_IPM_U), fill = c1t) +
-  geom_ribbon(aes(ymin = N_obs_IPM_L, ymax = N_obs_IPM_U), fill = c1tt) +
+  geom_ribbon(aes(ymin = N_L, ymax = N_U), fill = c1t) +
+  geom_ribbon(aes(ymin = N_obs_L, ymax = N_obs_U), fill = c1tt) +
   geom_point(aes(shape = pch), size = 2.5) + scale_shape_identity() +
   labs(x = "Year", y = switch(life_stage, M = "Smolts (thousands)", S = "Spawners")) + 
   scale_x_continuous(minor_breaks = function(v) min(v):max(v)) + 
@@ -420,8 +420,68 @@ if(save_plot)
   ggsave(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
          width=12*0.9, height=8*0.9, units="in", dpi=300, type="cairo-png")
                
-rm(list = c("mod_name","forecasting","life_stage","life_cycle","dat",
-            "N_IPM","N_obs_IPM","c1","c1t","c1tt","tau"))
+rm(list = c("mod_name","forecasting","life_stage","life_cycle",
+            "N","N_obs","c1","c1t","c1tt","tau"))
+
+
+# #--------------------------------------------------------------------------------
+# # Time series of observed and fitted spawner age structure for each pop
+# #--------------------------------------------------------------------------------
+# 
+# mod_name <- "LCRchum_Ricker"
+# 
+# dev.new(width=13,height=8.5)
+# # png(filename=here("analysis", "results", paste0("q_fit_", mod_name, ".png")),
+# #     width=13*0.9, height=8.5*0.9, units="in", res=200, type="cairo-png")
+# 
+# ## @knitr plot_spawner_age_ts
+# life_cycle <- unlist(strsplit(mod_name, "_"))[1]
+# dat <- switch(life_cycle, SS = fish_data_SS, SMS = fish_data_SMS, LCRchum = fish_data_SMS)
+# 
+# n_age_obs <- select(dat, starts_with("n_age")) 
+# q_IPM <- do.call(extract1, list(as.name(mod_name), "q"))
+# 
+# c1 <- viridis(ncol(n_age_obs), end = 0.8) 
+# c1t <- transparent(c1, trans.val = 0.2)
+# c1tt <- transparent(c1, trans.val = 0.7)
+# 
+# op <- par(mfrow=c(3,4), mar=c(1,3,4.1,1), oma=c(4.1,3.1,4,0))
+# 
+# for(i in levels(dat$pop))
+# {
+#   yi <- dat$year[dat$pop==i]
+#   plot(yi, rep(0.5, length(yi)), pch = "", xlim = range(dat$year), ylim = c(0,1), 
+#        las = 1, cex.axis = 1.2, xaxt = "n", xlab = "", ylab = "")
+#   axis(side = 1, at = yi[yi %% 5 == 0], cex.axis = 1.2)
+#   rug(yi[yi %% 5 != 0], ticksize = -0.02)
+#   mtext(i, side = 3, line = 0.5, cex = par("cex")*1.5)
+#   if(par("mfg")[2] == 1) 
+#     mtext("Proportion at age", side = 2, line = 3.5, cex = par("cex")*1.5)
+#   if(par("mfg")[1] == par("mfg")[3]) 
+#     mtext("Year", side = 1, line = 3, cex = par("cex")*1.5)
+#   
+#   for(a in 1:ncol(n_age_obs))
+#   {
+#     q_obs <- binconf(n_age_obs[dat$pop==i,a], rowSums(n_age_obs[dat$pop==i,]), alpha = 0.1)
+#     lines(yi, colMedians(q_IPM[,dat$pop==i,a]), col = c1t[a], lwd = 2)
+#     polygon(c(yi, rev(yi)),
+#             c(colQuantiles(q_IPM[,dat$pop==i,a], probs = 0.05),
+#               rev(colQuantiles(q_IPM[,dat$pop==i,a], probs = 0.95))),
+#             col = c1tt[a], border = NA)
+#     points(yi, q_obs[,"PointEst"], pch = 16, col = c1t[a], cex = 1.8)
+#     segments(x0 = yi, y0 = q_obs[,"Lower"], y1 = q_obs[,"Upper"], col = c1t[a])
+#   }
+# }
+# par(op)
+# par(usr = c(0,1,0,1))
+# legend(0.5, 1.1, paste("age", substring(names(n_age_obs), 6, 6), "  "), x.intersp = 0.5,
+#        col = c1, pch = 16, pt.cex = 1.2, lwd = 2, horiz = TRUE, xjust = 0.5, 
+#        xpd = NA, box.lwd = 0.5)
+#        
+# rm(list = c("mod_name","life_cycle","dat","q_IPM","n_age_obs","q_obs","op",
+#             "c1","c1t","c1tt","yi"))
+# ## @knitr
+# # dev.off()
 
 
 #--------------------------------------------------------------------------------
@@ -429,59 +489,44 @@ rm(list = c("mod_name","forecasting","life_stage","life_cycle","dat",
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
+save_plot <- FALSE
 
-dev.new(width=13,height=8.5)
-# png(filename=here("analysis", "results", paste0("q_fit_", mod_name, ".png")),
-#     width=13*0.9, height=8.5*0.9, units="in", res=200, type="cairo-png")
+dev.new(width=12,height=7)
 
 ## @knitr plot_spawner_age_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
-dat <- switch(life_cycle, SS = fish_data_SS, SMS = fish_data_SMS, LCRchum = fish_data_SMS)
+q <- do.call(extract1, list(as.name(mod_name), "q"))
 
-n_age_obs <- select(dat, starts_with("n_age")) 
-q_IPM <- do.call(extract1, list(as.name(mod_name), "q"))
+switch(life_cycle, SS = fish_data_SS, LCRchum = fish_data_SMS) %>% 
+  select(pop, year, starts_with("n_age")) %>% 
+  mutate(total = rowSums(across(starts_with("n_age"))),
+         across(starts_with("n_age"), ~ binconf(.x, total))) %>% 
+  do.call(data.frame, .) %>% # unpack cols of nested data frames
+  pivot_longer(cols = -c(pop, year, total), names_to = c("age",".value"),
+               names_pattern = "n_age(.)_obs.(.*)") %>% 
+  cbind(array(aperm(sapply(1:3, function(k) colQuantiles(q[,,k], probs = c(0.05, 0.5, 0.95)), 
+               simplify = "array"), c(3,1,2)), dim = c(nrow(.), 3), 
+        dimnames = list(NULL, paste0("q_age_", c("L","m","U"))))) %>%
+  ggplot(aes(x = year, group = age, color = age, fill = age)) +
+  geom_line(aes(y = q_age_m), lwd = 1, alpha = 0.8) +
+  geom_ribbon(aes(ymin = q_age_L, ymax = q_age_U), color = NA, alpha = 0.3) +
+  geom_point(aes(y = PointEst), pch = 16, size = 2.5, alpha = 0.8) +
+  geom_errorbar(aes(ymin = Lower, ymax = Upper), width = 0, alpha = 0.8) +
+  scale_color_manual(values = viridis(3, end = 0.8)) +
+  scale_fill_manual(values = viridis(3, end = 0.8)) +
+  scale_x_continuous(minor_breaks = function(v) min(v):max(v)) +
+  labs(x = "Year", y = "Proportion at age") + 
+  facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) + 
+  theme(panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank(),
+        strip.background = element_rect(fill = NA), legend.box.margin = margin(0,-10,0,-15))
 
-c1 <- viridis(ncol(n_age_obs), end = 0.8) 
-c1t <- transparent(c1, trans.val = 0.2)
-c1tt <- transparent(c1, trans.val = 0.7)
-
-op <- par(mfrow=c(3,4), mar=c(1,3,4.1,1), oma=c(4.1,3.1,4,0))
-
-for(i in levels(dat$pop))
-{
-  yi <- dat$year[dat$pop==i]
-  plot(yi, rep(0.5, length(yi)), pch = "", xlim = range(dat$year), ylim = c(0,1), 
-       las = 1, cex.axis = 1.2, xaxt = "n", xlab = "", ylab = "")
-  axis(side = 1, at = yi[yi %% 5 == 0], cex.axis = 1.2)
-  rug(yi[yi %% 5 != 0], ticksize = -0.02)
-  mtext(i, side = 3, line = 0.5, cex = par("cex")*1.5)
-  if(par("mfg")[2] == 1) 
-    mtext("Proportion at age", side = 2, line = 3.5, cex = par("cex")*1.5)
-  if(par("mfg")[1] == par("mfg")[3]) 
-    mtext("Year", side = 1, line = 3, cex = par("cex")*1.5)
-  
-  for(a in 1:ncol(n_age_obs))
-  {
-    q_obs <- binconf(n_age_obs[dat$pop==i,a], rowSums(n_age_obs[dat$pop==i,]), alpha = 0.1)
-    lines(yi, colMedians(q_IPM[,dat$pop==i,a]), col = c1t[a], lwd = 2)
-    polygon(c(yi, rev(yi)),
-            c(colQuantiles(q_IPM[,dat$pop==i,a], probs = 0.05),
-              rev(colQuantiles(q_IPM[,dat$pop==i,a], probs = 0.95))),
-            col = c1tt[a], border = NA)
-    points(yi, q_obs[,"PointEst"], pch = 16, col = c1t[a], cex = 1.8)
-    segments(x0 = yi, y0 = q_obs[,"Lower"], y1 = q_obs[,"Upper"], col = c1t[a])
-  }
-}
-par(op)
-par(usr = c(0,1,0,1))
-legend(0.5, 1.1, paste("age", substring(names(n_age_obs), 6, 6), "  "), x.intersp = 0.5,
-       col = c1, pch = 16, pt.cex = 1.2, lwd = 2, horiz = TRUE, xjust = 0.5, 
-       xpd = NA, box.lwd = 0.5)
-       
-rm(list = c("mod_name","life_cycle","dat","q_IPM","n_age_obs","q_obs","op",
-            "c1","c1t","c1tt","yi"))
 ## @knitr
-# dev.off()
+
+if(save_plot)
+  ggsave(filename=here("analysis", "results", paste0("q_fit_", mod_name, ".png")),
+         width=13*0.9, height=8*0.9, units="in", dpi=300, type="cairo-png")
+
+rm(list = c("mod_name","life_cycle","q"))
 
 
 #--------------------------------------------------------------------------------
