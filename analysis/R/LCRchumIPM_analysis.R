@@ -372,7 +372,7 @@ if(save_plot) dev.off()
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-life_stage <- "S"   # "S" = spawners, "M" = smolts
+life_stage <- "M"   # "S" = spawners, "M" = smolts
 save_plot <- FALSE
 
 dev.new(width=12,height=8)
@@ -387,8 +387,8 @@ tau <- do.call(extract1, list(as.name(mod_name),
                               switch(life_cycle, SS = "tau",
                                      LCRchum = switch(life_stage, M = "tau_M", S = "tau_S"))))
 if(life_cycle == "LCRchum" & life_stage == "M")
-  N[,na.omit(dat$downstream_trap)] <- N[,na.omit(dat$downstream_trap)] + 
-                                      N[,which(!is.na(dat$downstream_trap))]
+  N[,na.omit(fish_data_SMS$downstream_trap)] <- N[,na.omit(fish_data_SMS$downstream_trap)] + 
+                                                N[,which(!is.na(fish_data_SMS$downstream_trap))]
 N_obs <- N * rlnorm(length(N), 0, tau)
 
 c1 <- "slategray4"
@@ -422,66 +422,6 @@ if(save_plot)
                
 rm(list = c("mod_name","forecasting","life_stage","life_cycle",
             "N","N_obs","c1","c1t","c1tt","tau"))
-
-
-# #--------------------------------------------------------------------------------
-# # Time series of observed and fitted spawner age structure for each pop
-# #--------------------------------------------------------------------------------
-# 
-# mod_name <- "LCRchum_Ricker"
-# 
-# dev.new(width=13,height=8.5)
-# # png(filename=here("analysis", "results", paste0("q_fit_", mod_name, ".png")),
-# #     width=13*0.9, height=8.5*0.9, units="in", res=200, type="cairo-png")
-# 
-# ## @knitr plot_spawner_age_ts
-# life_cycle <- unlist(strsplit(mod_name, "_"))[1]
-# dat <- switch(life_cycle, SS = fish_data_SS, SMS = fish_data_SMS, LCRchum = fish_data_SMS)
-# 
-# n_age_obs <- select(dat, starts_with("n_age")) 
-# q_IPM <- do.call(extract1, list(as.name(mod_name), "q"))
-# 
-# c1 <- viridis(ncol(n_age_obs), end = 0.8) 
-# c1t <- transparent(c1, trans.val = 0.2)
-# c1tt <- transparent(c1, trans.val = 0.7)
-# 
-# op <- par(mfrow=c(3,4), mar=c(1,3,4.1,1), oma=c(4.1,3.1,4,0))
-# 
-# for(i in levels(dat$pop))
-# {
-#   yi <- dat$year[dat$pop==i]
-#   plot(yi, rep(0.5, length(yi)), pch = "", xlim = range(dat$year), ylim = c(0,1), 
-#        las = 1, cex.axis = 1.2, xaxt = "n", xlab = "", ylab = "")
-#   axis(side = 1, at = yi[yi %% 5 == 0], cex.axis = 1.2)
-#   rug(yi[yi %% 5 != 0], ticksize = -0.02)
-#   mtext(i, side = 3, line = 0.5, cex = par("cex")*1.5)
-#   if(par("mfg")[2] == 1) 
-#     mtext("Proportion at age", side = 2, line = 3.5, cex = par("cex")*1.5)
-#   if(par("mfg")[1] == par("mfg")[3]) 
-#     mtext("Year", side = 1, line = 3, cex = par("cex")*1.5)
-#   
-#   for(a in 1:ncol(n_age_obs))
-#   {
-#     q_obs <- binconf(n_age_obs[dat$pop==i,a], rowSums(n_age_obs[dat$pop==i,]), alpha = 0.1)
-#     lines(yi, colMedians(q_IPM[,dat$pop==i,a]), col = c1t[a], lwd = 2)
-#     polygon(c(yi, rev(yi)),
-#             c(colQuantiles(q_IPM[,dat$pop==i,a], probs = 0.05),
-#               rev(colQuantiles(q_IPM[,dat$pop==i,a], probs = 0.95))),
-#             col = c1tt[a], border = NA)
-#     points(yi, q_obs[,"PointEst"], pch = 16, col = c1t[a], cex = 1.8)
-#     segments(x0 = yi, y0 = q_obs[,"Lower"], y1 = q_obs[,"Upper"], col = c1t[a])
-#   }
-# }
-# par(op)
-# par(usr = c(0,1,0,1))
-# legend(0.5, 1.1, paste("age", substring(names(n_age_obs), 6, 6), "  "), x.intersp = 0.5,
-#        col = c1, pch = 16, pt.cex = 1.2, lwd = 2, horiz = TRUE, xjust = 0.5, 
-#        xpd = NA, box.lwd = 0.5)
-#        
-# rm(list = c("mod_name","life_cycle","dat","q_IPM","n_age_obs","q_obs","op",
-#             "c1","c1t","c1tt","yi"))
-# ## @knitr
-# # dev.off()
 
 
 #--------------------------------------------------------------------------------

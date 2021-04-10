@@ -34,7 +34,9 @@ spawner_data <- read.csv(here("data","Data_Abundance_Spawners_Chum_2021-04-06.cs
                          header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(year = Return.Yr., strata = Strata, location = Location.Reach, 
          disposition = Disposition, method = Method, S_obs = Abund.Mean, SD = Abund.SD) %>% 
-  mutate(strata = replace(strata, disposition == "Duncan_Channel" & strata != "Gorge", "Gorge"),
+  mutate(disposition = gsub("I205", "I-205", gsub("_", " ", disposition)),
+         location = gsub("I205", "I-205", gsub("_", " ", location)),
+         strata = replace(strata, disposition == "Duncan Channel" & strata != "Gorge", "Gorge"),
          S_obs = replace(S_obs, is.na(S_obs) & grepl("Hatchery|Duncan", disposition), 0),
          tau_S_obs = sqrt(log((SD/S_obs)^2 + 1))) %>% 
   select(year:location, disposition, method, S_obs, SD, tau_S_obs) %>% 
@@ -68,12 +70,15 @@ bio_data <- read.csv(here("data","Data_BioData_Spawners_Chum_2021-04-06.csv"),
                      header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(year = Return.Yr., strata = Strata, location = Location.Reach, 
          disposition = Disposition, origin = Origin, sex = Sex, age = Age, count = Count) %>% 
-  mutate(strata = replace(strata, disposition == "Duncan_Channel" & strata != "Gorge", "Gorge"),
+  mutate(disposition = gsub("I205", "I-205", gsub("_", " ", disposition)),
+         location = gsub("I205", "I-205", gsub("_", " ", location)),
+         origin = gsub("_", " ", origin),
+         strata = replace(strata, disposition == "Duncan Channel" & strata != "Gorge", "Gorge"),
          count = replace(count, is.na(count), 0), sex = substring(sex,1,1),
          HW = ifelse((grepl("Hatchery", origin) | location != disposition | 
-                        (origin != disposition & origin != "Natural_spawner")) &
-                       !(origin %in% c("Duncan_Channel","Natural_spawner") & 
-                           location == "Duncan_Creek" & disposition == "Duncan_Channel"), 
+                        (origin != disposition & origin != "Natural spawner")) &
+                       !(origin %in% c("Duncan Channel","Natural spawner") & 
+                           location == "Duncan Creek" & disposition == "Duncan Channel"), 
                      "H", "W")) %>% 
   select(year:location, disposition, origin, HW, sex:count) %>%
   arrange(strata, location, year, origin, age, sex)
@@ -109,7 +114,8 @@ juv_data <- read.csv(here("data", "Data_Abundance_Juveniles_Chum_2021-04-07.csv"
          analysis = Analysis, partial_spawners = Partial.Spawners, raw_catch = RawCatch,
          M_obs = Abund_Median, mean = Abund_Mean, SD = Abund_SD, 
          L95 = Abund_L95, U95 = Abund_U95, CV = Abund_CV, comments = Comments) %>% 
-  mutate(tau_M_obs = replace(sqrt(log((SD/mean)^2 + 1)), SD==0, NA)) %>% 
+  mutate(location = gsub("I205", "I-205", gsub("_", " ", location)),
+         tau_M_obs = replace(sqrt(log((SD/mean)^2 + 1)), SD==0, NA)) %>% 
   select(strata, location, year, brood_year, origin:CV, tau_M_obs, comments) %>% 
   arrange(strata, location, year)
 
@@ -118,7 +124,7 @@ juv_data <- read.csv(here("data", "Data_Abundance_Juveniles_Chum_2021-04-07.csv"
 head_noNA <- function(x) { cumsum(!is.na(x)) > 0 }
 juv_data_incl <- juv_data %>% group_by(location) %>% 
   filter(head_noNA(M_obs) & rev(head_noNA(rev(M_obs)))) %>%
-  filter(!(location %in% c("Duncan_North","Duncan_South"))) %>% 
+  filter(!(location %in% c("Duncan North","Duncan South"))) %>% 
   rename(pop = location) %>% as.data.frame()
 
 # Fish data formatted for salmonIPM
@@ -141,9 +147,9 @@ fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("strata","pop","ye
   rename(n_H_obs = H, n_W_obs = W, n_M_obs = M, n_F_obs= `F`) %>% 
   mutate(A = 1, fit_p_HOS = NA, F_rate = 0) %>% 
   mutate_at(vars(contains("n_")), ~ replace(., is.na(.), 0)) %>% 
-  filter(!grepl("Hatchery|Duncan_Creek", pop)) %>% 
-  mutate(S_obs = replace(S_obs, pop == "Hamilton_Channel" & year %in% 2011:2012, NA),
-         tau_S_obs = replace(tau_S_obs, pop == "Hamilton_Channel" & year %in% 2011:2012, NA),
+  filter(!grepl("Hatchery|Duncan Creek", pop)) %>% 
+  mutate(S_obs = replace(S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
+         tau_S_obs = replace(tau_S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          strata = factor(strata), pop = factor(pop), 
          B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0)) %>%
   select(strata, pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_F_obs, 
@@ -171,8 +177,8 @@ fish_data_SMS <- fish_data %>% group_by(pop) %>% filter(head_noNA(S_obs) | head_
 # where they will be counted (or double-counted, in the case of Grays_CJ),
 # assuming no mortality between the upstream tributary and the downstream trap
 fish_data_SMS <- fish_data_SMS %>%
-  mutate(downstream_trap = replace(downstream_trap, pop %in% c("Grays_WF","Grays_CJ"),
-                                   which(pop == "Grays_MS")))
+  mutate(downstream_trap = replace(downstream_trap, pop %in% c("Grays WF","Grays CJ"),
+                                   which(pop == "Grays MS")))
 
 # pad data with future years to generate forecasts
 # use 5-year (1-generation) time horizon
@@ -190,8 +196,8 @@ fish_data_SMS_fore <- fish_data_SMS %>% group_by(pop) %>%
 # assign Grays_WF and Grays_CJ smolts to the downstream trap in Grays_MS
 # (need to do this again b/c row indices have changed)
 fish_data_SMS_fore <- fish_data_SMS_fore %>%
-  mutate(downstream_trap = replace(downstream_trap, pop %in% c("Grays_WF","Grays_CJ"),
-                                   which(pop == "Grays_MS")))
+  mutate(downstream_trap = replace(downstream_trap, pop %in% c("Grays WF","Grays CJ"),
+                                   which(pop == "Grays MS")))
 
 # Fecundity data
 # Note that L95% and U95% are reversed
@@ -223,7 +229,7 @@ if(EDA)
   
   # Time series of sex ratio by population
   windows()
-  bio_data %>% filter(HW=="W" & !grepl("Hatchery|Duncan_Creek", disposition)) %>% 
+  bio_data %>% filter(HW=="W" & !grepl("Hatchery|Duncan Creek", disposition)) %>% 
     group_by(disposition, year, sex) %>% 
     summarize(n = sum(count)) %>% 
     dcast(disposition + year ~ sex, value.var = "n", fun.aggregate = sum) %>% 
