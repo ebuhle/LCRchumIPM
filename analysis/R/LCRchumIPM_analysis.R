@@ -381,7 +381,6 @@ dev.new(width=12,height=8)
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
 forecasting <- ifelse(identical(unlist(strsplit(mod_name, "_"))[3], "fore"), "yes", "no")
 
-# N_obs <- dat[,paste0(life_stage, "_obs")]
 N <- do.call(extract1, list(as.name(mod_name), life_stage))
 tau <- do.call(extract1, list(as.name(mod_name),
                               switch(life_cycle, SS = "tau",
@@ -390,10 +389,6 @@ if(life_cycle == "LCRchum" & life_stage == "M")
   N[,na.omit(fish_data_SMS$downstream_trap)] <- N[,na.omit(fish_data_SMS$downstream_trap)] + 
                                                 N[,which(!is.na(fish_data_SMS$downstream_trap))]
 N_obs <- N * rlnorm(length(N), 0, tau)
-
-c1 <- "slategray4"
-c1t <- transparent(c1, trans.val = 0.5)
-c1tt <- transparent(c1, trans.val = 0.7)
 
 switch(life_cycle, SS = fish_data_SS, 
        LCRchum = switch(forecasting, no = fish_data_SMS, yes = fish_data_SMS_fore)) %>% 
@@ -404,8 +399,8 @@ switch(life_cycle, SS = fish_data_SS,
          pch = switch(life_stage, M = ifelse(is.na(tau_M_obs), 1, 16),
                       S = ifelse(is.na(tau_S_obs), 1, 16))) %>% 
   ggplot(aes(x = year, y = !!sym(paste0(life_stage, "_obs")))) +
-  geom_ribbon(aes(ymin = N_L, ymax = N_U), fill = c1t) +
-  geom_ribbon(aes(ymin = N_obs_L, ymax = N_obs_U), fill = c1tt) +
+  geom_ribbon(aes(ymin = N_L, ymax = N_U), fill = "slategray4", alpha = 0.5) +
+  geom_ribbon(aes(ymin = N_obs_L, ymax = N_obs_U), fill = "slategray4", alpha = 0.3) +
   geom_point(aes(shape = pch), size = 2.5) + scale_shape_identity() +
   labs(x = "Year", y = switch(life_stage, M = "Smolts (thousands)", S = "Spawners")) + 
   scale_x_continuous(minor_breaks = function(v) min(v):max(v)) + 
@@ -420,8 +415,7 @@ if(save_plot)
   ggsave(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
          width=12*0.9, height=8*0.9, units="in", dpi=300, type="cairo-png")
                
-rm(list = c("mod_name","forecasting","life_stage","life_cycle",
-            "N","N_obs","c1","c1t","c1tt","tau"))
+rm(list = c("mod_name","forecasting","life_stage","life_cycle","N","N_obs","tau"))
 
 
 #--------------------------------------------------------------------------------
