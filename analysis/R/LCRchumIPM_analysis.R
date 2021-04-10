@@ -264,7 +264,7 @@ s_MS <- do.call(extract1, list(as.name(mod_name), "s_MS"))
 c1 <- "slategray4"
 c1t <- transparent(c1, trans.val = 0.5)
 c1tt <- transparent(c1, trans.val = 0.7)
-ac <- viridis(length(ages), end = 0.8, alpha = 0.7) 
+ac <- viridis(length(ages), end = 0.8, direction = -1, alpha = 0.7) 
 
 par(mfrow = c(3,2), mar = c(5.1,5.1,1,1.5))
 
@@ -434,7 +434,7 @@ q <- do.call(extract1, list(as.name(mod_name), "q"))
 switch(life_cycle, SS = fish_data_SS, LCRchum = fish_data_SMS) %>% 
   select(pop, year, starts_with("n_age")) %>% 
   mutate(total = rowSums(across(starts_with("n_age"))),
-         across(starts_with("n_age"), ~ binconf(.x, total))) %>% 
+         across(starts_with("n_age"), ~ binconf(.x, total, alpha = 0.1))) %>% 
   do.call(data.frame, .) %>% # unpack cols of nested data frames
   pivot_longer(cols = -c(pop, year, total), names_to = c("age",".value"),
                names_pattern = "n_age(.)_obs.(.*)") %>% 
@@ -446,8 +446,8 @@ switch(life_cycle, SS = fish_data_SS, LCRchum = fish_data_SMS) %>%
   geom_ribbon(aes(ymin = q_age_L, ymax = q_age_U), color = NA, alpha = 0.3) +
   geom_point(aes(y = PointEst), pch = 16, size = 2.5, alpha = 0.8) +
   geom_errorbar(aes(ymin = Lower, ymax = Upper), width = 0, alpha = 0.8) +
-  scale_color_manual(values = viridis(3, end = 0.8)) +
-  scale_fill_manual(values = viridis(3, end = 0.8)) +
+  scale_color_manual(values = viridis(3, end = 0.8, direction = -1)) +
+  scale_fill_manual(values = viridis(3, end = 0.8, direction = -1)) +
   scale_x_continuous(minor_breaks = function(v) min(v):max(v)) +
   labs(x = "Year", y = "Proportion at age") + 
   facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) + 
@@ -458,7 +458,7 @@ switch(life_cycle, SS = fish_data_SS, LCRchum = fish_data_SMS) %>%
 
 if(save_plot)
   ggsave(filename=here("analysis", "results", paste0("q_fit_", mod_name, ".png")),
-         width=13*0.9, height=8*0.9, units="in", dpi=300, type="cairo-png")
+         width=12*0.9, height=7*0.9, units="in", dpi=300, type="cairo-png")
 
 rm(list = c("mod_name","life_cycle","q"))
 
@@ -467,50 +467,40 @@ rm(list = c("mod_name","life_cycle","q"))
 # Time series of observed and fitted p_HOS for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_BH"
+mod_name <- "LCRchum_Ricker"
+save_plot <- FALSE
 
-# dev.new(width=13,height=8.5)
-png(filename=here("analysis", "results", paste0("p_HOS_fit_", mod_name, ".png")),
-    width=13*0.9, height=8.5*0.9, units="in", res=200, type="cairo-png")
+dev.new(width=12,height=8)
 
 ## @knitr plot_p_HOS_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
-dat <- switch(life_cycle, SS = fish_data_SS, SMS = fish_data_SMS, LCRchum = fish_data_SMS)
-p_HOS_IPM <- matrix(0, nrow(do.call(as.matrix, list(as.name(mod_name)))), nrow(dat))
-p_HOS_IPM[,dat$fit_p_HOS==1] <- do.call(extract1, list(as.name(mod_name), "p_HOS"))
 
-c1 <- "slategray4"
-c1t <- transparent(c1, trans.val = 0.5)
+p_HOS <- do.call(extract1, list(as.name(mod_name), "p_HOS"))
 
-par(mfrow=c(3,4), mar=c(1,3,4.1,1), oma=c(4.1,3.1,0,0))
-
-for(i in levels(dat$pop))
-{
-  yi <- dat$year[dat$pop==i]
-  plot(yi, rep(0.5, length(yi)), pch = "", xlim = range(dat$year), ylim = c(0,1), 
-       las = 1, cex.axis = 1.2, xaxt = "n", xlab = "", ylab = "")
-  axis(side = 1, at = yi[yi %% 5 == 0], cex.axis = 1.2)
-  rug(yi[yi %% 5 != 0], ticksize = -0.02)
-  mtext(i, side = 3, line = 0.5, cex = par("cex")*1.5)
-  if(par("mfg")[2] == 1) 
-    mtext(bquote(italic(p)[HOS]), side = 2, line = 3.5, cex = par("cex")*1.5)
-  if(par("mfg")[1] == par("mfg")[3]) 
-    mtext("Year", side = 1, line = 3, cex = par("cex")*1.5)
-  p_HOS_obs <- binconf(dat$n_H_obs[dat$pop==i], 
-                       dat$n_H_obs[dat$pop==i] + dat$n_W_obs[dat$pop==i], 
-                       alpha = 0.1)
-  lines(yi, colMedians(p_HOS_IPM[,dat$pop==i]), col = c1, lwd = 2)
-  polygon(c(yi, rev(yi)),
-          c(colQuantiles(p_HOS_IPM[,dat$pop==i], probs = 0.05),
-            rev(colQuantiles(p_HOS_IPM[,dat$pop==i], probs = 0.95))),
-          col = c1t, border = NA)
-  points(yi, p_HOS_obs[,"PointEst"], pch = ifelse(dat$fit_p_HOS[dat$pop==i], 16, 1), cex = 1.8)
-  segments(x0 = yi, y0 = p_HOS_obs[,"Lower"], y1 = p_HOS_obs[,"Upper"])
-}
-
-rm(list = c("mod_name","life_cycle","dat","p_HOS_IPM","p_HOS_obs","c1","c1t","yi"))
+switch(life_cycle, SS = fish_data_SS, LCRchum = fish_data_SMS) %>% 
+  mutate(zeros = 0, fit_p_HOS = as.logical(fit_p_HOS),
+         p_HOS_obs = binconf(n_H_obs, n_H_obs + n_W_obs, alpha = 0.1)) %>% 
+  do.call(data.frame, .) %>% # unpack col with nested data frame
+  mutate(p_HOS_L = replace(zeros, fit_p_HOS, colQuantiles(p_HOS, probs = 0.05)),
+         p_HOS_m = replace(zeros, fit_p_HOS, colMedians(p_HOS)),
+         p_HOS_U = replace(zeros, fit_p_HOS, colQuantiles(p_HOS, probs = 0.95))) %>% 
+  ggplot(aes(x = year)) +
+  geom_ribbon(aes(ymin = p_HOS_L, ymax = p_HOS_U), fill = "slategray4", alpha = 0.5) +
+  geom_line(aes(y = p_HOS_m), col = "slategray") +
+  geom_point(aes(y = p_HOS_obs.PointEst), pch = 16, size = 2.5) +
+  geom_errorbar(aes(ymin = p_HOS_obs.Lower, ymax = p_HOS_obs.Upper), width = 0) +
+  labs(x = "Year", y = bquote(italic(p)[HOS])) +
+  scale_x_continuous(minor_breaks = function(v) min(v):max(v)) +
+  facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) +
+  theme(panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank(),
+        strip.background = element_rect(fill = NA))
 ## @knitr
-dev.off()
+
+rm(list = c("mod_name","life_cycle","p_HOS"))
+
+if(save_plot) 
+  ggsave(filename=here("analysis", "results", paste0("p_HOS_fit_", mod_name, ".png")),
+      width=12*0.9, height=8*0.9, units="in", dpi=300, type="cairo-png")
 
 
 #--------------------------------------------------------------------------------
@@ -518,11 +508,13 @@ dev.off()
 # Observed and fitted distributions of fecundity by age
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_BH"
+mod_name <- "LCRchum_Ricker"
+save_plot <- FALSE
 
-# dev.new(width=7,height=7)
+if(save_plot) {
 png(filename=here("analysis","results",paste0("fecundity_fit_", mod_name, ".png")),
     width=7, height=7, units="in", res=200, type="cairo-png")
+} else dev.new(width=7,height=7)
 
 ## @knitr plot_fecundity_fit
 ages <- substring(names(select(fish_data_SMS, starts_with("n_age"))), 6, 6)
@@ -534,7 +526,7 @@ E_fit <- array(NA, c(nrow(mu_E), length(E_seq), ncol(mu_E)))
 for(a in 1:length(ages))
   E_fit[,,a] <- sapply(E_seq, function(x) dnorm(x, mu_E[,a], sigma_E[,a]))
 
-c1 <- viridis(length(ages), end = 0.8) 
+c1 <- viridis(length(ages), end = 0.8, direction = -1) 
 c1t <- transparent(c1, trans.val = 0.5)
 c1tt <- transparent(c1, trans.val = 0.7)
 
@@ -543,7 +535,7 @@ par(mfrow = c(3,1), mar = c(3,2,0,2), oma = c(2,2,0,0))
 for(a in 1:length(ages))
 {
   hist(E_obs[fecundity_data$age_E == ages[a]], 20, prob = TRUE, 
-       col = c1tt[a], border = "white", las = 1, cex.axis = 1.2, cex.lab = 1.5,
+       col = c1tt[a], border = "white", las = 1, cex.axis = 1.5, cex.lab = 1.8,
        xlim = range(E_seq), ylim = range(0, apply(E_fit, 2:3, quantile, 0.99)),
        xlab = "", ylab = "", main = "", xaxs = "i", yaxt = "n", bty = "n")
   lines(E_seq, colMedians(E_fit[,,a]), col = c1[a], lwd = 3)
@@ -554,11 +546,11 @@ for(a in 1:length(ages))
   text(par("usr")[1] + 0.8*diff(par("usr")[1:2]), par("usr")[4]*0.5, 
        labels = paste("age", ages[a]), cex = 1.5, col = c1[a], adj = 1)
 }
-title(xlab = "Fecundity", ylab = "Probability density", cex.lab = 1.5, line = 0, outer = TRUE)
+title(xlab = "Fecundity", ylab = "Probability density", cex.lab = 1.9, line = 0, outer = TRUE)
 
 rm(list = c("mod_name","c1","c1t","c1tt","ages","E_obs","E_seq","mu_E","sigma_E","E_fit"))
 ## @knitr
-dev.off()
+if(save_plot) dev.off()
 
 
 #--------------------------------------------------------------------------------
@@ -568,10 +560,12 @@ dev.off()
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
+save_plot <- FALSE
 
-dev.new(width=6,height=8)
-# png(filename=here("analysis","results",paste0("tau_fit_", mod_name, ".png")),
-#     width=6, height=8, units="in", res=200, type="cairo-png")
+if(save_plot) {
+png(filename=here("analysis","results",paste0("tau_fit_", mod_name, ".png")),
+    width=6, height=8, units="in", res=200, type="cairo-png")
+} else dev.new(width=6,height=8)
 
 ## @knitr plot_obs_error_fit
 tau_M_obs <- fish_data_SMS$tau_M_obs
@@ -589,14 +583,14 @@ tau_S_fit <- sapply(tau_S_seq, function(x) dlnorm(x, log(mu_tau_S), sigma_tau_S)
 c1 <- "slategray4"
 c1t <- transparent(c1, trans.val = 0.6)
 
-par(mfcol = c(2,1), mar = c(5.1,5.1,2,2),  oma = c(0,0.1,0,0))
+par(mfcol = c(2,1), mar = c(5,5,0,1),  oma = c(0,0,0,0))
 
 # smolt observation error SD
 hist(tau_M_obs, 10, prob = TRUE, las = 1, cex.axis = 1.2, cex.lab = 1.5, 
      col = "lightgray", border = "white",
      ylim = c(0, max(colQuantiles(tau_M_fit, probs = 0.95))),
-     xlab = bquote(tau[italic(M)]), ylab = "Probability density", 
-     main = "Smolt observation error")
+     xlab = bquote("Smolt observation error (" * tau[italic(M)] * ")"), 
+     ylab = "Probability density", main = "")
 polygon(c(tau_M_seq, rev(tau_M_seq)),
         c(colQuantiles(tau_M_fit, probs = 0.05), rev(colQuantiles(tau_M_fit, probs = 0.95))),
         col = c1t, border = NA)
@@ -606,7 +600,8 @@ lines(tau_M_seq, colMedians(tau_M_fit), col = c1, lwd = 3)
 hist(tau_S_obs, 20, prob = TRUE, las = 1, cex.axis = 1.2, cex.lab = 1.5, 
      col = "lightgray", border = "white",
      ylim = c(0, max(colQuantiles(tau_S_fit, probs = 0.95))),
-     xlab = bquote(tau[italic(S)]), ylab = "Probability density", main = "Spawner observation error")
+     xlab = bquote("Spawner observation error (" * tau[italic(S)] * ")"), 
+     ylab = "Probability density", main = "")
 polygon(c(tau_S_seq, rev(tau_S_seq)),
         c(colQuantiles(tau_S_fit, probs = 0.05), rev(colQuantiles(tau_S_fit, probs = 0.95))),
         col = c1t, border = NA)
@@ -615,7 +610,7 @@ lines(tau_S_seq, colMedians(tau_S_fit), col = c1, lwd = 3)
 rm(list = c("mod_name","tau_M_obs","tau_M_seq","mu_tau_M","sigma_tau_M","tau_M_fit",
             "tau_S_obs","tau_S_seq","mu_tau_S","sigma_tau_S","tau_S_fit","c1","c1t"))
 ## @knitr
-# dev.off()
+if(save_plot) dev.off()
 
 
 #--------------------------------------------------------------------------------
