@@ -439,7 +439,7 @@ switch(life_cycle, SS = fish_data_SS, LCRchum = fish_data_SMS) %>%
   pivot_longer(cols = -c(pop, year, total), names_to = c("age",".value"),
                names_pattern = "n_age(.)_obs.(.*)") %>% 
   cbind(array(aperm(sapply(1:3, function(k) colQuantiles(q[,,k], probs = c(0.05, 0.5, 0.95)), 
-               simplify = "array"), c(3,1,2)), dim = c(nrow(.), 3), 
+                           simplify = "array"), c(3,1,2)), dim = c(nrow(.), 3), 
         dimnames = list(NULL, paste0("q_age_", c("L","m","U"))))) %>%
   ggplot(aes(x = year, group = age, color = age, fill = age)) +
   geom_line(aes(y = q_age_m), lwd = 1, alpha = 0.8) +
