@@ -46,58 +46,49 @@ Background on IPMs, outline of **salmonIPM**...
 
 ## Process Model
 
-### Egg Deposition
+### Egg Deposition and Egg-to-Smolt Survival
 
 Generic spawner-recruit function
 
-$$ E_{jt} = f( S_{jt} | \alpha_{jt}, E_{\textrm{max},j} ) $$
+$$ \widehat{M}_{jt} = f( S_{jt} | \alpha_{jt}, M_{\text{max},j} ) $$
 
-Intrinsic productivity is calculated as a weighted sum of mean age-specific female fecundity, weighted by the spawner age distribution, divided by 2 assuming a 1:1 sex ratio
+Intrinsic productivity is calculated as a weighted mean of age-specific female fecundity, weighted by the spawner age distribution, multiplied by the proportion female spawners and the population-specific density-independent maximum egg-to-smolt survival
 
-$$ \alpha_{jt} = \dfrac{1}{2} \sum_{a=3}^{5} q_{jta} \mu_{\textrm{fec},a} $$
+$$ \alpha_{jt} = \psi_{j} q_{F,jt} \sum_{a=3}^{5} q_{jta} \mu_{\text{fec},a} $$
 
-Maxmum egg deposition ("capacity") varies randomly among populations according to the hyperdistribution
+Maxmum smolt production ("capacity") varies randomly among populations according to the hyperdistribution
 
 $$
-\textrm{log}(E_{\textrm{max},j}) \sim 
-N(\mu_{E_{\textrm{max}}}, \sigma_{E_{\textrm{max}}}) 
+\text{log}(M_{\text{max},j}) \sim 
+N(\mu_{M_{\text{max}}}, \sigma_{M_{\text{max}}}) 
 $$
 
 Three spawner-recruit functional forms
 
 $$
-f( S_{jt} | \alpha_{jt}, E_{\textrm{max},j} ) = 
+f( S_{jt} | \alpha_{jt}, M_{\text{max},j} ) = 
 \begin{cases}
-\alpha_{jt} S_{jt} & \textrm{exponential} 
+\alpha_{jt} S_{jt} & \text{exponential} 
 \\
-\dfrac{ \alpha_{jt} S_{jt} }{ 1 + \alpha_{jt} S_{jt} / E_{\textrm{max},j} } 
-& \textrm{Beverton-Holt} 
+\dfrac{ \alpha_{jt} S_{jt} }{ 1 + \alpha_{jt} S_{jt} / M_{\text{max},j} } 
+& \text{Beverton-Holt} 
 \\
-\alpha_{jt} S_{jt} \textrm{exp}\left(- \dfrac{ \alpha_{jt}S_{jt} }{ \textrm{exp}(1) E_{\textrm{max},j} } \right) & \textrm{Ricker}
+\alpha_{jt} S_{jt} \text{exp}\left(- \dfrac{ \alpha_{jt}S_{jt} }{ \text{exp}(1) M_{\text{max},j} } \right) & \text{Ricker}
 \end{cases}
 $$
 
-### Egg-to-Smolt Survival
+### Smolt Recruitment Process Error
 
 
 $$
 \begin{aligned}
-\textrm{logit}( s_{EM,jt} ) &= \textrm{logit}( \mu_{EM} ) + 
-\eta^\textrm{pop}_{EM,j} + \eta^\textrm{year}_{EM,t} + 
-\epsilon_{EM,jt} 
+M_{jt} &= \widehat{M}_{jt} \, \text{exp}( \eta^\text{year}_{M,t} + \epsilon_{M,jt} )
 \\
-\eta^\textrm{pop}_{EM,j} &\sim N(0, \sigma^\textrm{pop}_{EM}) 
+\eta^\text{year}_{M,t} &\sim N(\rho_{M} \eta^\text{year}_{M,t-1}, \sigma^\text{year}_{M}) 
 \\
-\eta^\textrm{year}_{EM,t} &\sim
-N(\rho_{EM} \eta^\textrm{year}_{EM,t-1}, \sigma^\textrm{year}_{EM}) 
-\\
-\epsilon_{EM,jt} &\sim N(0, \sigma_{EM})
+\epsilon_{M,jt} &\sim N(0, \sigma_{M})
 \end{aligned}
 $$
-
-Smolts in year $t$
-
-$$ M_{jt} = s_{EM,t-1}E_{t-1} $$
 
 ### Smolt-to-Adult Survival
 
@@ -105,11 +96,11 @@ SAR
 
 $$
 \begin{aligned}
-\textrm{logit}( s_{MS,jt} ) &= \textrm{logit}( \mu_{MS} ) + 
-\eta^\textrm{year}_{MS,t} + \epsilon_{MS,jt} 
+\text{logit}( s_{MS,jt} ) &= \text{logit}( \mu_{MS} ) + 
+\eta^\text{year}_{MS,t} + \epsilon_{MS,jt} 
 \\
-\eta^\textrm{year}_{MS,t} &\sim 
-N(\rho_{MS} \eta^\textrm{year}_{MS,t-1}, \sigma^\textrm{year}_{MS}) 
+\eta^\text{year}_{MS,t} &\sim 
+N(\rho_{MS} \eta^\text{year}_{MS,t-1}, \sigma^\text{year}_{MS}) 
 \\
 \epsilon_{MS,jt} &\sim N(0, \sigma_{MS})
 \end{aligned}
@@ -123,34 +114,34 @@ $\mathbf{p}_{jt} = [p_{3jt}, p_{4jt}, p_{5jt}] ^ \top$, where $p_{ajt}$ is the p
 The conditional age probabilities follow a logistic normal process model with hierarchical structure across populations and through time within each population. The additive log ratio,
 
 $$
-\textrm{alr}(\mathbf{p_{jt}}) = 
-[\textrm{log}(p_{3jt}/p_{5jt}), \textrm{log}(p_{4jt}/p_{5jt})] ^ \top
+\text{alr}(\mathbf{p_{jt}}) = 
+[\text{log}(p_{3jt}/p_{5jt}), \text{log}(p_{4jt}/p_{5jt})] ^ \top
 $$
 
 has a bivariate normal distribution:
 
 $$
 \begin{aligned}
-\textrm{alr}(\mathbf{p_{jt}}) &= \textrm{alr}(\boldsymbol{\mu}_\mathbf{p}) + 
-\boldsymbol{\eta}^\textrm{pop}_{\mathbf{p}, j} +
+\text{alr}(\mathbf{p_{jt}}) &= \text{alr}(\boldsymbol{\mu}_\mathbf{p}) + 
+\boldsymbol{\eta}^\text{pop}_{\mathbf{p}, j} +
 \boldsymbol{\epsilon}_{\mathbf{p}, jt} 
 \\
-\boldsymbol{\eta}^\textrm{pop}_{\mathbf{p}, j} &\sim 
-N(\mathbf{0}, \boldsymbol{\Sigma}^\textrm{pop}_\mathbf{p}) 
+\boldsymbol{\eta}^\text{pop}_{\mathbf{p}, j} &\sim 
+N(\mathbf{0}, \boldsymbol{\Sigma}^\text{pop}_\mathbf{p}) 
 \\
 \boldsymbol{\epsilon}_{\mathbf{p}, jt} &\sim
 N(\mathbf{0}, \boldsymbol{\Sigma}_\mathbf{p}).
 \end{aligned}
 $$
 
-Here the 2 $\times$ 2 covariances matrices $\boldsymbol{\Sigma}^\textrm{pop}_\mathbf{p}$ and $\boldsymbol{\Sigma}_\mathbf{p}$ allow correlated variation among age classes (on the unconstrained scale, not merely due to the mathematical simplex constraint on $\mathbf{p}$) across populations and through time within a population, respectively. For example, some populations or cohorts may skew overall younger or older than average. We parameterize each covariance matrix by a vector of standard deviations and a correlation matrix: 
+Here the 2 $\times$ 2 covariances matrices $\boldsymbol{\Sigma}^\text{pop}_\mathbf{p}$ and $\boldsymbol{\Sigma}_\mathbf{p}$ allow correlated variation among age classes (on the unconstrained scale, not merely due to the mathematical simplex constraint on $\mathbf{p}$) across populations and through time within a population, respectively. For example, some populations or cohorts may skew overall younger or older than average. We parameterize each covariance matrix by a vector of standard deviations and a correlation matrix: 
 
 $$
 \begin{aligned}
-\boldsymbol{\Sigma}^\textrm{pop}_\mathbf{p} &= 
-\boldsymbol{\sigma}^\textrm{pop}_\mathbf{p}
-\mathbf{R}_\mathbf{p}^\textrm{pop} 
-{ \boldsymbol{\sigma}^\textrm{pop}_\mathbf{p} } ^ \top
+\boldsymbol{\Sigma}^\text{pop}_\mathbf{p} &= 
+\boldsymbol{\sigma}^\text{pop}_\mathbf{p}
+\mathbf{R}_\mathbf{p}^\text{pop} 
+{ \boldsymbol{\sigma}^\text{pop}_\mathbf{p} } ^ \top
 \\
 \boldsymbol{\Sigma}_\mathbf{p} &= 
 \boldsymbol{\sigma}_\mathbf{p} 
@@ -164,20 +155,20 @@ $$
 Survival to adults at age, broodstock removal assumed known, harvest assumed to be zero for now
 
 $$
-S_{\textrm{W}, jt} = \left(\sum_{a=3}^{5} 
+S_{\text{W}, jt} = \left(\sum_{a=3}^{5} 
 s_{MS,j,t-a} \hspace{0.1cm} p_{aj,t-a} \hspace{0.1cm} M_{j,t-a} \right) - B_{jt} =
-\left(\sum_{a=3}^{5} \tilde{S}_{\textrm{W}, ajt} \right) - B_{jt}
+\left(\sum_{a=3}^{5} \tilde{S}_{\text{W}, ajt} \right) - B_{jt}
 $$
 
-Spawner age structure is $\mathbf{q}_{jt} = [q_{3jt}, q_{4jt}, q_{5jt}]$, where $q_{ajt} = \tilde{S}_{\textrm{W},ajt} / S_{jt}$.
+Spawner age structure is $\mathbf{q}_{jt} = [q_{3jt}, q_{4jt}, q_{5jt}]$, where $q_{ajt} = \tilde{S}_{\text{W},ajt} / S_{jt}$.
 
 Wild vs. hatchery spawners
 
 $$
-S_{\textrm{H},jt} = S_{\textrm{W},jt} p_{\textrm{HOS},jt} / (1 - p_{\textrm{HOS},jt})
+S_{\text{H},jt} = S_{\text{W},jt} p_{\text{HOS},jt} / (1 - p_{\text{HOS},jt})
 $$
 
-Total spawner abundance is then $S_{jt} = S_{\textrm{W},jt} + S_{\textrm{H},jt}$.
+Total spawner abundance is then $S_{jt} = S_{\text{W},jt} + S_{\text{H},jt}$.
 
 ## Observation Model
 
@@ -185,7 +176,7 @@ Total spawner abundance is then $S_{jt} = S_{\textrm{W},jt} + S_{\textrm{H},jt}$
 
 We modeled observations of fecundity from individual female chum salmon collected at hatcheries. The likelihood for the fecundity of female $i$ of age $a$ is a zero-truncated normal with age-specific mean and SD.
 
-$$ E_{a,i}^\textrm{obs} \sim N(\mu_{E,a}, \sigma_{E,a}) \hspace{0.1cm} T[0, \infty) $$
+$$ E_{a,i}^\text{obs} \sim N(\mu_{E,a}, \sigma_{E,a}) \hspace{0.1cm} T[0, \infty) $$
 
 ### Smolt and Spawner Abundance
 
@@ -193,9 +184,9 @@ Informative priors based on Bayesian observation models applied to field data of
 
 $$
 \begin{aligned}
-\textrm{log}(M_{jt}) &\sim N(\mu_{M,jt}, \tau_{M,ij})
+\text{log}(M_{jt}) &\sim N(\mu_{M,jt}, \tau_{M,ij})
 \\
-\textrm{log}(S_{jt}) &\sim N(\mu_{S,jt}, \tau_{S,ij})
+\text{log}(S_{jt}) &\sim N(\mu_{S,jt}, \tau_{S,ij})
 \end{aligned}
 $$
 
@@ -203,28 +194,28 @@ Some prior observation error SDs are missing or unknown, and so were imputed by 
 
 $$
 \begin{aligned}
-\textrm{log}(\tau_{M,ij}) &\sim N( \mu_{\tau_M},  \sigma_{\tau_M})
+\text{log}(\tau_{M,ij}) &\sim N( \mu_{\tau_M},  \sigma_{\tau_M})
 \\
-\textrm{log}(\tau_{S,ij}) &\sim N( \mu_{\tau_S},  \sigma_{\tau_S})
+\text{log}(\tau_{S,ij}) &\sim N( \mu_{\tau_S},  \sigma_{\tau_S})
 \end{aligned}
 $$
 
 ### Spawner Age and Origin Composition
 
-Age composition of wild spawners $\mathbf{n}_{ajt}^\textrm{obs} = [n_{3jt}^\textrm{obs}, n_{4jt}^\textrm{obs}, n_{5jt}^\textrm{obs}] ^\top$ is assumed to follow a multinomial likelihood with the expected proportions given by the unobserved true state
+Age composition of wild spawners $\mathbf{n}_{ajt}^\text{obs} = [n_{3jt}^\text{obs}, n_{4jt}^\text{obs}, n_{5jt}^\text{obs}] ^\top$ is assumed to follow a multinomial likelihood with the expected proportions given by the unobserved true state
 
 $$
-\mathbf{n}_{ajt}^\textrm{obs} \sim 
-\textrm{Multinomial} \left(  \sum_a n_{ajt}^\textrm{obs},
+\mathbf{n}_{ajt}^\text{obs} \sim 
+\text{Multinomial} \left(  \sum_a n_{ajt}^\text{obs},
 \mathbf{q}_{jt} \right)
 $$
 
 Hatchery/wild composition of spawners
 
 $$
-n_{\textrm{H},jt}^\textrm{obs} \sim 
-\textrm{Bin} \left( n_{\textrm{W},jt}^\textrm{obs} + n_{\textrm{H},jt}^\textrm{obs},
-p_{\textrm{HOS},jt} \right)
+n_{\text{H},jt}^\text{obs} \sim 
+\text{Bin} \left( n_{\text{W},jt}^\text{obs} + n_{\text{H},jt}^\text{obs},
+p_{\text{HOS},jt} \right)
 $$
 
 ## Priors
