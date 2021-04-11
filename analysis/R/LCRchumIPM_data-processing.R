@@ -146,14 +146,14 @@ fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("strata","pop","ye
   rename_at(vars(contains("Age-")), list(~ paste0(sub("Age-","n_age",.), "_obs"))) %>% 
   select(-c(n_age2_obs, n_age6_obs)) %>% 
   rename(n_H_obs = H, n_W_obs = W, n_M_obs = M, n_F_obs= `F`) %>% 
-  mutate(A = 1, fit_p_HOS = NA, F_rate = 0) %>% 
   mutate_at(vars(contains("n_")), ~ replace(., is.na(.), 0)) %>% 
   filter(!grepl("Hatchery|Duncan Creek", pop)) %>% 
   mutate(strata = factor(strata, levels = c("Gorge","Cascade","Coastal")),
          pop = factor(pop, levels = unique(pop[order(strata, pop)])), # order E-W
          S_obs = replace(S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          tau_S_obs = replace(tau_S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
-         B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0)) %>%
+         B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0),
+         A = 1, fit_p_HOS = NA, F_rate = 0) %>%
   select(strata, pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_F_obs, 
          fit_p_HOS, B_take_obs, F_rate) %>% arrange(strata, pop, year) 
 
