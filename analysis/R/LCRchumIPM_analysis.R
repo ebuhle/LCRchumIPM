@@ -330,8 +330,8 @@ text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "D", cex = 1.5)
 plot(y, colMedians(eta_year_M), type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
      ylim = range(colQuantiles(eta_year_M, probs = c(0.05, 0.95)), 
                   colQuantiles(epsilon_M, probs = c(0.05, 0.95))), 
-     xaxs = "i", xaxt = "n", xlab = "Outmigration year", ylab = "")
-mtext("Smolt recruitment anomaly", side = 2, line = 3.7, cex = par("cex")*1.5)
+     xaxs = "i", xaxt = "n", xlab = "Outmigration year", 
+     ylab = "Smolt recruitment anomaly", xpd = NA)
 polygon(c(y, rev(y)), 
         c(colQuantiles(eta_year_M, probs = 0.05), 
           rev(colQuantiles(eta_year_M, probs = 0.95))),
