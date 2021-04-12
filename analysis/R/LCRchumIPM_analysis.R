@@ -371,7 +371,7 @@ if(save_plot) dev.off()
 
 mod_name <- "LCRchum_Ricker"
 life_stage <- "S"   # "S" = spawners, "M" = smolts
-save_plot <- FALSE
+save_plot <- TRUE
 
 dev.new(width=11,height=7)
 

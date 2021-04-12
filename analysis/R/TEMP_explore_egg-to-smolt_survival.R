@@ -49,9 +49,51 @@ hist(mu_psi, 20)
 hist(qlogis(mu_psi), 20)
 
 # posterior distributions of model-fitted pop-level psi
-par(mfrow = c(4,3), mar = c(4.5,3,2,1))
-for(i in 1:ncol(psi))
-  hist(psi[,i], 20, prob = TRUE, xlab = "psi", ylab = "", main = levels(pop)[i])
+dev.new(width = 11, height = 7)
+as.data.frame(t(as.matrix(mod,"psi"))) %>% mutate(pop = sort(unique(dat$pop))) %>% 
+  pivot_longer(cols = starts_with("V"), names_to = "iter", names_prefix = "V",
+               values_to = "psi") %>% 
+  ggplot(aes(x = psi, after_stat(density))) +
+  geom_histogram(fill = "gray", color = "white", bins = 20) +
+  geom_density(col = "skyblue4") +
+  geom_density(aes(x = mu_psi), data = as.data.frame(mod, "mu_psi"),
+               col = alpha("skyblue4", 0.7), lwd = 1) +
+  scale_x_continuous(limits = c(0,1)) + scale_y_continuous(breaks = NULL) +
+  labs(x = bquote(psi), y = "Density") +
+  facet_wrap(vars(pop), ncol = 4, scales = "free_y") + theme_bw(base_size = 14) +
+  theme(panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank())
+
+# posterior distributions of model-fitted pop-level Mmax
+dev.new(width = 11, height = 7)
+as.data.frame(t(as.matrix(mod,"Mmax"))) %>% mutate(pop = sort(unique(dat$pop))) %>% 
+  pivot_longer(cols = starts_with("V"), names_to = "iter", names_prefix = "V",
+               values_to = "Mmax") %>% 
+  ggplot(aes(x = Mmax, after_stat(density))) +
+  geom_histogram(fill = "gray", color = "white", bins = 20) +
+  geom_density(col = "skyblue4") +
+  geom_density(aes(x = exp(mu_Mmax)), data = as.data.frame(mod, "mu_Mmax"),
+               col = alpha("skyblue4", 0.7), lwd = 1) +
+  scale_x_log10(limits = c(NA, 1e5), # how to automate xlim?
+                breaks = trans_breaks("log10", function(x) 10^x), 
+                labels = trans_format("log10", scales::math_format(10^.x))) + 
+  scale_y_continuous(breaks = NULL) + labs(x = bquote(italic(M)[max]), y = "Density") +
+  facet_wrap(vars(pop), ncol = 4, scales = "free_y") + theme_bw(base_size = 14) +
+  theme(panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank())
+
+# bivariate posterior of pop-level (psi,Mmax)
+dev.new(width = 11, height = 7)
+as.data.frame(mod,c("psi","Mmax")) %>% 
+  pivot_longer(cols = everything(), names_pattern = "(.*)\\[(.*)\\]", 
+               names_to = c(".value","pop"), names_transform = list(pop = as.integer)) %>% 
+  mutate(pop = levels(dat$pop)[pop]) %>%
+  ggplot(aes(x = psi, y = Mmax)) +
+  geom_point(pch = 16, col = "darkgray", alpha = 0.3) +
+  scale_y_log10(limits = c(NA, 1e6), # how to automate xlim?
+                breaks = trans_breaks("log10", function(x) 10^x), 
+                labels = trans_format("log10", scales::math_format(10^.x))) + 
+  scale_x_continuous(limits = c(0,1)) + labs(x = bquote(psi), y = bquote(italic(M)[max])) +
+  facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 14) +
+  theme(panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank())
 
 # time series of back-calculated egg-to-smolt survival 
 # many / most are > 1 !?!
@@ -108,22 +150,6 @@ cbind(fish_data_SMS, colQuantiles(q_F, probs = c(0.05,0.95))) %>%
   ggplot(aes(x = year, y = prop_female, ymin = Lower, ymax = Upper)) + 
   geom_abline(intercept = 0.5, slope = 0, color = "gray") + 
   geom_ribbon(aes(ymin = `5%`, ymax = `95%`), fill = "darkblue", alpha = 0.5) +
-  geom_point(size = 2) + geom_line() + geom_errorbar(width = 0) +
-  facet_wrap(vars(pop), ncol = 3) + theme_bw()
-
-# Same as above, but with violins instead of intervals
-# to pick up bimodal p_F posteriors (NOTE: takes a while)
-d <- data.frame(pop = pop, year = year, t(as.matrix(mod, "q_F"))) %>% 
-  pivot_longer(cols = starts_with("X"), values_to = "q_F", names_to = "iter", 
-               names_prefix = "X", names_transform = list(iter = as.numeric))
-
-fish_data_SMS %>% mutate(total = n_M_obs + n_F_obs) %>% 
-  cbind(., with(., binconf(x = n_F_obs, n = total))) %>%
-  rename(prop_female = PointEst) %>% 
-  ggplot(aes(x = year, y = prop_female, ymin = Lower, ymax = Upper)) + 
-  geom_abline(intercept = 0.5, slope = 0, color = "gray") + 
-  geom_violin(aes(x = year, y = q_F, group = year), data = d, inherit.aes = FALSE,
-              scale = "width", color = NA, fill = "darkblue", alpha = 0.5) +
   geom_point(size = 2) + geom_line() + geom_errorbar(width = 0) +
   facet_wrap(vars(pop), ncol = 3) + theme_bw()
 
