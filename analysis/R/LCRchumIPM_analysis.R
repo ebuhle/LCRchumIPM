@@ -255,6 +255,7 @@ eta_year_M <- do.call(extract1, list(as.name(mod_name), "eta_year_M"))
 sigma_M <- do.call(extract1, list(as.name(mod_name), "sigma_M"))
 zeta_M <- do.call(stan_mean, list(as.name(mod_name), "zeta_M"))
 epsilon_M <- outer(sigma_M, zeta_M, "*")
+error_M <- eta_year_M[,as.numeric(factor(dat$year))] + epsilon_M
 # SAR
 eta_year_MS <- do.call(extract1, list(as.name(mod_name), "eta_year_MS"))
 mu_MS <- do.call(extract1, list(as.name(mod_name), "mu_MS"))
@@ -329,7 +330,7 @@ text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "D", cex = 1.5)
 # Smolt recruitment process errors
 plot(y, colMedians(eta_year_M), type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
      ylim = range(colQuantiles(eta_year_M, probs = c(0.05, 0.95)), 
-                  colQuantiles(epsilon_M, probs = c(0.05, 0.95))), 
+                  colQuantiles(error_M, probs = c(0.05, 0.95))), 
      xaxs = "i", xaxt = "n", xlab = "Brood year", 
      ylab = "Smolt recruitment anomaly", xpd = NA)
 polygon(c(y, rev(y)), 
@@ -338,7 +339,7 @@ polygon(c(y, rev(y)),
         col = c1tt, border = NA)
 lines(y, colMedians(eta_year_M), col = c1t, lwd = 3)
 for(j in levels(dat$pop))
-  lines(dat$year[dat$pop == j], colMedians(epsilon_M[,dat$pop == j]), col = c1t)
+  lines(dat$year[dat$pop == j], colMedians(error_M[,dat$pop == j]), col = c1t)
 axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
 rug(y[y %% 5 != 0], ticksize = -0.02)
 text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "E", cex = 1.5)
@@ -358,9 +359,9 @@ axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
 rug(y[y %% 5 != 0], ticksize = -0.02)
 text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "F", cex = 1.5)
 
-rm(list=c("mod_name","SR_fun","mu_alpha","mu_Mmax","S","S_grid","M_ESU","q_F",
-          "c1","c1t","c1tt","dd_ESU","dd_pop","dd_age","alpha","Mmax","M_pop","ac","ages",
-          "y","eta_year_M","sigma_M","zeta_M","epsilon_M","eta_year_MS","mu_MS","s_hat_MS","dat"))
+rm(list=c("mod_name","SR_fun","mu_alpha","mu_Mmax","S","S_grid","M_ESU","q_F","c1","c1t",
+          "c1tt","dd_ESU","dd_pop","dd_age","alpha","Mmax","M_pop","ac","ages","y",
+          "eta_year_M","sigma_M","zeta_M","epsilon_M","eta_year_MS","error_M","mu_MS","s_hat_MS","dat"))
 ## @knitr
 if(save_plot) dev.off()
 
