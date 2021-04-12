@@ -22,7 +22,9 @@ library(zoo)
 library(here)
 
 # load data
-source(here("analysis","R","LCRchumIPM_data-processing.R"))
+source(here("analysis","R","01_LCRchumIPM_data.R"))
+# load plotting functions
+source(here("analysis","R","03_LCRchumIPM_plots.R"))
 # load saved stanfit objects
 if(file.exists(here("analysis","results","LCRchumIPM.RData")))
   load(here("analysis","results","LCRchumIPM.RData"))
@@ -211,7 +213,7 @@ save_plot <- FALSE
 ## @knitr multiplot
 LCRchumIPM_multiplot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2], 
                      fish_data = fish_data_SMS, save_plot = save_plot,
-                     filename = here("analysis","results",paste0("SR_",mod_name,".png")))
+                     filename = here("analysis","results",paste0("multiplot_",mod_name,".png")))
 ## @knitr
 
 #--------------------------------------------------------------------------------
@@ -225,7 +227,7 @@ save_plot <- TRUE
 ## @knitr plot_spawner_smolt_ts
 LCRchumIPM_MS_timeseries(mod = get(mod_name), life_stage = life_stage, 
                          fish_data = fish_data_SMS, show_plot = TRUE, save_plot = save_plot, 
-                         filename = here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")))
+                         filename = here("analysis","results",paste0(life_stage, "_fit_", mod_name, ".png")))
 ## @knitr
 
 #--------------------------------------------------------------------------------
@@ -238,7 +240,7 @@ save_plot <- TRUE
 ## @knitr plot_spawner_age_ts
 LCRchumIPM_age_timeseries(mod = get(mod_name), fish_data = fish_data_SMS, 
                           show_plot = TRUE, save_plot = save_plot, 
-                          filename = here("analysis", "results", paste0("q_fit_", mod_name, ".png")))
+                          filename = here("analysis","results",paste0("q_fit_", mod_name, ".png")))
 ## @knitr
 
 #--------------------------------------------------------------------------------
@@ -251,7 +253,7 @@ save_plot <- TRUE
 ## @knitr plot_sex_ratio_ts
 LCRchumIPM_sex_timeseries(mod = get(mod_name), fish_data = fish_data_SMS, 
                           show_plot = TRUE, save_plot = save_plot, 
-                          filename = here("analysis", "results", paste0("q_F_fit_", mod_name, ".png")))
+                          filename = here("analysis","results",paste0("q_F_fit_", mod_name, ".png")))
 ## @knitr
 
 #--------------------------------------------------------------------------------
@@ -264,7 +266,7 @@ save_plot <- FALSE
 ## @knitr plot_p_HOS_ts
 LCRchumIPM_p_HOS_timeseries(mod = get(mod_name), fish_data = fish_data_SMS, 
                             show_plot = TRUE, save_plot = save_plot, 
-                            filename = here("analysis", "results", paste0("p_HOS_fit_", mod_name, ".png")))
+                            filename = here("analysis","results",paste0("p_HOS_fit_", mod_name, ".png")))
 ## @knitr
 
 
