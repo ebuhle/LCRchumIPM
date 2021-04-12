@@ -370,10 +370,10 @@ if(save_plot) dev.off()
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-life_stage <- "M"   # "S" = spawners, "M" = smolts
+life_stage <- "S"   # "S" = spawners, "M" = smolts
 save_plot <- FALSE
 
-dev.new(width=12,height=8)
+dev.new(width=11,height=7)
 
 ## @knitr plot_spawner_smolt_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
@@ -403,14 +403,14 @@ switch(life_cycle, SS = fish_data_SS,
   scale_x_continuous(minor_breaks = function(v) min(v):max(v)) + 
   scale_y_log10(labels = function(y) y*switch(life_stage, M = 1e-3, S = 1)) + 
   facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) +
-  theme(panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank(),
+  theme(panel.grid.minor.y = element_blank(),
         strip.background = element_rect(fill = NA))
 
 ## @knitr
 
 if(save_plot)   
   ggsave(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
-         width=12*0.9, height=8*0.9, units="in", dpi=300, type="cairo-png")
+         width=11, height=7, units="in", dpi=300, type="cairo-png")
 rm(list = c("mod_name","forecasting","life_stage","life_cycle","N","N_obs","tau"))
 
 
@@ -454,7 +454,7 @@ switch(life_cycle, SS = fish_data_SS, LCRchum = fish_data_SMS) %>%
 
 if(save_plot)
   ggsave(filename=here("analysis", "results", paste0("q_fit_", mod_name, ".png")),
-         width=12*0.9, height=7*0.9, units="in", dpi=300, type="cairo-png")
+         width=12, height=7, units="in", dpi=300, type="cairo-png")
 rm(list = c("mod_name","life_cycle","q"))
 
 
@@ -465,7 +465,7 @@ rm(list = c("mod_name","life_cycle","q"))
 mod_name <- "LCRchum_Ricker"
 save_plot <- TRUE
 
-dev.new(width=12,height=8)
+dev.new(width=11,height=7)
 
 ## @knitr plot_sex_ratio_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
@@ -478,7 +478,7 @@ cbind(fish_data_SMS, colQuantiles(q_F, probs = c(0.05, 0.5, 0.95))) %>%
   geom_abline(intercept = 0.5, slope = 0, color = "gray") + 
   geom_ribbon(aes(ymin = `5%`, ymax = `95%`), fill = "slategray4", alpha = 0.5) +
   geom_line(aes(y = `50%`), col = "slategray4", lwd = 1) +
-  geom_point(pch = 16, size = 2.5) + geom_line() + geom_errorbar(width = 0) +
+  geom_point(pch = 16, size = 2.5) + geom_errorbar(width = 0) +
   labs(x = "Year", y = "Proportion female") +
   facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) +
   theme(panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank(),
@@ -487,7 +487,7 @@ cbind(fish_data_SMS, colQuantiles(q_F, probs = c(0.05, 0.5, 0.95))) %>%
 
 if(save_plot) 
   ggsave(filename=here("analysis", "results", paste0("q_F_fit_", mod_name, ".png")),
-         width=12*0.9, height=8*0.9, units="in", dpi=300, type="cairo-png")
+         width=11, height=7, units="in", dpi=300, type="cairo-png")
 rm(list = c("mod_name","life_cycle","q_F"))
 
 
@@ -498,7 +498,7 @@ rm(list = c("mod_name","life_cycle","q_F"))
 mod_name <- "LCRchum_Ricker"
 save_plot <- FALSE
 
-dev.new(width=12,height=8)
+dev.new(width=11,height=7)
 
 ## @knitr plot_p_HOS_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
@@ -525,7 +525,7 @@ switch(life_cycle, SS = fish_data_SS, LCRchum = fish_data_SMS) %>%
 
 if(save_plot) 
   ggsave(filename=here("analysis", "results", paste0("p_HOS_fit_", mod_name, ".png")),
-      width=12*0.9, height=8*0.9, units="in", dpi=300, type="cairo-png")
+      width=11, height=7, units="in", dpi=300, type="cairo-png")
 rm(list = c("mod_name","life_cycle","p_HOS"))
 
 
