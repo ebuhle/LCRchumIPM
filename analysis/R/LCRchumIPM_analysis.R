@@ -471,12 +471,13 @@ dev.new(width=12,height=8)
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
 q_F <- do.call(extract1, list(as.name(mod_name), "q_F"))
 
-cbind(fish_data_SMS, colQuantiles(q_F, probs = c(0.05,0.95))) %>%
+cbind(fish_data_SMS, colQuantiles(q_F, probs = c(0.05, 0.5, 0.95))) %>%
   mutate(n_MF_obs = n_M_obs + n_F_obs) %>% 
   cbind(., with(., binconf(x = n_F_obs, n = n_MF_obs))) %>%
   ggplot(aes(x = year, y = PointEst, ymin = Lower, ymax = Upper)) + 
   geom_abline(intercept = 0.5, slope = 0, color = "gray") + 
   geom_ribbon(aes(ymin = `5%`, ymax = `95%`), fill = "slategray4", alpha = 0.5) +
+  geom_line(aes(y = `50%`), col = "slategray4", lwd = 1) +
   geom_point(pch = 16, size = 2.5) + geom_line() + geom_errorbar(width = 0) +
   labs(x = "Year", y = "Proportion female") +
   facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) +
@@ -512,7 +513,7 @@ switch(life_cycle, SS = fish_data_SS, LCRchum = fish_data_SMS) %>%
          p_HOS_U = replace(zeros, fit_p_HOS, colQuantiles(p_HOS, probs = 0.95))) %>% 
   ggplot(aes(x = year)) +
   geom_ribbon(aes(ymin = p_HOS_L, ymax = p_HOS_U), fill = "slategray4", alpha = 0.5) +
-  geom_line(aes(y = p_HOS_m), col = "slategray4") +
+  geom_line(aes(y = p_HOS_m), col = "slategray4", lwd = 1) +
   geom_point(aes(y = p_HOS_obs.PointEst), pch = 16, size = 2.5) +
   geom_errorbar(aes(ymin = p_HOS_obs.Lower, ymax = p_HOS_obs.Upper), width = 0) +
   labs(x = "Year", y = bquote(italic(p)[HOS])) +
