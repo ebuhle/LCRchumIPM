@@ -16,7 +16,7 @@ M_obs <- fish_data_SMS$M_obs
 # states
 S <- extract1(mod,"S")
 mu_E <- extract1(mod,"mu_E")
-p_F <- extract1(mod,"p_F")
+q_F <- extract1(mod,"q_F")
 q <- extract1(mod,"q")
 mu_psi <- extract1(mod,"mu_psi")
 psi <- extract1(mod,"psi")
@@ -30,8 +30,8 @@ M <- extract1(mod,"M")
 # NB: This assumes egg production is density-independent and deterministic
 #     (or "potential eggs", if you like)
 f <- apply(sweep(q, c(1,3), mu_E, "*"), 1:2, sum)
-E_hat <- p_F*S*f # states
-E1 <- sweep(f, 2, colMedians(p_F)*S_obs, "*") # use observed spawners
+E_hat <- q_F*S*f # states
+E1 <- sweep(f, 2, colMedians(q_F)*S_obs, "*") # use observed spawners
 
 # back-calculate egg-to-smolt survival based on E and either M or M_obs
 # note 1-yr lag between eggs and smolts
@@ -101,7 +101,7 @@ bio_data %>% rename(pop = disposition) %>% filter(!grepl("Hatchery|Duncan_Creek"
 
 # Now that we've added sex composition to the model,
 # plot the estimates and data
-cbind(fish_data_SMS, colQuantiles(p_F, probs = c(0.05,0.95))) %>%
+cbind(fish_data_SMS, colQuantiles(q_F, probs = c(0.05,0.95))) %>%
   mutate(total = n_M_obs + n_F_obs) %>% 
   cbind(., with(., binconf(x = n_F_obs, n = total))) %>%
   rename(prop_female = PointEst) %>% 
@@ -113,8 +113,8 @@ cbind(fish_data_SMS, colQuantiles(p_F, probs = c(0.05,0.95))) %>%
 
 # Same as above, but with violins instead of intervals
 # to pick up bimodal p_F posteriors (NOTE: takes a while)
-d <- data.frame(pop = pop, year = year, t(as.matrix(mod, "p_F"))) %>% 
-  pivot_longer(cols = starts_with("X"), values_to = "p_F", names_to = "iter", 
+d <- data.frame(pop = pop, year = year, t(as.matrix(mod, "q_F"))) %>% 
+  pivot_longer(cols = starts_with("X"), values_to = "q_F", names_to = "iter", 
                names_prefix = "X", names_transform = list(iter = as.numeric))
 
 fish_data_SMS %>% mutate(total = n_M_obs + n_F_obs) %>% 
@@ -122,7 +122,7 @@ fish_data_SMS %>% mutate(total = n_M_obs + n_F_obs) %>%
   rename(prop_female = PointEst) %>% 
   ggplot(aes(x = year, y = prop_female, ymin = Lower, ymax = Upper)) + 
   geom_abline(intercept = 0.5, slope = 0, color = "gray") + 
-  geom_violin(aes(x = year, y = p_F, group = year), data = d, inherit.aes = FALSE,
+  geom_violin(aes(x = year, y = q_F, group = year), data = d, inherit.aes = FALSE,
               scale = "width", color = NA, fill = "darkblue", alpha = 0.5) +
   geom_point(size = 2) + geom_line() + geom_errorbar(width = 0) +
   facet_wrap(vars(pop), ncol = 3) + theme_bw()

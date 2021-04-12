@@ -122,8 +122,8 @@ LCRchum_Ricker <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundit
 
 ## @knitr print_LCRchum_Ricker
 print(LCRchum_Ricker, prob = c(0.025,0.5,0.975),
-      pars = c("p_F","psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p",
-               "p","tau_M","tau_S","p_HOS","E_hat","M","S","s_MS","q","LL"), 
+      pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p",
+               "p","p_F","tau_M","tau_S","p_HOS","E_hat","M","S","s_MS","q","q_F","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
@@ -234,12 +234,12 @@ mu_E <- do.call(extract1, list(as.name(mod_name), "mu_E"))
 ages <- substring(names(select(dat, starts_with("n_age"))), 6, 6)
 # egg deposition
 q <- do.call(extract1, list(as.name(mod_name), "q"))
-p_F <- do.call(extract1, list(as.name(mod_name), "p_F"))
+q_F <- do.call(extract1, list(as.name(mod_name), "q_F"))
 mu_psi <- do.call(extract1, list(as.name(mod_name), "mu_psi"))
 psi <- do.call(extract1, list(as.name(mod_name), "psi"))
-alpha <- apply(sweep(q, c(1,3), mu_E, "*"), 1:2, sum) * p_F * psi[,as.numeric(factor(dat$pop))]
-mu_pop_alpha <- t(as.matrix(aggregate(t(log(alpha)), list(pop = dat$pop), mean)[,-1]))
-mu_alpha <- rowMeans2(log(alpha))
+alpha <- apply(sweep(q, c(1,3), mu_E, "*"), 1:2, sum) * q_F * psi[,as.numeric(dat$pop)]
+alpha <- t(as.matrix(aggregate(t(alpha), list(pop = dat$pop), median)[,-1]))
+mu_alpha <- rowMeans(log(alpha))
 mu_Mmax <- as.vector(do.call(extract1, list(as.name(mod_name), "mu_Mmax")))
 Mmax <- do.call(extract1, list(as.name(mod_name), "Mmax"))
 S <- colMedians(do.call(extract1, list(as.name(mod_name), "S")))
@@ -262,15 +262,15 @@ s_hat_MS <- plogis(sweep(eta_year_MS, 1, qlogis(mu_MS), "+"))
 s_MS <- do.call(extract1, list(as.name(mod_name), "s_MS"))
 # colors
 c1 <- "slategray4"
-c1t <- transparent(c1, trans.val = 0.5)
-c1tt <- transparent(c1, trans.val = 0.7)
-ac <- viridis(length(ages), end = 0.8, direction = -1, alpha = 0.7) 
+c1t <- transparent(c1, trans.val = 0.3)
+c1tt <- transparent(c1, trans.val = 0.5)
+ac <- viridis(length(ages), end = 0.8, direction = -1, alpha = 0.5) 
 
 par(mfrow = c(3,2), mar = c(5.1,5.1,1,1.5))
 
 # Smolts vs. egg deposition
 plot(S_grid[1,], colMedians(M_ESU)*1e-6, type = "l", lwd=3, col = c1, las = 1,
-     cex.axis = 1.2, cex.lab = 1.5, xaxs = "i", yaxs = "i", #yaxt = "n", 
+     cex.axis = 1.2, cex.lab = 1.5, xaxs = "i", yaxs = "i",
      ylim = range(M_pop*1e-6), xlab = "Spawners", ylab = "Smolts (millions)")
 for(i in 1:ncol(M_pop)) 
   lines(S_grid[1,], M_pop[,i]*1e-6, col = c1t)
@@ -281,9 +281,7 @@ rug(S, col = c1)
 text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "A", cex = 1.5)
 
 # Posterior distributions of fecundity by age
-dd_age <- vector("list", length(ages))
-for(a in 1:length(dd_age))
-  dd_age[[a]] <- density(mu_E[,a])
+dd_age <- lapply(as.data.frame(mu_E), density)
 
 plot(dd_age[[1]]$x, dd_age[[1]]$y, pch = "", las = 1, cex.axis = 1.2, cex.lab = 1.5,
      xlab = bquote("Mean fecundity (" * mu[italic(E)] * ")"), ylab = "", 
@@ -291,40 +289,40 @@ plot(dd_age[[1]]$x, dd_age[[1]]$y, pch = "", las = 1, cex.axis = 1.2, cex.lab = 
      ylim = range(sapply(dd_age, function(m) m$y)),
      xaxs = "i", yaxt = "n")
 for(a in 1:length(ages))
-  lines(dd_age[[a]]$x, dd_age[[a]]$y, col = ac[a], lwd = 2)
+  polygon(dd_age[[a]], col = ac[a], border = NA)
 title(ylab = "Probability density", line = 1, cex.lab = 1.5)
 text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "B", cex = 1.5)
-legend("topright", paste("age", ages, "  "), x.intersp = 0.5, col = ac, lwd = 2, 
-       xjust = 0.5, bty = "n")
+legend("topright", paste("age", ages, "  "), cex = 1.2, fill = ac, border = NA,
+       bty = "n", inset = c(-0.05,0))
 
 # Posterior densities of psi
 dd_ESU <- density(mu_psi)
-dd_pop <- vector("list", length(levels(dat$pop)))
-for(i in 1:length(dd_pop))
-  dd_pop[[i]] <- density(psi[,i])
+dd_pop <- lapply(as.data.frame(psi), density)
 
-plot(dd_ESU$x, dd_ESU$y, type = "l", lwd = 3, col = c1, las = 1, 
+plot(dd_ESU$x, dd_ESU$y, pch = "", lwd = 3, col = c1, las = 1, 
      xaxs = "i", yaxt = "n", cex.axis = 1.2, cex.lab = 1.5, 
      xlab = bquote("Maximum egg-to-smolt survival (" * psi * ")"), ylab = "",
-     xlim = c(0,1), ylim = range(c(dd_ESU$y, sapply(dd_pop, function(m) m$y))))
+     xlim = c(0,1), ylim = range(dd_ESU$y, sapply(dd_pop, function(m) m$y)))
+polygon(dd_ESU, col = c1tt, border = NA)
 for(i in 1:length(dd_pop))
   lines(dd_pop[[i]]$x, dd_pop[[i]]$y, col = c1t)
 title(ylab = "Probability density", line = 1, cex.lab = 1.5)
 text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "C", cex = 1.5)
 
 # Posterior densities of log(Mmax)
-dd_ESU <- density(mu_Mmax)
-dd_pop <- vector("list", length(levels(dat$pop)))
-for(i in 1:length(dd_pop))
-  dd_pop[[i]] <- density(log(Mmax[,i]))
+dd_ESU <- density(mu_Mmax * log10(exp(1)))  # convert to base 10
+dd_pop <- lapply(as.data.frame(log10(Mmax)), density)
 
-plot(dd_ESU$x, dd_ESU$y, type = "l", lwd = 3, col = c1, las = 1, 
-     xaxs = "i", yaxt = "n", cex.axis = 1.2, cex.lab = 1.5, 
-     xlab = bquote("log maximum smolt production (" * italic(M)[max] * ")"), ylab = "",
-     xlim = range(c(dd_ESU$x, min(sapply(dd_pop, function(m) m$x)))),
-     ylim = range(c(dd_ESU$y, sapply(dd_pop, function(m) m$y))))
+plot(dd_ESU$x, dd_ESU$y, pch = "", lwd = 3, col = c1, las = 1, 
+     xaxt = "n", yaxt = "n", cex.axis = 1.2, cex.lab = 1.5, 
+     xlab = bquote("Maximum smolt production (" * italic(M)[max] * ")"), ylab = "",
+     xlim = range(dd_ESU$x[dd_ESU$y > 0.01], sapply(dd_pop, function(m) range(m$x[m$y > 0.01]))),
+     ylim = range(dd_ESU$y, sapply(dd_pop, function(m) m$y)))
+polygon(dd_ESU, col = c1tt, border = NA)
 for(i in 1:length(dd_pop))
   lines(dd_pop[[i]]$x, dd_pop[[i]]$y, col = c1t)
+tck <- maglab(10^par("usr")[1:2], log = TRUE)
+axis(1, at = log10(tck$labat), labels = tck$labat, cex.axis = 1.2)
 title(ylab = "Probability density", line = 1, cex.lab = 1.5)
 text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "D", cex = 1.5)
 
@@ -360,7 +358,7 @@ axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
 rug(y[y %% 5 != 0], ticksize = -0.02)
 text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "F", cex = 1.5)
 
-rm(list=c("mod_name","SR_fun","mu_alpha","mu_Mmax","S","S_grid","M_ESU",
+rm(list=c("mod_name","SR_fun","mu_alpha","mu_Mmax","S","S_grid","M_ESU","q_F",
           "c1","c1t","c1tt","dd_ESU","dd_pop","dd_age","alpha","Mmax","M_pop","ac","ages",
           "y","eta_year_M","sigma_M","zeta_M","epsilon_M","eta_year_MS","mu_MS","s_hat_MS","dat"))
 ## @knitr
@@ -380,7 +378,6 @@ dev.new(width=12,height=8)
 ## @knitr plot_spawner_smolt_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
 forecasting <- ifelse(identical(unlist(strsplit(mod_name, "_"))[3], "fore"), "yes", "no")
-
 N <- do.call(extract1, list(as.name(mod_name), life_stage))
 tau <- do.call(extract1, list(as.name(mod_name),
                               switch(life_cycle, SS = "tau",
@@ -414,7 +411,6 @@ switch(life_cycle, SS = fish_data_SS,
 if(save_plot)   
   ggsave(filename=here("analysis", "results", paste0(life_stage, "_fit_", mod_name, ".png")),
          width=12*0.9, height=8*0.9, units="in", dpi=300, type="cairo-png")
-               
 rm(list = c("mod_name","forecasting","life_stage","life_cycle","N","N_obs","tau"))
 
 
@@ -459,8 +455,39 @@ switch(life_cycle, SS = fish_data_SS, LCRchum = fish_data_SMS) %>%
 if(save_plot)
   ggsave(filename=here("analysis", "results", paste0("q_fit_", mod_name, ".png")),
          width=12*0.9, height=7*0.9, units="in", dpi=300, type="cairo-png")
-
 rm(list = c("mod_name","life_cycle","q"))
+
+
+#--------------------------------------------------------------------------------
+# Time series of observed and fitted sex ratio for each pop
+#--------------------------------------------------------------------------------
+
+mod_name <- "LCRchum_Ricker"
+save_plot <- FALSE
+
+dev.new(width=12,height=8)
+
+## @knitr plot_sex_ratio_ts
+life_cycle <- unlist(strsplit(mod_name, "_"))[1]
+q_F <- do.call(extract1, list(as.name(mod_name), "q_F"))
+
+cbind(fish_data_SMS, colQuantiles(q_F, probs = c(0.05,0.95))) %>%
+  mutate(n_MF_obs = n_M_obs + n_F_obs) %>% 
+  cbind(., with(., binconf(x = n_F_obs, n = n_MF_obs))) %>%
+  ggplot(aes(x = year, y = PointEst, ymin = Lower, ymax = Upper)) + 
+  geom_abline(intercept = 0.5, slope = 0, color = "gray") + 
+  geom_ribbon(aes(ymin = `5%`, ymax = `95%`), fill = "slategray4", alpha = 0.5) +
+  geom_point(pch = 16, size = 2.5) + geom_line() + geom_errorbar(width = 0) +
+  labs(x = "Year", y = "Proportion female") +
+  facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) +
+  theme(panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank(),
+        strip.background = element_rect(fill = NA))
+## @knitr
+
+rm(list = c("mod_name","life_cycle","q_F"))
+if(save_plot) 
+  ggsave(filename=here("analysis", "results", paste0("q_F_fit_", mod_name, ".png")),
+         width=12*0.9, height=8*0.9, units="in", dpi=300, type="cairo-png")
 
 
 #--------------------------------------------------------------------------------
@@ -474,7 +501,6 @@ dev.new(width=12,height=8)
 
 ## @knitr plot_p_HOS_ts
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
-
 p_HOS <- do.call(extract1, list(as.name(mod_name), "p_HOS"))
 
 switch(life_cycle, SS = fish_data_SS, LCRchum = fish_data_SMS) %>% 
@@ -486,7 +512,7 @@ switch(life_cycle, SS = fish_data_SS, LCRchum = fish_data_SMS) %>%
          p_HOS_U = replace(zeros, fit_p_HOS, colQuantiles(p_HOS, probs = 0.95))) %>% 
   ggplot(aes(x = year)) +
   geom_ribbon(aes(ymin = p_HOS_L, ymax = p_HOS_U), fill = "slategray4", alpha = 0.5) +
-  geom_line(aes(y = p_HOS_m), col = "slategray") +
+  geom_line(aes(y = p_HOS_m), col = "slategray4") +
   geom_point(aes(y = p_HOS_obs.PointEst), pch = 16, size = 2.5) +
   geom_errorbar(aes(ymin = p_HOS_obs.Lower, ymax = p_HOS_obs.Upper), width = 0) +
   labs(x = "Year", y = bquote(italic(p)[HOS])) +
@@ -497,7 +523,6 @@ switch(life_cycle, SS = fish_data_SS, LCRchum = fish_data_SMS) %>%
 ## @knitr
 
 rm(list = c("mod_name","life_cycle","p_HOS"))
-
 if(save_plot) 
   ggsave(filename=here("analysis", "results", paste0("p_HOS_fit_", mod_name, ".png")),
       width=12*0.9, height=8*0.9, units="in", dpi=300, type="cairo-png")
