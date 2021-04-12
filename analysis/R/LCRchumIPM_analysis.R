@@ -204,17 +204,17 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 
 #--------------------------------------------------------------------
 # Lower Columbia chum spawner-egg-smolt-spawner #
-# S-R curves (spawners to egg deposition)
-# Posterior distributions of fecundity and Emax parameters
-# Time series of egg-smolt survival and SAR
+# S-R curves (spawners to smolts)
+# Posterior distributions of fecundity and Mmax parameters
+# Time series of smolt productivity process errors and SAR
 #--------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 if(save_plot) {
   png(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
-      width=7, height=8, units="in", res=200, type="cairo-png")
+      width=7*0.9, height=8*0.9, units="in", res=300, type="cairo-png")
 } else dev.new(width = 7, height = 8)
 
 ## @knitr plot_LCM_params
@@ -266,19 +266,7 @@ c1t <- transparent(c1, trans.val = 0.3)
 c1tt <- transparent(c1, trans.val = 0.5)
 ac <- viridis(length(ages), end = 0.8, direction = -1, alpha = 0.5) 
 
-par(mfrow = c(3,2), mar = c(5.1,5.1,1,1.5))
-
-# Smolts vs. egg deposition
-plot(S_grid[1,], colMedians(M_ESU)*1e-6, type = "l", lwd=3, col = c1, las = 1,
-     cex.axis = 1.2, cex.lab = 1.5, xaxs = "i", yaxs = "i",
-     ylim = range(M_pop*1e-6), xlab = "Spawners", ylab = "Smolts (millions)")
-for(i in 1:ncol(M_pop)) 
-  lines(S_grid[1,], M_pop[,i]*1e-6, col = c1t)
-polygon(c(S_grid[1,], rev(S_grid[1,])), 
-        c(colQuantiles(M_ESU, probs = 0.05), rev(colQuantiles(M_ESU, probs = 0.95)))*1e-6, 
-        col = c1tt, border = NA)
-rug(S, col = c1)
-text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "A", cex = 1.5)
+par(mfcol = c(3,2), mar = c(5.1,5.1,1,1.5))
 
 # Posterior distributions of fecundity by age
 dd_age <- lapply(as.data.frame(mu_E), density)
@@ -291,7 +279,7 @@ plot(dd_age[[1]]$x, dd_age[[1]]$y, pch = "", las = 1, cex.axis = 1.2, cex.lab = 
 for(a in 1:length(ages))
   polygon(dd_age[[a]], col = ac[a], border = NA)
 title(ylab = "Probability density", line = 1, cex.lab = 1.5)
-text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "B", cex = 1.5)
+text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "A", cex = 1.5)
 legend("topright", paste("age", ages, "  "), cex = 1.2, fill = ac, border = NA,
        bty = "n", inset = c(-0.05,0))
 
@@ -307,7 +295,7 @@ polygon(dd_ESU, col = c1tt, border = NA)
 for(i in 1:length(dd_pop))
   lines(dd_pop[[i]]$x, dd_pop[[i]]$y, col = c1t)
 title(ylab = "Probability density", line = 1, cex.lab = 1.5)
-text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "C", cex = 1.5)
+text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "B", cex = 1.5)
 
 # Posterior densities of log(Mmax)
 dd_ESU <- density(mu_Mmax * log10(exp(1)))  # convert to base 10
@@ -324,6 +312,18 @@ for(i in 1:length(dd_pop))
 tck <- maglab(10^par("usr")[1:2], log = TRUE)
 axis(1, at = log10(tck$labat), labels = tck$labat, cex.axis = 1.2)
 title(ylab = "Probability density", line = 1, cex.lab = 1.5)
+text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "C", cex = 1.5)
+
+# Smolts vs. egg deposition
+plot(S_grid[1,], colMedians(M_ESU)*1e-6, type = "l", lwd=3, col = c1, las = 1,
+     cex.axis = 1.2, cex.lab = 1.5, xaxs = "i", yaxs = "i",
+     ylim = range(M_pop*1e-6), xlab = "Spawners", ylab = "Smolts (millions)")
+for(i in 1:ncol(M_pop)) 
+  lines(S_grid[1,], M_pop[,i]*1e-6, col = c1t)
+polygon(c(S_grid[1,], rev(S_grid[1,])), 
+        c(colQuantiles(M_ESU, probs = 0.05), rev(colQuantiles(M_ESU, probs = 0.95)))*1e-6, 
+        col = c1tt, border = NA)
+rug(S, col = c1)
 text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "D", cex = 1.5)
 
 # Smolt recruitment process errors
@@ -463,7 +463,7 @@ rm(list = c("mod_name","life_cycle","q"))
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 dev.new(width=12,height=8)
 
@@ -484,10 +484,10 @@ cbind(fish_data_SMS, colQuantiles(q_F, probs = c(0.05,0.95))) %>%
         strip.background = element_rect(fill = NA))
 ## @knitr
 
-rm(list = c("mod_name","life_cycle","q_F"))
 if(save_plot) 
   ggsave(filename=here("analysis", "results", paste0("q_F_fit_", mod_name, ".png")),
          width=12*0.9, height=8*0.9, units="in", dpi=300, type="cairo-png")
+rm(list = c("mod_name","life_cycle","q_F"))
 
 
 #--------------------------------------------------------------------------------
@@ -522,10 +522,10 @@ switch(life_cycle, SS = fish_data_SS, LCRchum = fish_data_SMS) %>%
         strip.background = element_rect(fill = NA))
 ## @knitr
 
-rm(list = c("mod_name","life_cycle","p_HOS"))
 if(save_plot) 
   ggsave(filename=here("analysis", "results", paste0("p_HOS_fit_", mod_name, ".png")),
       width=12*0.9, height=8*0.9, units="in", dpi=300, type="cairo-png")
+rm(list = c("mod_name","life_cycle","p_HOS"))
 
 
 #--------------------------------------------------------------------------------
