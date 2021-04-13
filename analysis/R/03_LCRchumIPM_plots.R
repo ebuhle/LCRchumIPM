@@ -3,9 +3,9 @@
 #==========================================================================#
 
 #--------------------------------------------------------------------
-# Lower Columbia chum spawner-egg-smolt-spawner #
+# Life-cycle multiplot
 # S-R curves (spawners to smolts)
-# Posterior distributions of fecundity and Mmax parameters
+# Posterior distributions of fecundity, survival and Mmax parameters
 # Time series of smolt productivity process errors and SAR
 #--------------------------------------------------------------------
 
@@ -58,7 +58,7 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
   c1t <- transparent(c1, trans.val = 0.3)
   c1tt <- transparent(c1, trans.val = 0.5)
   ac <- viridis(length(ages), end = 0.8, direction = -1, alpha = 0.5) 
-  
+
   if(save_plot) {
     png(filename=filename, width=7, height=8, units="in", res=300, type="cairo-png")
   } else dev.new(width = 7, height = 8)
@@ -120,7 +120,7 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
   polygon(c(S_grid[1,], rev(S_grid[1,])), 
           c(colQuantiles(M_ESU, probs = 0.05), rev(colQuantiles(M_ESU, probs = 0.95)))*1e-6, 
           col = c1tt, border = NA)
-  rug(S, col = c1)
+  rug(S, col = c1t)
   text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "D", cex = 1.5)
   
   # Smolt recruitment process errors

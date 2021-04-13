@@ -201,9 +201,9 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 #===========================================================================
 
 #--------------------------------------------------------------------
-# Lower Columbia chum spawner-egg-smolt-spawner #
+# Life-cycle multiplot
 # S-R curves (spawners to smolts)
-# Posterior distributions of fecundity and Mmax parameters
+# Posterior distributions of fecundity, survival and Mmax parameters
 # Time series of smolt productivity process errors and SAR
 #--------------------------------------------------------------------
 

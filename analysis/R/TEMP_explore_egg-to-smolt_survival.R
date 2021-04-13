@@ -50,7 +50,7 @@ hist(qlogis(mu_psi), 20)
 
 # posterior distributions of model-fitted pop-level psi
 dev.new(width = 11, height = 7)
-as.data.frame(t(as.matrix(mod,"psi"))) %>% mutate(pop = sort(unique(dat$pop))) %>% 
+as.data.frame(t(as.matrix(mod,"psi"))) %>% mutate(pop = sort(unique(fish_data_SMS$pop))) %>% 
   pivot_longer(cols = starts_with("V"), names_to = "iter", names_prefix = "V",
                values_to = "psi") %>% 
   ggplot(aes(x = psi, after_stat(density))) +
@@ -65,7 +65,7 @@ as.data.frame(t(as.matrix(mod,"psi"))) %>% mutate(pop = sort(unique(dat$pop))) %
 
 # posterior distributions of model-fitted pop-level Mmax
 dev.new(width = 11, height = 7)
-as.data.frame(t(as.matrix(mod,"Mmax"))) %>% mutate(pop = sort(unique(dat$pop))) %>% 
+as.data.frame(t(as.matrix(mod,"Mmax"))) %>% mutate(pop = sort(unique(fish_data_SMS$pop))) %>% 
   pivot_longer(cols = starts_with("V"), names_to = "iter", names_prefix = "V",
                values_to = "Mmax") %>% 
   ggplot(aes(x = Mmax, after_stat(density))) +
@@ -74,26 +74,28 @@ as.data.frame(t(as.matrix(mod,"Mmax"))) %>% mutate(pop = sort(unique(dat$pop))) 
   geom_density(aes(x = exp(mu_Mmax)), data = as.data.frame(mod, "mu_Mmax"),
                col = alpha("skyblue4", 0.7), lwd = 1) +
   scale_x_log10(limits = c(NA, 1e5), # how to automate xlim?
-                breaks = trans_breaks("log10", function(x) 10^x), 
-                labels = trans_format("log10", scales::math_format(10^.x))) + 
+                breaks = scales::trans_breaks("log10", function(x) 10^x), 
+                labels = scales::trans_format("log10", scales::math_format(10^.x))) + 
   scale_y_continuous(breaks = NULL) + labs(x = bquote(italic(M)[max]), y = "Density") +
   facet_wrap(vars(pop), ncol = 4, scales = "free_y") + theme_bw(base_size = 14) +
   theme(panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank())
 
 # bivariate posterior of pop-level (psi,Mmax)
-dev.new(width = 11, height = 7)
+dev.new(width = 10, height = 7)
 as.data.frame(mod,c("psi","Mmax")) %>% 
   pivot_longer(cols = everything(), names_pattern = "(.*)\\[(.*)\\]", 
                names_to = c(".value","pop"), names_transform = list(pop = as.integer)) %>% 
-  mutate(pop = levels(dat$pop)[pop]) %>%
+  mutate(pop = factor(levels(fish_data_SMS$pop)[pop], levels(fish_data_SMS$pop))) %>% 
   ggplot(aes(x = psi, y = Mmax)) +
-  geom_point(pch = 16, col = "darkgray", alpha = 0.3) +
+  geom_point(pch = 16, col = "gray", alpha = 0.3) +
+  geom_density_2d(aes(x = mu_psi, y = exp(mu_Mmax)), 
+                  data = as.data.frame(mod, c("mu_psi","mu_Mmax")), col = "skyblue4") +
   scale_y_log10(limits = c(NA, 1e6), # how to automate xlim?
-                breaks = trans_breaks("log10", function(x) 10^x), 
-                labels = trans_format("log10", scales::math_format(10^.x))) + 
+                breaks = scales::trans_breaks("log10", function(x) 10^x), 
+                labels = scales::trans_format("log10", scales::math_format(10^.x))) + 
   scale_x_continuous(limits = c(0,1)) + labs(x = bquote(psi), y = bquote(italic(M)[max])) +
   facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 14) +
-  theme(panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank())
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 
 # time series of back-calculated egg-to-smolt survival 
 # many / most are > 1 !?!
@@ -155,12 +157,13 @@ cbind(fish_data_SMS, colQuantiles(q_F, probs = c(0.05,0.95))) %>%
 
 # Let's look at the brood years that give rise to these estimates of M >= E_hat
 dat <- fish_data_SMS %>% 
-  mutate(S = colMedians(S), f = colMedians(f), E_hat = colMedians(E_hat), M0 = stan_mean(mod,"M0"), 
+  mutate(S = colMedians(S), q_F = colMedians(q_F), f = colMedians(f), 
+         E_hat = colMedians(E_hat), M0 = stan_mean(mod,"M0"), 
          M_downstream = stan_mean(mod,'M_downstream'), M0_div_E_hat = colMedians(psi1)) %>%
   group_by(pop) %>% 
   mutate(M0_obs = lead(M_obs), tau_M0_obs = lead(tau_M_obs), M0_downstream = lead(M_downstream)) %>% 
   ungroup() %>% as.data.frame() %>% 
-  select(pop, year, S_obs, tau_S_obs, S, f, E_hat, M0_obs, tau_M0_obs, M0, 
+  select(pop, year, S_obs, tau_S_obs, S, q_F, f, E_hat, M0_obs, tau_M0_obs, M0, 
          downstream_trap, M0_downstream, M0_div_E_hat)
 
 dat %>% filter(M0_div_E_hat >= 1) %>% select(-downstream_trap) %>% format(digits=2)
