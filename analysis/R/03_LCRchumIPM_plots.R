@@ -141,16 +141,17 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
   text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "E", cex = 1.5)
   
   # SAR
-  plot(y, colMedians(s_hat_MS), type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
-       ylim = range(0, colQuantiles(s_hat_MS, probs = 0.95), colMedians(s_MS)), 
-       xaxs = "i", xaxt = "n", xlab = "Outmigration year", ylab = "")
-  mtext("SAR", side = 2, line = 3.7, cex = par("cex")*1.5)
+  plot(y, colMedians(s_hat_MS)*100, type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
+       ylim = range(colQuantiles(s_hat_MS, probs = 0.95), colMedians(s_MS))*100, 
+       xaxs = "i", xaxt = "n", xlab = "Outmigration year", ylab = "SAR (%)")
+  # mtext("SAR (%)", side = 2, line = 3.7, cex = par("cex")*1.5)
   polygon(c(y, rev(y)), 
-          c(colQuantiles(s_hat_MS, probs = 0.05), rev(colQuantiles(s_hat_MS, probs = 0.95))),
+          c(colQuantiles(s_hat_MS, probs = 0.05), 
+            rev(colQuantiles(s_hat_MS, probs = 0.95)))*100,
           col = c1tt, border = NA)
-  lines(y, colMedians(s_hat_MS), col = c1t, lwd = 3)
+  lines(y, colMedians(s_hat_MS)*100, col = c1t, lwd = 3)
   for(j in levels(fish_data$pop))
-    lines(fish_data$year[fish_data$pop == j], colMedians(s_MS[,fish_data$pop == j]), col = c1t)
+    lines(fish_data$year[fish_data$pop == j], colMedians(s_MS[,fish_data$pop == j])*100, col = c1t)
   axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
   rug(y[y %% 5 != 0], ticksize = -0.02)
   text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "F", cex = 1.5)
@@ -172,20 +173,23 @@ LCRchumIPM_MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data,
   if(life_cycle == "LCRchum" & life_stage == "M")
     N[,na.omit(fish_data$downstream_trap)] <- N[,na.omit(fish_data$downstream_trap)] + 
     N[,which(!is.na(fish_data$downstream_trap))]
-  N_obs <- N * rlnorm(length(N), 0, tau)
+  N_ppd <- N * rlnorm(length(N), 0, tau)
   
   gg <- fish_data %>% 
-    mutate(N_L = colQuantiles(N, probs = 0.05),
+    mutate(N_obs = !!sym(paste0(life_stage, "_obs")),
+           tau_obs = !!sym(paste0("tau_", life_stage, "_obs")),
+           N_obs_L = qlnorm(0.05, log(N_obs), tau_obs),
+           N_obs_U = qlnorm(0.95, log(N_obs), tau_obs),
+           N_L = colQuantiles(N, probs = 0.05),
            N_U = colQuantiles(N, probs = 0.95),
-           N_obs_L = colQuantiles(N_obs, probs = 0.05),
-           N_obs_U = colQuantiles(N_obs, probs = 0.95),
-           pch = switch(life_stage, 
-                        M = ifelse(is.na(tau_M_obs), 1, 16),
-                        S = ifelse(is.na(tau_S_obs), 1, 16))) %>% 
-    ggplot(aes(x = year, y = !!sym(paste0(life_stage, "_obs")))) +
+           N_ppd_L = colQuantiles(N_ppd, probs = 0.05),
+           N_ppd_U = colQuantiles(N_ppd, probs = 0.95),
+           pch = ifelse(is.na(tau_obs), 1, 16)) %>% 
+    ggplot(aes(x = year, y = N_obs)) +
     geom_ribbon(aes(ymin = N_L, ymax = N_U), fill = "slategray4", alpha = 0.5) +
-    geom_ribbon(aes(ymin = N_obs_L, ymax = N_obs_U), fill = "slategray4", alpha = 0.3) +
+    geom_ribbon(aes(ymin = N_ppd_L, ymax = N_ppd_U), fill = "slategray4", alpha = 0.3) +
     geom_point(aes(shape = pch), size = 2.5) + scale_shape_identity() +
+    geom_errorbar(aes(ymin = N_obs_L, ymax = N_obs_U), width = 0) +
     labs(x = "Year", y = switch(life_stage, M = "Smolts (thousands)", S = "Spawners")) + 
     scale_y_log10(labels = function(y) y*switch(life_stage, M = 1e-3, S = 1)) + 
     facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) +
