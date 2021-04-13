@@ -159,6 +159,69 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
   if(save_plot) dev.off()
 }
 
+#--------------------------------------------------------------------
+# Spawner-to-smolt S-R curve for each pop with data and states
+#--------------------------------------------------------------------
+
+### NOT READY FOR PRIME TIME 
+### b/c of orders-of-magnitude differences in axis scales among pops
+### standardizing by habitat area may help
+### ALSO overplotting data for Grays MS doesn't really work b/c of upstream smolts
+
+LCRchumIPM_SR_plot <- function(mod, SR_fun, fish_data, save_plot = FALSE, 
+                               show_plot = !save_plot, filename = NULL)
+{
+  mu_E <- extract1(mod, "mu_E")
+  q <- extract1(mod, "q")
+  q_F <- extract1(mod, "q_F")
+  psi <- extract1(mod, "psi")
+  f <- apply(sweep(q, c(1,3), mu_E, "*"), 1:2, sum) * q_F  # eggs per spawner
+  alpha <- f * psi[,as.numeric(fish_data$pop)]
+  alpha <- t(as.matrix(aggregate(t(alpha), list(pop = fish_data$pop), median)[,-1]))
+  Mmax <- extract1(mod, "Mmax")
+  S <- extract1(mod, "S")
+  M <- extract1(mod, "M")*1e-6  # convert smolts to millions
+  dat <- fish_data %>% 
+    mutate(S_obs_L = qlnorm(0.05, log(S_obs), tau_S_obs),
+           S_obs_U = qlnorm(0.95, log(S_obs), tau_S_obs),
+           M_obs = M_obs*1e-6,  # convert smolts to millions
+           M_obs_L = qlnorm(0.05, log(M_obs), tau_M_obs),
+           M_obs_U = qlnorm(0.95, log(M_obs), tau_M_obs),
+           S_L = colQuantiles(S, probs = 0.05), S_U = colQuantiles(S, probs = 0.95), 
+           S = colMedians(S), M_L = colQuantiles(M, probs = 0.05), 
+           M_U = colQuantiles(M, probs = 0.95), M = colMedians(M), f = colMedians(f))
+  
+  gg <- expand_grid(pop = 1:ncol(alpha), iter = 1:nrow(alpha)) %>% 
+    cbind(alpha = as.vector(alpha), Mmax = as.vector(Mmax)) %>%
+    expand_grid(S = seq(0, quantile(dat$S, 0.99), length = 100)) %>% 
+    mutate(pop = factor(levels(fish_data$pop)[pop], levels = levels(fish_data$pop)),
+           M = SR_eval(alpha = alpha, Rmax = Mmax*1e3, S = S, SR_fun = SR_fun)*1e-6) %>% 
+    group_by(pop,S) %>% summarize(L = quantile(M,0.05), U = quantile(M,0.95), M = median(M)) %>%
+    ggplot(aes(x = S, y = M)) +
+    geom_ribbon(aes(ymin = L, ymax = U), fill = "slategray4", alpha = 0.5) +
+    geom_line(col = "slategray4", alpha = 0.7, lwd = 1) +
+    geom_pointrange(aes(x = S, y = M, ymin = M_L, ymax = M_U), data = dat, 
+                    pch = 16, fatten = 3, col = "slategray4", alpha = 0.7) +
+    geom_errorbarh(aes(y = M, xmin = S_L, xmax = S_U), data = dat, 
+                   col = "slategray4", alpha = 0.7) +
+    geom_pointrange(aes(x = S_obs, y = M_obs, ymin = M_obs_L, ymax = M_obs_U), data = dat,
+                    pch = 16, fatten = 3, alpha = 0.7) +
+    geom_errorbarh(aes(y = M_obs, xmin = M_obs_L, xmax = M_obs_U), data = dat, alpha = 0.7) +
+    scale_x_continuous(expand = expansion(0,0)) + coord_cartesian(xlim = c(0, max(dat$S)*1.1)) +
+    labs(x = "Spawners", y = "Smolts (millions)") +
+    facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) +
+    theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank(),
+          strip.background = element_rect(fill = NA))
+
+  if(show_plot) {
+    dev.new(width=11,height=7)
+    show(gg)
+  }
+  if(save_plot)   
+    ggsave(filename=filename, width=11, height=7, units="in", dpi=300, type="cairo-png")
+}
+
+
 #--------------------------------------------------------------------------------
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
