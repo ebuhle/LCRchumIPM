@@ -48,21 +48,6 @@ Background on IPMs, outline of **salmonIPM**...
 
 ### Egg Deposition and Egg-to-Smolt Survival
 
-Generic spawner-recruit function
-
-$$ \widehat{M}_{jt} = f( S_{jt} | \alpha_{jt}, M_{\text{max},j} ) $$
-
-Intrinsic productivity is calculated as a weighted mean of age-specific female fecundity, weighted by the spawner age distribution, multiplied by the proportion female spawners and the population-specific density-independent maximum egg-to-smolt survival
-
-$$ \alpha_{jt} = \psi_{j} q_{F,jt} \sum_{a=3}^{5} q_{jta} \mu_{\text{fec},a} $$
-
-Maxmum smolt production ("capacity") varies randomly among populations according to the hyperdistribution
-
-$$
-\text{log}(M_{\text{max},j}) \sim 
-N(\mu_{M_{\text{max}}}, \sigma_{M_{\text{max}}}) 
-$$
-
 Three spawner-recruit functional forms
 
 $$
@@ -77,12 +62,25 @@ f( S_{jt} | \alpha_{jt}, M_{\text{max},j} ) =
 \end{cases}
 $$
 
+Intrinsic productivity is calculated as a weighted mean of age-specific female fecundity, weighted by the spawner age distribution, multiplied by the proportion female spawners and the population-specific density-independent egg-to-smolt survival
+
+$$ \alpha_{jt} = \psi_{j} q_{F,jt} \sum_{a=3}^{5} q_{jta} \mu_{\text{fec},a} $$
+
+Maxmum smolt production ("capacity") varies randomly among populations according to the hyperdistribution
+
+$$
+\text{log}(M_{\text{max},j}) \sim 
+N(\mu_{M_{\text{max}}}, \sigma_{M_{\text{max}}}) 
+$$
+
 ### Smolt Recruitment Process Error
 
+Lognormal errors with a common ESU-level autoregressive trend plus unique independent shocks
 
 $$
 \begin{aligned}
-M_{jt} &= \widehat{M}_{jt} \, \text{exp}( \eta^\text{year}_{M,t} + \epsilon_{M,jt} )
+M_{jt} &= f( S_{jt} | \alpha_{jt}, M_{\text{max},j} ) \, 
+\text{exp}( \eta^\text{year}_{M,t} + \epsilon_{M,jt} )
 \\
 \eta^\text{year}_{M,t} &\sim N(\rho_{M} \eta^\text{year}_{M,t-1}, \sigma^\text{year}_{M}) 
 \\
@@ -92,7 +90,7 @@ $$
 
 ### Smolt-to-Adult Survival
 
-SAR
+The SAR process is modeled as logistic normal with an ESU-level autoregressive trend plus unique independent shocks
 
 $$
 \begin{aligned}
@@ -109,13 +107,14 @@ $$
 ### Conditional Age-at-Return
 
 Adult age structure is modeled by defining a vector of conditional probabilities,
-$\mathbf{p}_{jt} = [p_{3jt}, p_{4jt}, p_{5jt}] ^ \top$, where $p_{ajt}$ is the probability of an outmigrant in year $t$ in population $j$ returning at age $a$, given that it survives to adulthood. The unconditional probability is given by $s_{MS,jt} p{ajt}$, where both SAR and $p_a$ are functions of underlying annual marine survival and maturation probabilities that are nonidentifiable without some ancillary data. This parameterization resolves the nonidentifiability.
+$\mathbf{p}_{jt} = [p_{3jt}, p_{4jt}, p_{5jt}] ^ \top$, where $p_{ajt}$ is the probability of an outmigrant in year $t$ in population $j$ returning at age $a$, given that it survives to adulthood. The unconditional probability is given by $s_{MS,jt} p_{ajt}$, where both SAR and $p_a$ are functions of underlying annual marine survival and maturation probabilities that are nonidentifiable without some ancillary data. This parameterization resolves the nonidentifiability.
 
 The conditional age probabilities follow a logistic normal process model with hierarchical structure across populations and through time within each population. The additive log ratio,
 
 $$
 \text{alr}(\mathbf{p_{jt}}) = 
-[\text{log}(p_{3jt}/p_{5jt}), \text{log}(p_{4jt}/p_{5jt})] ^ \top
+\left[ \text{log} \left( \dfrac{p_{3jt}}{p_{5jt}} \right), 
+\text{log} \left( \dfrac{p_{4jt}}{p_{5jt}} \right) \right] ^ \top
 $$
 
 has a bivariate normal distribution:
