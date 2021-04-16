@@ -14,7 +14,7 @@ SR_eval <- function(alpha, Rmax = NULL, S, SR_fun)
 {
   switch(SR_fun,
          exp = alpha*S,
-         BH = alpha*S/(1 + alpha*S/Rmax),
+         BH = alpha*S/(1 + alpha*S/(Rmax)),
          Ricker = alpha*S*exp(-alpha*S/(exp(1)*Rmax)))
 }
 
@@ -24,7 +24,8 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
   # fecundity
   mu_E <- extract1(mod, "mu_E")
   ages <- substring(names(select(fish_data, starts_with("n_age"))), 6, 6)
-  # egg deposition
+  # egg deposition and egg-to-smolt survival
+  A <- fish_data$A
   q <- extract1(mod, "q")
   q_F <- extract1(mod, "q_F")
   mu_psi <- extract1(mod, "mu_psi")
@@ -35,11 +36,11 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
   mu_Mmax <- as.vector(extract1(mod, "mu_Mmax"))
   Mmax <- extract1(mod, "Mmax")
   S <- colMedians(extract1(mod, "S"))
-  S_grid <- matrix(seq(0, quantile(S/fish_data$A, 0.9, na.rm = TRUE), length = 100),
-                   nrow = length(mu_alpha), ncol = 100, byrow = TRUE)
-  M_ESU <- SR_eval(alpha = exp(mu_alpha), Rmax = exp(mu_Mmax)*1e3, S = S_grid, SR_fun = SR_fun)
+  SA_grid <- matrix(seq(0, quantile(S/A, 0.9, na.rm = TRUE), length = 100),
+                    nrow = length(mu_alpha), ncol = 100, byrow = TRUE)
+  M_ESU <- SR_eval(alpha = exp(mu_alpha), Rmax = exp(mu_Mmax)*1e3, S = SA_grid, SR_fun = SR_fun)
   M_pop <- sapply(1:ncol(Mmax), function(i) {
-    colMedians(SR_eval(alpha = alpha[,i], Rmax = Mmax[,i]*1e3, S = S_grid, SR_fun = SR_fun))
+    colMedians(SR_eval(alpha = alpha[,i], Rmax = Mmax[,i]*1e3, S = SA_grid, SR_fun = SR_fun))
   })
   # smolt recruitment process errors
   y <- sort(unique(fish_data$year))
@@ -100,24 +101,25 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
   
   plot(dd_ESU$x, dd_ESU$y, pch = "", lwd = 3, col = c1, las = 1, 
        xaxt = "n", yaxt = "n", cex.axis = 1.2, cex.lab = 1.5, 
-       xlab = bquote("Maximum smolt production (" * italic(M)[max] * ")"), ylab = "",
-       xlim = range(dd_ESU$x[dd_ESU$y > 0.01], sapply(dd_pop, function(m) range(m$x[m$y > 0.01]))),
-       ylim = range(dd_ESU$y, sapply(dd_pop, function(m) m$y)))
+       xlab = bquote("Maximum smolts" ~ km^-1 ~ "(" * italic(M)[max] * ")"), ylab = "",
+       xlim = range(dd_ESU$x[dd_ESU$y > 0.02], sapply(dd_pop, function(m) range(m$x[m$y > 0.02]))),
+       ylim = range(dd_ESU$y, sapply(dd_pop, function(m) m$y)), xpd = NA)
   polygon(dd_ESU, col = c1tt, border = NA)
   for(i in 1:length(dd_pop))
     lines(dd_pop[[i]]$x, dd_pop[[i]]$y, col = c1t)
   tck <- maglab(10^par("usr")[1:2], log = TRUE)
-  axis(1, at = log10(tck$labat), labels = tck$labat, cex.axis = 1.2)
+  axis(1, at = log10(tck$labat), labels = tck$labat, cex.axis = 1.2, hadj = 0.5)
   title(ylab = "Probability density", line = 1, cex.lab = 1.5)
   text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "C", cex = 1.5)
   
   # Spawner-recruit function
-  plot(S_grid[1,], colMedians(M_ESU)*1e-6, type = "l", lwd=3, col = c1, las = 1,
+  plot(SA_grid[1,], colMedians(M_ESU)*1e-6, type = "l", lwd=3, col = c1, las = 1,
        cex.axis = 1.2, cex.lab = 1.5, xaxs = "i", yaxs = "i",
-       ylim = range(M_pop*1e-6), xlab = "Spawners", ylab = "Smolts (millions)")
+       ylim = range(M_pop*1e-6), xlab = bquote("Spawner density (" * km^-1 * ")"), 
+       ylab = bquote("Smolt density (" * 10^6 ~ km^-1 * ")"))
   for(i in 1:ncol(M_pop)) 
-    lines(S_grid[1,], M_pop[,i]*1e-6, col = c1t)
-  polygon(c(S_grid[1,], rev(S_grid[1,])), 
+    lines(SA_grid[1,], M_pop[,i]*1e-6, col = c1t)
+  polygon(c(SA_grid[1,], rev(SA_grid[1,])), 
           c(colQuantiles(M_ESU, probs = 0.05), rev(colQuantiles(M_ESU, probs = 0.95)))*1e-6, 
           col = c1tt, border = NA)
   rug(S, col = c1t)
@@ -192,24 +194,25 @@ LCRchumIPM_SR_plot <- function(mod, SR_fun, fish_data, save_plot = FALSE,
            M_U = colQuantiles(M, probs = 0.95), M = colMedians(M), f = colMedians(f))
   
   gg <- expand_grid(pop = 1:ncol(alpha), iter = 1:nrow(alpha)) %>% 
-    cbind(alpha = as.vector(alpha), Mmax = as.vector(Mmax)) %>%
-    expand_grid(S = seq(0, quantile(dat$S, 0.99), length = 100)) %>% 
     mutate(pop = factor(levels(fish_data$pop)[pop], levels = levels(fish_data$pop)),
-           M = SR_eval(alpha = alpha, Rmax = Mmax*1e3, S = S, SR_fun = SR_fun)*1e-6) %>% 
+           alpha = as.vector(alpha), Mmax = as.vector(Mmax), 
+           Sadj = tapply(dat$S, dat$pop, function(x) max(x)*1.5)[pop],
+           Smax = tapply(dat$S_U, dat$pop, max)[pop]) %>%
+    group_by(pop, iter, alpha, Mmax) %>% summarize(S = seq(0, min(Sadj,Smax), length = 100)) %>% 
+    mutate(M = SR_eval(alpha = alpha, Rmax = Mmax*1e3, S = S, SR_fun = SR_fun)*1e-6) %>% 
     group_by(pop,S) %>% summarize(L = quantile(M,0.05), U = quantile(M,0.95), M = median(M)) %>%
     ggplot(aes(x = S, y = M)) +
     geom_ribbon(aes(ymin = L, ymax = U), fill = "slategray4", alpha = 0.5) +
     geom_line(col = "slategray4", alpha = 0.7, lwd = 1) +
-    geom_pointrange(aes(x = S, y = M, ymin = M_L, ymax = M_U), data = dat, 
+    geom_pointrange(aes(x = S, y = M, ymin = M_L, ymax = M_U), data = dat,
                     pch = 16, fatten = 3, col = "slategray4", alpha = 0.7) +
-    geom_errorbarh(aes(y = M, xmin = S_L, xmax = S_U), data = dat, 
-                   col = "slategray4", alpha = 0.7) +
+    # geom_errorbarh(aes(y = M, xmin = S_L, xmax = S_U), data = dat,
+    #                col = "slategray4", alpha = 0.7) +
     geom_pointrange(aes(x = S_obs, y = M_obs, ymin = M_obs_L, ymax = M_obs_U), data = dat,
                     pch = 16, fatten = 3, alpha = 0.7) +
     geom_errorbarh(aes(y = M_obs, xmin = M_obs_L, xmax = M_obs_U), data = dat, alpha = 0.7) +
-    scale_x_continuous(expand = expansion(0,0)) + coord_cartesian(xlim = c(0, max(dat$S)*1.1)) +
-    labs(x = "Spawners", y = "Smolts (millions)") +
-    facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) +
+    scale_x_continuous(expand = expansion(0,0)) + labs(x = "Spawners", y = "Smolts") +
+    facet_wrap(vars(pop), ncol = 4, scales = "free") + theme_bw(base_size = 16) +
     theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank(),
           strip.background = element_rect(fill = NA))
 

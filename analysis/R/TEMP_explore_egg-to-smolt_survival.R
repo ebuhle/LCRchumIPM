@@ -76,7 +76,8 @@ as.data.frame(t(as.matrix(mod,"Mmax"))) %>% mutate(pop = sort(unique(fish_data_S
   scale_x_log10(limits = c(NA, 1e5), # how to automate xlim?
                 breaks = scales::trans_breaks("log10", function(x) 10^x), 
                 labels = scales::trans_format("log10", scales::math_format(10^.x))) + 
-  scale_y_continuous(breaks = NULL) + labs(x = bquote(italic(M)[max]), y = "Density") +
+  scale_y_continuous(breaks = NULL) + 
+  labs(x = bquote(italic(M)[max] ~ "(" * km^-1 * ")"), y = "Density") +
   facet_wrap(vars(pop), ncol = 4, scales = "free_y") + theme_bw(base_size = 14) +
   theme(panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank())
 
@@ -93,7 +94,8 @@ as.data.frame(mod,c("psi","Mmax")) %>%
   scale_y_log10(limits = c(NA, 1e6), # how to automate xlim?
                 breaks = scales::trans_breaks("log10", function(x) 10^x), 
                 labels = scales::trans_format("log10", scales::math_format(10^.x))) + 
-  scale_x_continuous(limits = c(0,1)) + labs(x = bquote(psi), y = bquote(italic(M)[max])) +
+  scale_x_continuous(limits = c(0,1)) + 
+  labs(x = bquote(psi), y = bquote(italic(M)[max] ~ "(" * km^-1 * ")")) +
   facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 14) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 
