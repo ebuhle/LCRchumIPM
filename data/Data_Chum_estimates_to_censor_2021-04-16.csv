@@ -1,0 +1,21 @@
+Population,Brood_Yr,Estimate,Censored_data_file,Censored_R_Script,Reason for censoring
+Duncan_Channel,2001,Adult,Y,NA,Lots of problems; currently not in dataset
+Duncan_Channel,2001,Juvenile,Y,NA,Lots of problems; currently not in dataset
+Duncan_Channel,2002,Adult,N,N,Extremely low water; pulled females into hatchery
+Duncan_Channel,2002,Juvenile,N,N,Late start trapping; see problems w/ adults
+Grays_MS,2009,Adult,Y,NA,Min. # (biased low)
+Hamilton_Channel,2011,Adult,N,Y,Carcass washout problem (bad estimate)
+Hamilton_Channel,2012,Adult,N,Y,Carcass washout problem (bad estimate)
+Hardy_Creek,2008,Adult,N,N,Min. # (biased low)
+Hardy_Creek,2015,Adult,Y,NA,Min. # (biased low)
+Hardy_Creek,2017,Adult,N,N,Min. # (biased low)
+Horsetail,2005,Adult,N,N,Min. # (biased low)
+Horsetail,2009,Adult,N,N,Min. # (biased low)
+Horsetail,2012,Adult,N,N,Min. # (biased low)
+Horsetail,2015,Adult,N,N,Min. # (biased low)
+St_Cloud,2002,Adult,N,N,Min. # (biased low)
+St_Cloud,2007,Adult,N,N,Min. # (biased low)
+St_Cloud,2008,Adult,N,N,Min. # (biased low)
+St_Cloud,2012,Adult,Y,NA,Min. # (biased low)
+,,,,,
+,,,,,
