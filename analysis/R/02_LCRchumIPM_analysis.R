@@ -202,13 +202,13 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 
 #--------------------------------------------------------------------
 # Life-cycle multiplot
-# S-R curves (spawners to smolts)
 # Posterior distributions of fecundity, survival and Mmax parameters
+# Reconstructed S-R curve (spawners to smolts)
 # Time series of smolt productivity process errors and SAR
 #--------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr multiplot
 LCRchumIPM_multiplot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2], 
@@ -216,12 +216,25 @@ LCRchumIPM_multiplot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][
                      filename = here("analysis","results",paste0("multiplot_",mod_name,".png")))
 ## @knitr
 
+#--------------------------------------------------------------------
+# Spawner-to-smolt S-R curve for each pop with data and states
+#--------------------------------------------------------------------
+
+# mod_name <- "LCRchum_Ricker"
+# save_plot <- FALSE
+# 
+# ## @knitr SR_plot
+# LCRchumIPM_SR_plot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2], 
+#                      fish_data = fish_data_SMS, save_plot = save_plot,
+#                      filename = here("analysis","results",paste0("SR_",mod_name,".png")))
+# ## @knitr
+
 #--------------------------------------------------------------------------------
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-life_stage <- "S"   # "S" = spawners, "M" = smolts
+life_stage <- "M"   # "S" = spawners, "M" = smolts
 save_plot <- TRUE
 
 ## @knitr plot_spawner_smolt_ts
@@ -275,7 +288,7 @@ LCRchumIPM_p_HOS_timeseries(mod = get(mod_name), fish_data = fish_data_SMS,
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_fecundity_fit
 LCRchumIPM_fecundity_plot(get(mod_name), fish_data = fish_data_SMS, fecundity_data = fecundity_data,

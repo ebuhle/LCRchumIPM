@@ -22,6 +22,18 @@ library(here)
 # Start dates of hatcheries associated with populations
 hatcheries <- read.csv(here("data","Hatchery_Programs.csv"), header = TRUE, stringsAsFactors = TRUE)
 
+# Habitat size data (currently stream length)
+# Assumptions:
+# (1) Duncan Creek should really be Duncan Channel
+# (2) 2020 is missing; assume same as 2019
+habitat_data <- read.csv(here("data","Data_Habitat_Spawning_Linear_2021-04-15.csv"),
+                         header = TRUE, stringsAsFactors = FALSE) %>% 
+  rename(year = Return.Yr., strata = Strata, pop = Location.Reach, mi = Habitat_Length_miles) %>% 
+  complete(nesting(strata, pop), year = min(year):2020) %>%
+  mutate(pop = gsub("Duncan Creek", "Duncan Channel", gsub("I205", "I-205", gsub("_", " ", pop))), 
+         mi = replace(mi, is.na(mi), mi[which(is.na(mi)) - 1]), km = mi*1.6) %>%  # convert to km
+  select(strata, pop, year, km) %>% arrange(strata, pop, year)
+  
 # Spawner abundance data
 # Assumptions:
 # (0) Fix coding error in data that assigns some Duncan Creek rows to Cascade stratum
@@ -143,9 +155,10 @@ fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("strata","pop","ye
   full_join({ complete(select(filter(., strata == "Coastal"), c(strata,pop,year)), 
                        pop, year, fill = list(strata = "Coastal")) },
             by = c("strata","pop","year")) %>%
+  left_join(habitat_data, by = c("strata","pop","year")) %>% 
   rename_at(vars(contains("Age-")), list(~ paste0(sub("Age-","n_age",.), "_obs"))) %>% 
   select(-c(n_age2_obs, n_age6_obs)) %>% 
-  rename(n_H_obs = H, n_W_obs = W, n_M_obs = M, n_F_obs= `F`) %>% 
+  rename(A = km, n_H_obs = H, n_W_obs = W, n_M_obs = M, n_F_obs= `F`) %>% 
   mutate_at(vars(contains("n_")), ~ replace(., is.na(.), 0)) %>% 
   filter(!grepl("Hatchery|Duncan Creek", pop)) %>% 
   mutate(strata = factor(strata, levels = c("Gorge","Cascade","Coastal")),
@@ -153,7 +166,7 @@ fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("strata","pop","ye
          S_obs = replace(S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          tau_S_obs = replace(tau_S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0),
-         A = 1, fit_p_HOS = NA, F_rate = 0) %>%
+         fit_p_HOS = NA, F_rate = 0) %>%
   select(strata, pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_F_obs, 
          fit_p_HOS, B_take_obs, F_rate) %>% arrange(strata, pop, year) 
 
