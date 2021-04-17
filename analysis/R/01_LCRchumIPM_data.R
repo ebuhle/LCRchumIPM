@@ -19,6 +19,13 @@ library(here)
 
 ## @knitr data
 
+# List of "bad" or questionable observations
+bad_data <- read.csv(here("data","Data_Chum_estimates_to_censor_2021-04-16.csv"), 
+                     header = TRUE, stringsAsFactors = FALSE) %>% 
+  rename(pop = Population) %>% filter(pop != "") %>%  # there are bad data in the bad data
+  mutate(pop = gsub("_", " ", pop), Censored_data_file = Censored_data_file == "Y", 
+         Censored_R_Script = Censored_R_Script == "Y")
+
 # Start dates of hatcheries associated with populations
 hatcheries <- read.csv(here("data","Hatchery_Programs.csv"), header = TRUE, stringsAsFactors = TRUE)
 
