@@ -82,11 +82,11 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
   legend("topright", paste("age", ages, "  "), cex = 1.2, fill = ac, border = NA,
          bty = "n", inset = c(-0.05,0))
   
-  # Posterior distribution of non-green female fecundity offset
+  # Posterior distribution of non-green female fecundity discount
   dd_NG <- density(delta_NG)
   
   plot(dd_NG, type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
-       xlab = bquote("Non-green fecundity offset (" * delta[NG] * ")"), ylab = "", main = "",
+       xlab = bquote("Non-green fecundity discount (" * delta[NG] * ")"), ylab = "", main = "",
        xlim = c(0,1), xaxs = "i", yaxt = "n", xpd = NA)
   polygon(dd_NG, col = c1tt, border = NA)
   text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "B", cex = 1.5)
