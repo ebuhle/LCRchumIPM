@@ -24,6 +24,7 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
   # fecundity
   mu_E <- extract1(mod, "mu_E")
   ages <- substring(names(select(fish_data, starts_with("n_age"))), 6, 6)
+  delta_NG <- extract1(mod, "delta_NG")
   # egg deposition and egg-to-smolt survival
   A <- fish_data$A
   q <- extract1(mod, "q")
@@ -61,10 +62,10 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
   ac <- viridis(length(ages), end = 0.8, direction = -1, alpha = 0.5) 
 
   if(save_plot) {
-    png(filename=filename, width=7, height=8, units="in", res=300, type="cairo-png")
-  } else dev.new(width = 7, height = 8)
+    png(filename=filename, width=12, height=5.5, units="in", res=300, type="cairo-png")
+  } else dev.new(width = 12, height = 5.5)
   
-  par(mfcol = c(3,2), mar = c(5.1,5.1,1,1.5))
+  par(mfrow = c(2,4), mar = c(5.1,5.1,1,0.5), oma = c(0,0,0,1))
   
   # Posterior distributions of fecundity by age
   dd_age <- lapply(as.data.frame(mu_E), density)
@@ -76,10 +77,19 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
        xaxs = "i", yaxt = "n")
   for(a in 1:length(ages))
     polygon(dd_age[[a]], col = ac[a], border = NA)
-  title(ylab = "Probability density", line = 1, cex.lab = 1.5)
+  title(ylab = "Probability density", line = 2, cex.lab = 1.5)
   text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "A", cex = 1.5)
   legend("topright", paste("age", ages, "  "), cex = 1.2, fill = ac, border = NA,
          bty = "n", inset = c(-0.05,0))
+  
+  # Posterior distribution of non-green female fecundity discount
+  dd_NG <- density(delta_NG)
+  
+  plot(dd_NG, type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
+       xlab = bquote("Non-green fecundity discount (" * delta[NG] * ")"), ylab = "", main = "",
+       xlim = c(0,1), xaxs = "i", yaxt = "n", xpd = NA)
+  polygon(dd_NG, col = c1tt, border = NA)
+  text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "B", cex = 1.5)
   
   # Posterior densities of psi
   dd_ESU <- density(mu_psi)
@@ -88,12 +98,11 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
   plot(dd_ESU$x, dd_ESU$y, pch = "", lwd = 3, col = c1, las = 1, 
        xaxs = "i", yaxt = "n", cex.axis = 1.2, cex.lab = 1.5, 
        xlab = bquote("Maximum egg-to-smolt survival (" * psi * ")"), ylab = "",
-       xlim = c(0,1), ylim = range(dd_ESU$y, sapply(dd_pop, function(m) m$y)))
+       xlim = c(0,1), ylim = range(dd_ESU$y, sapply(dd_pop, function(m) m$y)), xpd = NA)
   polygon(dd_ESU, col = c1tt, border = NA)
   for(i in 1:length(dd_pop))
     lines(dd_pop[[i]]$x, dd_pop[[i]]$y, col = c1t)
-  title(ylab = "Probability density", line = 1, cex.lab = 1.5)
-  text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "B", cex = 1.5)
+  text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "C", cex = 1.5)
   
   # Posterior densities of log(Mmax)
   dd_ESU <- density(mu_Mmax * log10(exp(1)))  # convert to base 10
@@ -109,8 +118,7 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
     lines(dd_pop[[i]]$x, dd_pop[[i]]$y, col = c1t)
   tck <- maglab(10^par("usr")[1:2], log = TRUE)
   axis(1, at = log10(tck$labat), labels = tck$labat, cex.axis = 1.2, hadj = 0.5)
-  title(ylab = "Probability density", line = 1, cex.lab = 1.5)
-  text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "C", cex = 1.5)
+  text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "D", cex = 1.5)
   
   # Spawner-recruit function
   plot(SA_grid[1,], colMedians(M_ESU)*1e-6, type = "l", lwd=3, col = c1, las = 1,
@@ -123,7 +131,21 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
           c(colQuantiles(M_ESU, probs = 0.05), rev(colQuantiles(M_ESU, probs = 0.95)))*1e-6, 
           col = c1tt, border = NA)
   rug(S, col = c1t)
-  text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "D", cex = 1.5)
+  text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "E", cex = 1.5)
+  
+  # Smolts-per-spawner function
+  plot(SA_grid[1,], colMedians(M_ESU)/SA_grid[1,], type = "l", lwd=3, col = c1, las = 1,
+       cex.axis = 1.2, cex.lab = 1.5, xaxs = "i", yaxs = "i", 
+       ylim = range(sweep(M_pop[-1,], 1, SA_grid[1,-1], "/")), 
+       xlab = bquote("Spawner density (" * km^-1 * ")"), ylab = "Smolts per spawner")
+  for(i in 1:ncol(M_pop)) 
+    lines(SA_grid[1,], M_pop[,i]/SA_grid[1,], col = c1t)
+  polygon(c(SA_grid[1,], rev(SA_grid[1,])), 
+          c(colQuantiles(M_ESU, probs = 0.05)/SA_grid[1,], 
+            rev(colQuantiles(M_ESU, probs = 0.95)/SA_grid[1,])), 
+          col = c1tt, border = NA)
+  rug(S, col = c1t)
+  text(par("usr")[2], par("usr")[4], adj = c(1.5,1.5), "F", cex = 1.5)
   
   # Smolt recruitment process errors
   plot(y, colMedians(eta_year_M), type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
@@ -140,7 +162,7 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
     lines(fish_data$year[fish_data$pop == j], colMedians(error_M[,fish_data$pop == j]), col = c1t)
   axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
   rug(y[y %% 5 != 0], ticksize = -0.02)
-  text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "E", cex = 1.5)
+  text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "G", cex = 1.5)
   
   # SAR
   plot(y, colMedians(s_hat_MS)*100, type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
@@ -156,7 +178,7 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
     lines(fish_data$year[fish_data$pop == j], colMedians(s_MS[,fish_data$pop == j])*100, col = c1t)
   axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
   rug(y[y %% 5 != 0], ticksize = -0.02)
-  text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "F", cex = 1.5)
+  text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "H", cex = 1.5)
   
   if(save_plot) dev.off()
 }
