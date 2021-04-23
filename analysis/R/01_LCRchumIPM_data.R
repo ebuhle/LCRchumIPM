@@ -118,6 +118,17 @@ bio_data_sex <- bio_data %>%
   dcast(year + strata + disposition ~ sex, value.var = "count", fun.aggregate = sum) %>% 
   rename(pop = disposition) %>% select(year:pop, M, `F`)
 
+# Proportion of "green" females in Duncan Channel
+# Non-green (ripe or partial) females are assumed to have lower fecundity
+# Proportion green females outside Duncan Channel assumed to = 1
+# https://github.com/mdscheuerell/chumIPM/issues/5
+green_female_data <- read.csv(here("data","Data_Duncan_Females_by_Condition_2021-04-19.csv"),
+                              header = TRUE, stringsAsFactors = FALSE) %>% 
+  rename(year = BY, disposition = Channel_Disposition, sex = Sex, condition = Condition,
+         N = Qty, comment = Comment) %>% 
+  dcast(year ~ condition, value.var = "N", fun.aggregate = sum) %>% 
+  mutate(pop = "Duncan Channel", p_G_obs = Green / (Green + Ripe + Partial))
+
 # Juvenile abundance data
 # Assumptions:
 # (1) Duncan_North + Duncan_South = Duncan_Channel, so the former two are redundant 
@@ -163,9 +174,10 @@ fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("strata","pop","ye
                        pop, year, fill = list(strata = "Coastal")) },
             by = c("strata","pop","year")) %>%
   left_join(habitat_data, by = c("strata","pop","year")) %>% 
+  left_join(green_female_data, by = c("pop","year")) %>% 
   rename_at(vars(contains("Age-")), list(~ paste0(sub("Age-","n_age",.), "_obs"))) %>% 
   select(-c(n_age2_obs, n_age6_obs)) %>% 
-  rename(A = km, n_H_obs = H, n_W_obs = W, n_M_obs = M, n_F_obs= `F`) %>% 
+  rename(A = km, n_H_obs = H, n_W_obs = W, n_M_obs = M, n_F_obs= `F`) %>% ## put w/ data sets
   mutate_at(vars(contains("n_")), ~ replace(., is.na(.), 0)) %>% 
   filter(!grepl("Hatchery|Duncan Creek", pop)) %>% 
   mutate(strata = factor(strata, levels = c("Gorge","Cascade","Coastal")),
@@ -173,9 +185,9 @@ fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("strata","pop","ye
          S_obs = replace(S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          tau_S_obs = replace(tau_S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0),
-         fit_p_HOS = NA, F_rate = 0) %>%
+         p_G_obs = replace(p_G_obs, is.na(p_G_obs), 1), fit_p_HOS = NA, F_rate = 0) %>%
   select(strata, pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_F_obs, 
-         fit_p_HOS, B_take_obs, F_rate) %>% arrange(strata, pop, year) 
+         p_G_obs, fit_p_HOS, B_take_obs, F_rate) %>% arrange(strata, pop, year) 
 
 # fill in fit_p_HOS
 for(i in 1:nrow(fish_data)) {
