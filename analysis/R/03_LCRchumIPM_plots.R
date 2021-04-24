@@ -73,8 +73,8 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
   plot(dd_age[[1]]$x, dd_age[[1]]$y, pch = "", las = 1, cex.axis = 1.2, cex.lab = 1.5,
        xlab = bquote("Mean fecundity (" * mu[italic(E)] * ")"), ylab = "", 
        xlim = range(sapply(dd_age, function(m) m$x)),
-       ylim = range(sapply(dd_age, function(m) m$y)),
-       xaxs = "i", yaxt = "n")
+       ylim = range(sapply(dd_age, function(m) m$y))*1.02,
+       xaxs = "i", yaxs = "i", yaxt = "n")
   for(a in 1:length(ages))
     polygon(dd_age[[a]], col = ac[a], border = NA)
   title(ylab = "Probability density", line = 2, cex.lab = 1.5)
@@ -86,8 +86,8 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
   dd_NG <- density(delta_NG)
   
   plot(dd_NG, type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
-       xlab = bquote("Non-green fecundity discount (" * delta[NG] * ")"), ylab = "", main = "",
-       xlim = c(0,1), xaxs = "i", yaxt = "n", xpd = NA)
+       xlab = bquote("Non-green fecundity discount (" * delta[NG] * ")"), ylab = "", main = "", 
+       xlim = c(0,1), ylim = range(dd_NG$y)*1.02, xaxs = "i", yaxs = "i", yaxt = "n", xpd = NA)
   polygon(dd_NG, col = c1tt, border = NA)
   text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "B", cex = 1.5)
   
@@ -96,9 +96,9 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
   dd_pop <- lapply(as.data.frame(psi), density)
   
   plot(dd_ESU$x, dd_ESU$y, pch = "", lwd = 3, col = c1, las = 1, 
-       xaxs = "i", yaxt = "n", cex.axis = 1.2, cex.lab = 1.5, 
+       xaxs = "i", yaxs = "i", yaxt = "n", cex.axis = 1.2, cex.lab = 1.5, 
        xlab = bquote("Maximum egg-to-smolt survival (" * psi * ")"), ylab = "",
-       xlim = c(0,1), ylim = range(dd_ESU$y, sapply(dd_pop, function(m) m$y)), xpd = NA)
+       xlim = c(0,1), ylim = range(dd_ESU$y, sapply(dd_pop, function(m) m$y))*1.02, xpd = NA)
   polygon(dd_ESU, col = c1tt, border = NA)
   for(i in 1:length(dd_pop))
     lines(dd_pop[[i]]$x, dd_pop[[i]]$y, col = c1t)
@@ -109,10 +109,10 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
   dd_pop <- lapply(as.data.frame(log10(Mmax)), density)
   
   plot(dd_ESU$x, dd_ESU$y, pch = "", lwd = 3, col = c1, las = 1, 
-       xaxt = "n", yaxt = "n", cex.axis = 1.2, cex.lab = 1.5, 
+       xaxt = "n", yaxt = "n", yaxs = "i", cex.axis = 1.2, cex.lab = 1.5, 
        xlab = bquote("Maximum smolts" ~ km^-1 ~ "(" * italic(M)[max] * ")"), ylab = "",
        xlim = range(dd_ESU$x[dd_ESU$y > 0.02], sapply(dd_pop, function(m) range(m$x[m$y > 0.02]))),
-       ylim = range(dd_ESU$y, sapply(dd_pop, function(m) m$y)), xpd = NA)
+       ylim = range(dd_ESU$y, sapply(dd_pop, function(m) m$y))* 1.02, xpd = NA)
   polygon(dd_ESU, col = c1tt, border = NA)
   for(i in 1:length(dd_pop))
     lines(dd_pop[[i]]$x, dd_pop[[i]]$y, col = c1t)
