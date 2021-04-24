@@ -64,28 +64,43 @@ spawner_data <- read.csv(here("data","Data_Abundance_Spawners_Chum_2021-04-06.cs
 
 # broodstock take: 
 # all spawners taken from a given location to a different disposition
-# (summarized by location)
+# (summarized by *location*)
 broodstock_data <- spawner_data %>% group_by(strata, location, year) %>% 
   summarize(B_take_obs = sum(S_obs[disposition != location])) %>% 
   rename(pop = location) %>% as.data.frame()
+
+# added (translocated) spawners:
+# all spawners taken to a given disposition from a different location
+# (summarized by *disposition*)
+translocation_data <- spawner_data %>% group_by(strata, disposition, year) %>% 
+  summarize(S_add_obs = sum(S_obs[disposition != location])) %>% 
+  rename(pop = disposition) %>% as.data.frame()
 
 # total spawners:
 # all spawners with a given disposition, regardless of original return location
 # (summarized by disposition)
 spawner_data_agg <- spawner_data %>% group_by(strata, disposition, year) %>% 
   summarize(S_obs = sum(S_obs), tau_S_obs = unique(tau_S_obs)) %>% 
-  rename(pop = disposition) %>% left_join(broodstock_data, by = c("strata","pop","year")) %>% 
-  mutate(B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0)) %>% as.data.frame()
+  rename(pop = disposition) %>% 
+  left_join(broodstock_data, by = c("strata","pop","year")) %>% 
+  left_join(translocation_data, by = c("strata","pop","year")) %>% 
+  mutate(B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0),
+         S_add_obs = replace(S_add_obs, is.na(S_add_obs), 0)) %>% as.data.frame()
 
 # Spawner age-, sex-, and origin-frequency (aka BioData)
 # Assumptions:
 # (0) Fix coding error in data that assigns some Duncan Creek rows to Cascade stratum
-# (1) The current generation of salmonIPM models must treat any known nonlocal-origin
+# (1) The first generation of salmonIPM models must treat any known nonlocal-origin
 #     spawner as "hatchery-origin" to avoid counting as local recruitment, so "H"
 #     includes true hatchery fish based on origin *plus* any whose known origin 
 #     or return location do not match their disposition *unless* they are NOR or
 #     Duncan Channel fish returning to Duncan Creek and disposed to Duncan Channel,
 #     which are in fact local recruitment.
+# (1b) The development version of IPM_LCRchum_pp allows S_add_obs to represent 
+#     nonlocal natural spawners (of known or unknown origin) translocated from
+#     return location to another disposition (i.e., Duncan Channel).
+#     So "H" now includes true hatchery fish based on origin *plus* any others whose
+#     known origin (i.e., Duncan Channel) does not match the disposition.
 bio_data <- read.csv(here("data","Data_BioData_Spawners_Chum_2021-04-06.csv"), 
                      header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(year = Return.Yr., strata = Strata, location = Location.Reach, 
@@ -95,10 +110,7 @@ bio_data <- read.csv(here("data","Data_BioData_Spawners_Chum_2021-04-06.csv"),
          origin = gsub("_", " ", origin),
          strata = replace(strata, disposition == "Duncan Channel" & strata != "Gorge", "Gorge"),
          count = replace(count, is.na(count), 0), sex = substring(sex,1,1),
-         HW = ifelse((grepl("Hatchery", origin) | location != disposition | 
-                        (origin != disposition & origin != "Natural spawner")) &
-                       !(origin %in% c("Duncan Channel","Natural spawner") & 
-                           location == "Duncan Creek" & disposition == "Duncan Channel"), 
+         HW = ifelse((grepl("Hatchery", origin) | (origin != disposition & origin != "Natural spawner")), 
                      "H", "W")) %>% 
   select(year:location, disposition, origin, HW, sex:count) %>%
   arrange(strata, location, year, origin, age, sex)
@@ -185,9 +197,10 @@ fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("strata","pop","ye
          S_obs = replace(S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          tau_S_obs = replace(tau_S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0),
+         S_add_obs = replace(S_add_obs, is.na(S_add_obs), 0),
          p_G_obs = replace(p_G_obs, is.na(p_G_obs), 1), fit_p_HOS = NA, F_rate = 0) %>%
   select(strata, pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_F_obs, 
-         p_G_obs, fit_p_HOS, B_take_obs, F_rate) %>% arrange(strata, pop, year) 
+         p_G_obs, fit_p_HOS, B_take_obs, S_add_obs, F_rate) %>% arrange(strata, pop, year) 
 
 # fill in fit_p_HOS
 for(i in 1:nrow(fish_data)) {
