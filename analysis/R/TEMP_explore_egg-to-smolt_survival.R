@@ -49,7 +49,7 @@ hist(mu_psi, 20)
 hist(qlogis(mu_psi), 20)
 
 # posterior distributions of model-fitted pop-level psi
-dev.new(width = 11, height = 7)
+dev.new(width = 10, height = 7)
 as.data.frame(t(as.matrix(mod,"psi"))) %>% mutate(pop = sort(unique(fish_data_SMS$pop))) %>% 
   pivot_longer(cols = starts_with("V"), names_to = "iter", names_prefix = "V",
                values_to = "psi") %>% 
@@ -64,7 +64,7 @@ as.data.frame(t(as.matrix(mod,"psi"))) %>% mutate(pop = sort(unique(fish_data_SM
   theme(panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank())
 
 # posterior distributions of model-fitted pop-level Mmax
-dev.new(width = 11, height = 7)
+dev.new(width = 10, height = 7)
 as.data.frame(t(as.matrix(mod,"Mmax"))) %>% mutate(pop = sort(unique(fish_data_SMS$pop))) %>% 
   pivot_longer(cols = starts_with("V"), names_to = "iter", names_prefix = "V",
                values_to = "Mmax") %>% 

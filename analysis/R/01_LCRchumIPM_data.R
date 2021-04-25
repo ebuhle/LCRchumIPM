@@ -64,16 +64,22 @@ spawner_data <- read.csv(here("data","Data_Abundance_Spawners_Chum_2021-04-06.cs
 
 # broodstock take: 
 # all spawners taken from a given location to a different disposition
+# unless location is Duncan Creek and disposition is Duncan Channel,
+# which is considered natural recruitment
 # (summarized by *location*)
 broodstock_data <- spawner_data %>% group_by(strata, location, year) %>% 
-  summarize(B_take_obs = sum(S_obs[disposition != location])) %>% 
+  summarize(B_take_obs = sum(S_obs[disposition != location & 
+                                     !(location == "Duncan Creek" & disposition == "Duncan Channel")])) %>% 
   rename(pop = location) %>% as.data.frame()
 
 # added (translocated) spawners:
-# all spawners taken to a given disposition from a different location
+# all spawners brought to a given disposition from a different location
+# unless disposition is Duncan Channel and location is Duncan Creek,
+# which is considered natural recruitment
 # (summarized by *disposition*)
 translocation_data <- spawner_data %>% group_by(strata, disposition, year) %>% 
-  summarize(S_add_obs = sum(S_obs[disposition != location])) %>% 
+  summarize(S_add_obs = sum(S_obs[disposition != location & 
+                                    !(location == "Duncan Creek" & disposition == "Duncan Channel")])) %>% 
   rename(pop = disposition) %>% as.data.frame()
 
 # total spawners:
@@ -110,7 +116,7 @@ bio_data <- read.csv(here("data","Data_BioData_Spawners_Chum_2021-04-06.csv"),
          origin = gsub("_", " ", origin),
          strata = replace(strata, disposition == "Duncan Channel" & strata != "Gorge", "Gorge"),
          count = replace(count, is.na(count), 0), sex = substring(sex,1,1),
-         HW = ifelse((grepl("Hatchery", origin) | (origin != disposition & origin != "Natural spawner")), 
+         HW = ifelse((grepl("Hatchery", origin) | !(origin %in% c(disposition, "Natural spawner"))), 
                      "H", "W")) %>% 
   select(year:location, disposition, origin, HW, sex:count) %>%
   arrange(strata, location, year, origin, age, sex)

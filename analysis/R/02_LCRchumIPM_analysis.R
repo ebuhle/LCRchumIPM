@@ -90,7 +90,7 @@ LCRchum_exp <- salmonIPM(fish_data = fish_data_SMS,  fecundity_data = fecundity_
                          pars = c("B_rate_all","mu_Emax","sigma_Emax","Emax"), 
                          include = FALSE, log_lik = TRUE, 
                          chains = 3, iter = 1500, warmup = 500,
-                         control = list(adapt_delta = 0.99, max_treedepth = 15))
+                         control = list(adapt_delta = 0.99, max_treedepth = 14))
 
 ## @knitr print_LCRchum_exp
 print(LCRchum_exp, prob = c(0.025,0.5,0.975),
@@ -105,7 +105,7 @@ LCRchum_BH <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundity_da
                         ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "BH",
                         pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
                         chains = 3, iter = 1500, warmup = 500,
-                        control = list(adapt_delta = 0.95, max_treedepth = 13))
+                        control = list(adapt_delta = 0.99, max_treedepth = 14))
 
 ## @knitr print_LCRchum_BH
 print(LCRchum_BH, prob = c(0.025,0.5,0.975),
@@ -120,7 +120,7 @@ LCRchum_Ricker <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundit
                             ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
                             pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
                             chains = 3, iter = 1500, warmup = 500,
-                            control = list(adapt_delta = 0.95, max_treedepth = 14))
+                            control = list(adapt_delta = 0.99, max_treedepth = 14))
 
 ## @knitr print_LCRchum_Ricker
 print(LCRchum_Ricker, prob = c(0.025,0.5,0.975),
@@ -208,7 +208,7 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 #--------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr multiplot
 LCRchumIPM_multiplot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2], 
@@ -234,7 +234,7 @@ LCRchumIPM_multiplot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-life_stage <- "S"   # "S" = spawners, "M" = smolts
+life_stage <- "M"   # "S" = spawners, "M" = smolts
 save_plot <- TRUE
 
 ## @knitr plot_spawner_smolt_ts
@@ -274,7 +274,7 @@ LCRchumIPM_sex_timeseries(mod = get(mod_name), fish_data = fish_data_SMS,
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_p_HOS_ts
 LCRchumIPM_p_HOS_timeseries(mod = get(mod_name), fish_data = fish_data_SMS, 
@@ -297,7 +297,6 @@ LCRchumIPM_fecundity_plot(get(mod_name), fish_data = fish_data_SMS, fecundity_da
 ## @knitr
 
 #--------------------------------------------------------------------------------
-# Lower Columbia chum spawner-egg-smolt-spawner #
 # Observed and fitted distributions of "known" smolt and spawner 
 # observation error SDs
 #--------------------------------------------------------------------------------
