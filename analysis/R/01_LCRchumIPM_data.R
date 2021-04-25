@@ -268,6 +268,26 @@ fecundity_data <- fecundity %>%
   filter(age_E %in% 3:5 & !is.na(E_obs) & !is.na(reproductive_effort) & reproductive_effort > 16) %>% 
   mutate(strata = recode(stock, Grays = "Coastal", `I-205` = "Cascade", `Lower Gorge` = "Gorge")) %>% 
   select(strata, year, ID, age_E, E_obs) %>% arrange(strata, year, age_E) 
+
+# Environmental covariates
+# PDO
+PDO_data <- read.csv(file = "https://www.ncdc.noaa.gov/teleconnections/pdo/data.csv",
+                     header = TRUE, skip = 1, stringsAsFactors = FALSE) %>% 
+  separate(Date, into = c("year","month"), sep = 4, convert = TRUE) %>% 
+  rename(PDO = Value) %>% group_by(year) %>% summarize(PDO = mean(PDO)) %>% 
+  as.data.frame() %>% arrange(year)
+
+# NPGO
+NPGO_data <- read.csv(file = "http://www.o3d.org/npgo/npgo.php", comment.char = "#", 
+                      stringsAsFactors = FALSE) %>% 
+  tail(nrow(.) - 2) %>% head(nrow(.) - 3) %>% # drop html tags in first 2 & last 3 rows
+  rename(X = X.html.) %>% mutate(X = trimws(X)) %>% 
+  separate(col = X, into = c("year","month","NPGO"), sep = "  ", convert = TRUE) %>% 
+  group_by(year) %>% summarize(NPGO = mean(NPGO)) %>% as.data.frame() %>% arrange(year)
+
+# Covariate data
+env_data <- PDO_data %>% left_join(NPGO_data, by = "year") %>% 
+  filter(year %in% fish_data_SMS$year) %>% arrange(year)
 ## @knitr
 
 
