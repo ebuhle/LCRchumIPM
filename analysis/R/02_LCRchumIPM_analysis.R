@@ -87,7 +87,7 @@ print(SS_Ricker, prob = c(0.05,0.5,0.95),
 ## @knitr fit_LCRchum_exp
 LCRchum_exp <- salmonIPM(fish_data = fish_data_SMS,  fecundity_data = fecundity_data,
                          ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "exp",
-                         pars = c("B_rate","mu_Emax","sigma_Emax","Emax"), 
+                         pars = c("mu_Emax","sigma_Emax","Emax"), 
                          include = FALSE, log_lik = TRUE, 
                          chains = 3, iter = 1500, warmup = 500,
                          control = list(adapt_delta = 0.99, max_treedepth = 14))
@@ -95,7 +95,7 @@ LCRchum_exp <- salmonIPM(fish_data = fish_data_SMS,  fecundity_data = fecundity_
 ## @knitr print_LCRchum_exp
 print(LCRchum_exp, prob = c(0.05,0.5,0.95),
       pars = c("eta_pop_EM","eta_year_EM","eta_year_MS","eta_pop_p","p",
-               "tau_M","tau_S","p_HOS","E","S","M","s_EM","s_MS","q","LL"), 
+               "tau_M","tau_S","p_HOS","B_rate","E","S","M","s_EM","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
@@ -103,14 +103,13 @@ print(LCRchum_exp, prob = c(0.05,0.5,0.95),
 ## @knitr fit_LCRchum_BH
 LCRchum_BH <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundity_data,
                         ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "BH",
-                        pars = "B_rate", include = FALSE, log_lik = TRUE, 
-                        chains = 3, iter = 1500, warmup = 500,
+                        log_lik = TRUE, chains = 3, iter = 1500, warmup = 500,
                         control = list(adapt_delta = 0.99, max_treedepth = 14))
 
 ## @knitr print_LCRchum_BH
 print(LCRchum_BH, prob = c(0.05,0.5,0.95),
-      pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p",
-               "p","tau_M","tau_S","p_HOS","E_hat","M","S","s_MS","q","LL"), 
+      pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","p",
+               "tau_M","tau_S","p_HOS","B_rate","E_hat","M","S","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
@@ -118,14 +117,13 @@ print(LCRchum_BH, prob = c(0.05,0.5,0.95),
 ## @knitr fit_LCRchum_Ricker
 LCRchum_Ricker <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundity_data,
                             ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
-                            # pars = "B_rate", include = FALSE, log_lik = TRUE, 
-                            chains = 3, iter = 1500, warmup = 500,
+                            log_lik = TRUE, chains = 3, iter = 1500, warmup = 500,
                             control = list(adapt_delta = 0.99, max_treedepth = 14))
 
 ## @knitr print_LCRchum_Ricker
 print(LCRchum_Ricker, prob = c(0.05,0.5,0.95),
-      pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p",
-               "p","p_F","tau_M","tau_S","p_HOS","E_hat","M","S","s_MS","q","q_F","LL"), 
+      pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p","p_F",
+               "tau_M","tau_S","p_HOS","B_rate","E_hat","M","S","s_MS","q","q_F","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
@@ -234,7 +232,7 @@ LCRchumIPM_multiplot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-life_stage <- "M"   # "S" = spawners, "M" = smolts
+life_stage <- "S"   # "S" = spawners, "M" = smolts
 save_plot <- TRUE
 
 ## @knitr plot_spawner_smolt_ts
