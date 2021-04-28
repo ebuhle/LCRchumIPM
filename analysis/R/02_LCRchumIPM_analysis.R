@@ -11,14 +11,14 @@ library(rstan)
 library(shinystan)
 library(matrixStats)
 library(Hmisc)
-library(tibble)
 library(dplyr)
 library(tidyr)
-library(reshape2)
 library(yarrr)
 library(magicaxis)
 library(viridis)
 library(zoo)
+library(ggplot2)
+theme_set(theme_bw(base_size = 16))
 library(here)
 
 # load data
@@ -42,12 +42,12 @@ if(file.exists(here("analysis","results","LCRchumIPM.RData")))
 # Density-independent
 ## @knitr fit_SS_exp
 SS_exp <- salmonIPM(fish_data = fish_data_SS, stan_model = "IPM_SS_pp", SR_fun = "exp",
-                    pars = c("B_rate_all","mu_Rmax","sigma_Rmax","Rmax"), include = FALSE, 
+                    pars = c("B_rate","mu_Rmax","sigma_Rmax","Rmax"), include = FALSE, 
                     log_lik = TRUE, chains = 3, iter = 1500, warmup = 500,
                     control = list(adapt_delta = 0.99, max_treedepth = 13))
 
 ## @knitr print_SS_exp
-print(SS_exp, prob = c(0.025,0.5,0.975),
+print(SS_exp, prob = c(0.05,0.5,0.95),
       pars = c("alpha","phi","p_HOS","q","gamma","p","S","R","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
@@ -55,12 +55,12 @@ print(SS_exp, prob = c(0.025,0.5,0.975),
 # Beverton-Holt
 ## @knitr fit_SS_BH
 SS_BH <- salmonIPM(fish_data = fish_data_SS, stan_model = "IPM_SS_pp", SR_fun = "BH",
-                   pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
+                   pars = "B_rate", include = FALSE, log_lik = TRUE, 
                    chains = 3, iter = 1500, warmup = 500,
                    control = list(adapt_delta = 0.99, max_treedepth = 13))
 
 ## @knitr print_SS_BH
-print(SS_BH, prob = c(0.025,0.5,0.975),
+print(SS_BH, prob = c(0.05,0.5,0.95),
       pars = c("alpha","Rmax","phi","p_HOS","q","gamma","p","S","R","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
@@ -68,12 +68,12 @@ print(SS_BH, prob = c(0.025,0.5,0.975),
 # Ricker
 ## @knitr fit_SS_Ricker
 SS_Ricker <- salmonIPM(fish_data = fish_data_SS, stan_model = "IPM_SS_pp", SR_fun = "Ricker",
-                       pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
+                       pars = "B_rate", include = FALSE, log_lik = TRUE, 
                        chains = 3, iter = 1500, warmup = 500,
                        control = list(adapt_delta = 0.99, max_treedepth = 13))
 
 ## @knitr print_SS_Ricker
-print(SS_Ricker, prob = c(0.025,0.5,0.975),
+print(SS_Ricker, prob = c(0.05,0.5,0.95),
       pars = c("alpha","Rmax","phi","p_HOS","q","gamma","p","S","R","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
@@ -87,13 +87,13 @@ print(SS_Ricker, prob = c(0.025,0.5,0.975),
 ## @knitr fit_LCRchum_exp
 LCRchum_exp <- salmonIPM(fish_data = fish_data_SMS,  fecundity_data = fecundity_data,
                          ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "exp",
-                         pars = c("B_rate_all","mu_Emax","sigma_Emax","Emax"), 
+                         pars = c("B_rate","mu_Emax","sigma_Emax","Emax"), 
                          include = FALSE, log_lik = TRUE, 
                          chains = 3, iter = 1500, warmup = 500,
                          control = list(adapt_delta = 0.99, max_treedepth = 14))
 
 ## @knitr print_LCRchum_exp
-print(LCRchum_exp, prob = c(0.025,0.5,0.975),
+print(LCRchum_exp, prob = c(0.05,0.5,0.95),
       pars = c("eta_pop_EM","eta_year_EM","eta_year_MS","eta_pop_p","p",
                "tau_M","tau_S","p_HOS","E","S","M","s_EM","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
@@ -103,12 +103,12 @@ print(LCRchum_exp, prob = c(0.025,0.5,0.975),
 ## @knitr fit_LCRchum_BH
 LCRchum_BH <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundity_data,
                         ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "BH",
-                        pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
+                        pars = "B_rate", include = FALSE, log_lik = TRUE, 
                         chains = 3, iter = 1500, warmup = 500,
                         control = list(adapt_delta = 0.99, max_treedepth = 14))
 
 ## @knitr print_LCRchum_BH
-print(LCRchum_BH, prob = c(0.025,0.5,0.975),
+print(LCRchum_BH, prob = c(0.05,0.5,0.95),
       pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p",
                "p","tau_M","tau_S","p_HOS","E_hat","M","S","s_MS","q","LL"), 
       include = FALSE, use_cache = FALSE)
@@ -118,12 +118,12 @@ print(LCRchum_BH, prob = c(0.025,0.5,0.975),
 ## @knitr fit_LCRchum_Ricker
 LCRchum_Ricker <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundity_data,
                             ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
-                            pars = "B_rate_all", include = FALSE, log_lik = TRUE, 
+                            # pars = "B_rate", include = FALSE, log_lik = TRUE, 
                             chains = 3, iter = 1500, warmup = 500,
                             control = list(adapt_delta = 0.99, max_treedepth = 14))
 
 ## @knitr print_LCRchum_Ricker
-print(LCRchum_Ricker, prob = c(0.025,0.5,0.975),
+print(LCRchum_Ricker, prob = c(0.05,0.5,0.95),
       pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p",
                "p","p_F","tau_M","tau_S","p_HOS","E_hat","M","S","s_MS","q","q_F","LL"), 
       include = FALSE, use_cache = FALSE)
@@ -176,12 +176,12 @@ loo_compare(LOO_LCRchum[c("BH","Ricker")])
 ## @knitr fit_LCRchum_BH_fore
 LCRchum_BH_fore <- salmonIPM(fish_data = fish_data_SMS_fore, fecundity_data = fecundity_data,
                              ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "BH",
-                             pars = c("Emax","p","p_HOS","B_rate_all"), 
+                             pars = c("Emax","p","p_HOS","B_rate"), 
                              include = FALSE, chains = 3, iter = 1500, warmup = 500,
                              control = list(adapt_delta = 0.99, max_treedepth = 15))
 
 ## @knitr
-print(LCRchum_BH_fore, prob = c(0.025,0.5,0.975),
+print(LCRchum_BH_fore, prob = c(0.05,0.5,0.95),
       pars = c("eta_pop_EM","eta_year_EM","eta_year_MS","eta_pop_p",
                "E","S","M","s_EM","s_MS","q","tau_M","tau_S"), 
       include = FALSE, use_cache = FALSE)
