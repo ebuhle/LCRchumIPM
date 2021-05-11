@@ -9,15 +9,6 @@
 # Time series of smolt productivity process errors and SAR
 #--------------------------------------------------------------------
 
-# Spawner-recruit function
-SR_eval <- function(alpha, Rmax = NULL, S, SR_fun) 
-{
-  switch(SR_fun,
-         exp = alpha*S,
-         BH = alpha*S/(1 + alpha*S/(Rmax)),
-         Ricker = alpha*S*exp(-alpha*S/(exp(1)*Rmax)))
-}
-
 # Plot function
 LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, filename = NULL)
 {
@@ -39,9 +30,9 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
   S <- colMedians(extract1(mod, "S"))
   SA_grid <- matrix(seq(0, quantile(S/A, 0.9, na.rm = TRUE), length = 100),
                     nrow = length(mu_alpha), ncol = 100, byrow = TRUE)
-  M_ESU <- SR_eval(alpha = exp(mu_alpha), Rmax = exp(mu_Mmax)*1e3, S = SA_grid, SR_fun = SR_fun)
+  M_ESU <- SR(SR_fun, alpha = exp(mu_alpha), Rmax = exp(mu_Mmax)*1e3, S = SA_grid)
   M_pop <- sapply(1:ncol(Mmax), function(i) {
-    colMedians(SR_eval(alpha = alpha[,i], Rmax = Mmax[,i]*1e3, S = SA_grid, SR_fun = SR_fun))
+    colMedians(SR(SR_fun, alpha = alpha[,i], Rmax = Mmax[,i]*1e3, S = SA_grid))
   })
   # smolt recruitment process errors
   y <- sort(unique(fish_data$year))
@@ -221,7 +212,7 @@ LCRchumIPM_SR_plot <- function(mod, SR_fun, fish_data, save_plot = FALSE,
            Sadj = tapply(dat$S, dat$pop, function(x) max(x)*1.5)[pop],
            Smax = tapply(dat$S_U, dat$pop, max)[pop]) %>%
     group_by(pop, iter, alpha, Mmax) %>% summarize(S = seq(0, min(Sadj,Smax), length = 100)) %>% 
-    mutate(M = SR_eval(alpha = alpha, Rmax = Mmax*1e3, S = S, SR_fun = SR_fun)*1e-6) %>% 
+    mutate(M = SR(SR_fun, alpha = alpha, Rmax = Mmax*1e3, S = S)*1e-6) %>% 
     group_by(pop,S) %>% summarize(L = quantile(M,0.05), U = quantile(M,0.95), M = median(M)) %>%
     ggplot(aes(x = S, y = M)) +
     geom_ribbon(aes(ymin = L, ymax = U), fill = "slategray4", alpha = 0.5) +

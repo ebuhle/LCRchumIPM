@@ -18,14 +18,6 @@ life_cycle <- unlist(strsplit(mod_name, "_"))[1]
 dat <- switch(life_cycle, SS = fish_data_SS, SMS = fish_data_SMS)
 SR_fun <- unlist(strsplit(mod_name, "_"))[2]
 
-SR_eval <- function(alpha, Rmax = NULL, S, SR_fun) 
-{
-  switch(SR_fun,
-         exp = alpha*S,
-         BH = alpha*S/(1 + alpha*S/Rmax),
-         Ricker = alpha*S*exp(-alpha*S/(exp(1)*Rmax)))
-}
-
 S <- colMedians(do.call(extract1, list(as.name(mod_name), "S")))
 mu_alpha <- as.vector(do.call(extract1, list(as.name(mod_name), "mu_alpha")))
 mu_Rmax <- as.vector(do.call(extract1, list(as.name(mod_name), "mu_Rmax")))
@@ -34,11 +26,11 @@ mu_Rmax <- as.vector(do.call(extract1, list(as.name(mod_name), "mu_Rmax")))
 scl <- ifelse(life_cycle == "SS", 1, 1e-6)
 Smat <- matrix(seq(0, quantile(S/dat$A, 0.9, na.rm = TRUE), length = 100),
                nrow = length(mu_alpha), ncol = 100, byrow = TRUE)
-R_ESU <- SR_eval(alpha = exp(mu_alpha), Rmax = exp(mu_Rmax), S = Smat, SR_fun = SR_fun)
+R_ESU <- SR(SR_fun, alpha = exp(mu_alpha), Rmax = exp(mu_Rmax), S = Smat)
 alpha <- do.call(extract1, list(as.name(mod_name), "alpha"))
 Rmax <- do.call(extract1, list(as.name(mod_name), "Rmax"))
 R_pop <- sapply(1:ncol(alpha), function(i) {
-  colMedians(SR_eval(alpha = alpha[,i], Rmax = Rmax[,i], S = Smat, SR_fun = SR_fun))
+  colMedians(SR(SR_fun, alpha = alpha[,i], Rmax = Rmax[,i], S = Smat))
 })
 
 c1 <- "slategray4"
