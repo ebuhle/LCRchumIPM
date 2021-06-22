@@ -208,11 +208,16 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 mod_name <- "LCRchum_Ricker"
 save_plot <- TRUE
 
+if(save_plot) {
+   png(filename=here("analysis","results",paste0("multiplot_",mod_name,".png")), 
+       width=12, height=5.5, units="in", res=300, type="cairo-png")
+} else dev.new(width = 12, height = 5.5)
+
 ## @knitr multiplot
 LCRchumIPM_multiplot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2], 
-                     fish_data = fish_data_SMS, save_plot = save_plot,
-                     filename = here("analysis","results",paste0("multiplot_",mod_name,".png")))
+                     fish_data = fish_data_SMS)
 ## @knitr
+if(save_plot) dev.off()
 
 #--------------------------------------------------------------------
 # Spawner-to-smolt S-R curve for each pop with data and states
@@ -222,10 +227,16 @@ LCRchumIPM_multiplot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][
 # save_plot <- FALSE
 # 
 # ## @knitr SR_plot
-# LCRchumIPM_SR_plot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2], 
-#                      fish_data = fish_data_SMS, save_plot = save_plot,
-#                      filename = here("analysis","results",paste0("SR_",mod_name,".png")))
+# gg <- LCRchumIPM_SR_plot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2],
+#                          fish_data = fish_data_SMS)
 # ## @knitr
+# if(save_plot) {
+#    ggsave(filename=here("analysis","results",paste0("SR_",mod_name,".png")), 
+#           width=11, height=7, units="in", dpi=300, type="cairo-png")
+# } else { 
+#    dev.new(width=11,height=7)
+#    show(gg)
+# }
 
 #--------------------------------------------------------------------------------
 # Time series of observed and fitted total spawners or smolts for each pop
@@ -236,10 +247,17 @@ life_stage <- "S"   # "S" = spawners, "M" = smolts
 save_plot <- TRUE
 
 ## @knitr plot_spawner_smolt_ts
-LCRchumIPM_MS_timeseries(mod = get(mod_name), life_stage = life_stage, 
-                         fish_data = fish_data_SMS, show_plot = TRUE, save_plot = save_plot, 
-                         filename = here("analysis","results",paste0(life_stage, "_fit_", mod_name, ".png")))
+gg <- LCRchumIPM_MS_timeseries(mod = get(mod_name), life_stage = life_stage, 
+                               fish_data = fish_data_SMS)
 ## @knitr
+
+if(save_plot) {
+   ggsave(filename=here("analysis","results",paste0(life_stage, "_fit_", mod_name, ".png")), 
+          width=11, height=7, units="in", dpi=300, type="cairo-png")
+} else {
+   dev.new(width=11,height=7)
+   show(gg)
+}
 
 #--------------------------------------------------------------------------------
 # Time series of observed and fitted spawner age structure for each pop
@@ -249,10 +267,16 @@ mod_name <- "LCRchum_Ricker"
 save_plot <- TRUE
 
 ## @knitr plot_spawner_age_ts
-LCRchumIPM_age_timeseries(mod = get(mod_name), fish_data = fish_data_SMS, 
-                          show_plot = TRUE, save_plot = save_plot, 
-                          filename = here("analysis","results",paste0("q_fit_", mod_name, ".png")))
+gg <- LCRchumIPM_age_timeseries(mod = get(mod_name), fish_data = fish_data_SMS)
 ## @knitr
+
+if(save_plot) {
+   ggsave(filename=here("analysis","results",paste0("q_fit_", mod_name, ".png")), 
+          width=12, height=7, units="in", dpi=300, type="cairo-png")
+} else {
+   dev.new(width=12,height=7)
+   show(gg)
+}
 
 #--------------------------------------------------------------------------------
 # Time series of observed and fitted sex ratio for each pop
@@ -262,10 +286,16 @@ mod_name <- "LCRchum_Ricker"
 save_plot <- TRUE
 
 ## @knitr plot_sex_ratio_ts
-LCRchumIPM_sex_timeseries(mod = get(mod_name), fish_data = fish_data_SMS, 
-                          show_plot = TRUE, save_plot = save_plot, 
-                          filename = here("analysis","results",paste0("q_F_fit_", mod_name, ".png")))
+LCRchumIPM_sex_timeseries(mod = get(mod_name), fish_data = fish_data_SMS)
 ## @knitr
+
+if(save_plot) {
+   ggsave(filename=here("analysis", "results", paste0("q_F_fit_", mod_name, ".png")),
+          width=11, height=7, units="in", dpi=300, type="cairo-png")
+} else {
+   dev.new(width=11,height=7)
+   show(gg)
+}
 
 #--------------------------------------------------------------------------------
 # Time series of observed and fitted p_HOS for each pop
@@ -275,11 +305,16 @@ mod_name <- "LCRchum_Ricker"
 save_plot <- TRUE
 
 ## @knitr plot_p_HOS_ts
-LCRchumIPM_p_HOS_timeseries(mod = get(mod_name), fish_data = fish_data_SMS, 
-                            show_plot = TRUE, save_plot = save_plot, 
-                            filename = here("analysis","results",paste0("p_HOS_fit_", mod_name, ".png")))
+LCRchumIPM_p_HOS_timeseries(mod = get(mod_name), fish_data = fish_data_SMS)
 ## @knitr
 
+if(save_plot) {
+   ggsave(filename=here("analysis","results",paste0("p_HOS_fit_", mod_name, ".png")), 
+          width=11, height=7, units="in", dpi=300, type="cairo-png")
+} else {
+   dev.new(width=11, height=7)
+   show(gg)
+}
 
 #--------------------------------------------------------------------------------
 # Distributions of observed and fitted fecundity by age
@@ -288,11 +323,16 @@ LCRchumIPM_p_HOS_timeseries(mod = get(mod_name), fish_data = fish_data_SMS,
 mod_name <- "LCRchum_Ricker"
 save_plot <- TRUE
 
+if(save_plot) {
+   png(filename=here("analysis","results",paste0("fecundity_fit_", mod_name, ".png")), 
+       width=7, height=7, units="in", res=200, type="cairo-png")
+} else dev.new(width=7,height=7)
+
 ## @knitr plot_fecundity_fit
-LCRchumIPM_fecundity_plot(get(mod_name), fish_data = fish_data_SMS, fecundity_data = fecundity_data,
-                          filename = here("analysis","results",paste0("fecundity_fit_", mod_name, ".png")),
-                          save_plot = save_plot)
+LCRchumIPM_fecundity_plot(get(mod_name), fish_data = fish_data_SMS, fecundity_data = fecundity_data)
 ## @knitr
+
+if(save_plot) dev.off()
 
 #--------------------------------------------------------------------------------
 # Observed and fitted distributions of "known" smolt and spawner 
@@ -302,11 +342,16 @@ LCRchumIPM_fecundity_plot(get(mod_name), fish_data = fish_data_SMS, fecundity_da
 mod_name <- "LCRchum_Ricker"
 save_plot <- TRUE
 
+if(save_plot) {
+   png(filename=here("analysis","results",paste0("tau_fit_", mod_name, ".png")), 
+       width=6, height=8, units="in", res=200, type="cairo-png")
+} else dev.new(width=6,height=8)
+
 ## @knitr plot_obs_error_fit
-LCRchumIPM_obs_error_plot(get(mod_name), fish_data = fish_data_SMS,
-                          filename = here("analysis","results",paste0("tau_fit_", mod_name, ".png")),
-                          save_plot = save_plot)
+LCRchumIPM_obs_error_plot(get(mod_name), fish_data = fish_data_SMS)
 ## @knitr
+
+if(save_plot) dev.off()
 
 
 #===========================================================================

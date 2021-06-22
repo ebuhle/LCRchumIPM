@@ -10,7 +10,7 @@
 #--------------------------------------------------------------------
 
 # Plot function
-LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, filename = NULL)
+LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data)
 {
   # fecundity
   mu_E <- extract1(mod, "mu_E")
@@ -52,10 +52,6 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
   c1tt <- transparent(c1, trans.val = 0.5)
   ac <- viridis(length(ages), end = 0.8, direction = -1, alpha = 0.5) 
 
-  if(save_plot) {
-    png(filename=filename, width=12, height=5.5, units="in", res=300, type="cairo-png")
-  } else dev.new(width = 12, height = 5.5)
-  
   par(mfrow = c(2,4), mar = c(5.1,5.1,1,0.5), oma = c(0,0,0,1))
   
   # Posterior distributions of fecundity by age
@@ -170,8 +166,6 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
   axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
   rug(y[y %% 5 != 0], ticksize = -0.02)
   text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "H", cex = 1.5)
-  
-  if(save_plot) dev.off()
 }
 
 #--------------------------------------------------------------------
@@ -183,8 +177,7 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data, save_plot = FALSE, file
 ### standardizing by habitat area may help
 ### ALSO overplotting data for Grays MS doesn't really work b/c of upstream smolts
 
-LCRchumIPM_SR_plot <- function(mod, SR_fun, fish_data, save_plot = FALSE, 
-                               show_plot = !save_plot, filename = NULL)
+LCRchumIPM_SR_plot <- function(mod, SR_fun, fish_data)
 {
   mu_E <- extract1(mod, "mu_E")
   q <- extract1(mod, "q")
@@ -228,13 +221,8 @@ LCRchumIPM_SR_plot <- function(mod, SR_fun, fish_data, save_plot = FALSE,
     facet_wrap(vars(pop), ncol = 4, scales = "free") + theme_bw(base_size = 16) +
     theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank(),
           strip.background = element_rect(fill = NA))
-
-  if(show_plot) {
-    dev.new(width=11,height=7)
-    show(gg)
-  }
-  if(save_plot)   
-    ggsave(filename=filename, width=11, height=7, units="in", dpi=300, type="cairo-png")
+  
+  return(gg)
 }
 
 
@@ -242,9 +230,7 @@ LCRchumIPM_SR_plot <- function(mod, SR_fun, fish_data, save_plot = FALSE,
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
 
-LCRchumIPM_MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data, 
-                                     save_plot = FALSE, show_plot = !save_plot, 
-                                     filename = NULL)
+LCRchumIPM_MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data)
 {
   life_cycle <- strsplit(mod@model_name, "_")[[1]][2]
   N <- extract1(mod, life_stage)
@@ -274,21 +260,15 @@ LCRchumIPM_MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data,
     facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) +
     theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank(),
           strip.background = element_rect(fill = NA))
-  
-  if(show_plot) {
-    dev.new(width=11,height=7)
-    show(gg)
-  }
-  if(save_plot)   
-    ggsave(filename=filename, width=11, height=7, units="in", dpi=300, type="cairo-png")
+
+  return(gg)
 }
 
 #--------------------------------------------------------------------------------
 # Time series of observed and fitted spawner age structure for each pop
 #--------------------------------------------------------------------------------
 
-LCRchumIPM_age_timeseries <- function(mod, fish_data, save_plot = FALSE, 
-                                      show_plot = !save_plot, filename = NULL)
+LCRchumIPM_age_timeseries <- function(mod, fish_data)
 {
   q <- extract1(mod, "q")
   
@@ -315,20 +295,14 @@ LCRchumIPM_age_timeseries <- function(mod, fish_data, save_plot = FALSE,
           strip.background = element_rect(fill = NA), 
           legend.box.margin = margin(0,-10,0,-15))
   
-  if(show_plot) {
-    dev.new(width=12,height=7)
-    show(gg)
-  }
-  if(save_plot)
-    ggsave(filename=filename, width=12, height=7, units="in", dpi=300, type="cairo-png")
+  return(gg)  
 }
 
 #--------------------------------------------------------------------------------
 # Time series of observed and fitted sex ratio for each pop
 #--------------------------------------------------------------------------------
 
-LCRchumIPM_sex_timeseries <- function(mod, fish_data, save_plot = FALSE, 
-                                      show_plot = !save_plot, filename = NULL)
+LCRchumIPM_sex_timeseries <- function(mod, fish_data)
 {
   q_F <- extract1(mod, "q_F")
   
@@ -345,21 +319,14 @@ LCRchumIPM_sex_timeseries <- function(mod, fish_data, save_plot = FALSE,
     theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_blank(), 
           strip.background = element_rect(fill = NA))
   
-  if(show_plot) {
-    dev.new(width=11,height=7)
-    show(gg)
-  }
-  if(save_plot) 
-    ggsave(filename=here("analysis", "results", paste0("q_F_fit_", mod_name, ".png")),
-           width=11, height=7, units="in", dpi=300, type="cairo-png")
+  return(gg)
 }
 
 #--------------------------------------------------------------------------------
 # Time series of observed and fitted p_HOS for each pop
 #--------------------------------------------------------------------------------
 
-LCRchumIPM_p_HOS_timeseries <- function(mod, fish_data, save_plot = FALSE, 
-                                        show_plot = !save_plot, filename = NULL)
+LCRchumIPM_p_HOS_timeseries <- function(mod, fish_data)
 {
   p_HOS <- extract1(mod, "p_HOS")
   
@@ -380,20 +347,14 @@ LCRchumIPM_p_HOS_timeseries <- function(mod, fish_data, save_plot = FALSE,
     theme(panel.grid.major.y = element_blank(), panel.grid.minor = element_blank(),
           strip.background = element_rect(fill = NA))
   
-  if(show_plot) {
-    dev.new(width=11,height=7)
-    show(gg)
-  }
-  if(save_plot) 
-    ggsave(filename=filename, width=11, height=7, units="in", dpi=300, type="cairo-png")
+  return(gg)
 }
 
 #--------------------------------------------------------------------------------
 # Distributions of observed and fitted fecundity by age
 #--------------------------------------------------------------------------------
 
-LCRchumIPM_fecundity_plot <- function(mod, fish_data, fecundity_data,
-                                      save_plot = FALSE, filename = NULL)
+LCRchumIPM_fecundity_plot <- function(mod, fish_data, fecundity_data)
 {
   ages <- substring(names(select(fish_data, starts_with("n_age"))), 6, 6)
   E_obs <- fecundity_data$E_obs
@@ -408,10 +369,6 @@ LCRchumIPM_fecundity_plot <- function(mod, fish_data, fecundity_data,
   c1t <- transparent(c1, trans.val = 0.5)
   c1tt <- transparent(c1, trans.val = 0.7)
   
-  if(save_plot) {
-    png(filename=filename, width=7, height=7, units="in", res=200, type="cairo-png")
-  } else dev.new(width=7,height=7)
-
   par(mfrow = c(3,1), mar = c(3,2,0,2), oma = c(2,2,0,0))
   
   for(a in 1:length(ages))
@@ -429,8 +386,6 @@ LCRchumIPM_fecundity_plot <- function(mod, fish_data, fecundity_data,
          labels = paste("age", ages[a]), cex = 1.5, col = c1[a], adj = 1)
   }
   title(xlab = "Fecundity", ylab = "Probability density", cex.lab = 1.9, line = 0, outer = TRUE)
-  
-  if(save_plot) dev.off()
 }
 
 
@@ -439,7 +394,7 @@ LCRchumIPM_fecundity_plot <- function(mod, fish_data, fecundity_data,
 # observation error SDs
 #--------------------------------------------------------------------------------
 
-LCRchumIPM_obs_error_plot <- function(mod, fish_data, save_plot = FALSE, filename = NULL)
+LCRchumIPM_obs_error_plot <- function(mod, fish_data)
 {
   tau_M_obs <- fish_data$tau_M_obs
   tau_M_seq <- seq(min(tau_M_obs, na.rm = TRUE), max(tau_M_obs, na.rm = TRUE), length = 500)
@@ -455,10 +410,6 @@ LCRchumIPM_obs_error_plot <- function(mod, fish_data, save_plot = FALSE, filenam
   
   c1 <- "slategray4"
   c1t <- transparent(c1, trans.val = 0.6)
-  
-  if(save_plot) {
-    png(filename=filename, width=6, height=8, units="in", res=200, type="cairo-png")
-  } else dev.new(width=6,height=8)
   
   par(mfcol = c(2,1), mar = c(5,5,0,1),  oma = c(0,0,0,0))
   
@@ -483,6 +434,4 @@ LCRchumIPM_obs_error_plot <- function(mod, fish_data, save_plot = FALSE, filenam
           c(colQuantiles(tau_S_fit, probs = 0.05), rev(colQuantiles(tau_S_fit, probs = 0.95))),
           col = c1t, border = NA)
   lines(tau_S_seq, colMedians(tau_S_fit), col = c1, lwd = 3)
-  
-  if(save_plot) dev.off()
 }
