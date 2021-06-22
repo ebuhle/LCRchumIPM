@@ -24,7 +24,7 @@ knitr::opts_chunk$set(tidy = FALSE, highlight = TRUE, comment = NA,
                       dev = "png", dev.args = list(type = "cairo-png"), dpi = 200,
                       out.width = "50%", fig.align = "center")
 
-library(here)
+library(here) 
 if(!require(captioner))
   devtools::install_github("adletaw/captioner")
 library(captioner)
