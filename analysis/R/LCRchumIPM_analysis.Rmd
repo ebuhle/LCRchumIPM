@@ -264,7 +264,6 @@ mod_name <- "LCRchum_Ricker"
 Here are the fits to the spawner data:
 
 ```{r plot_spawners_LCRchum_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
-mod_name <- "LCRchum_Ricker"
 life_stage <- "S"
 <<plot_spawner_smolt_ts>>
 show(gg)
@@ -275,7 +274,6 @@ show(gg)
 And here are the fits to the much sparser smolt data:
 
 ```{r plot_smolts_LCRchum_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
-mod_name <- "LCRchum_Ricker"
 life_stage <- "M"
 <<plot_spawner_smolt_ts>>
 show(gg)
@@ -286,7 +284,6 @@ show(gg)
 To understand how the IPM is imputing the observation error SD in cases where it is not reported, let's look at the lognormal hyperdistribution fitted to the known SD values...
 
 ```{r plot_obs_error_fit_LCRchum_Ricker, echo = FALSE, fig.width = 6, fig.height = 8}
-mod_name <- "LCRchum_Ricker"
 <<plot_obs_error_fit>>
 ```
 
@@ -294,15 +291,27 @@ mod_name <- "LCRchum_Ricker"
 
 We can also compare the estimated spawner age-frequencies to the sample proportions from the BioData. Age composition varies quite a bit across populations and through time, reflecting fluctuations in cohort strength.
 
-```{r plot_spawner_age_LCRchum_Ricker, echo = FALSE, warning=FALSE, fig.width=12, fig.height=7, out.width="100%"}
-mod_name <- "LCRchum_Ricker"
-<<plot_spawner_age_ts>>
+```{r plot_sex_ratio_ts_LCRchum_Ricker, echo = FALSE, warning=FALSE, fig.width=12, fig.height=7, out.width="100%"}
+<<plot_sex_ratio_ts>>
 show(gg)
 ```
 
 `r fig_nums("plot_spawner_age_LCRchum_Ricker", "Observed (points) and estimated spawner age composition for Lower Columbia River chum salmon populations. The posterior distribution from the multi-population IPM is summarized by the median (solid line) and 90% credible interval (shading). The error bar around each observed proportion indicates the 90% binomial confidence interval based on sample size.")`
 
-[add sex ratio and pHOS]
+Sex ratio
+
+```{r plot_spawner_age_LCRchum_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
+<<plot_sex_ratio_ts>>
+show(gg)
+```
+
+Proportion of hatchery-origin spawners
+
+```{r plot_p_HOS_ts_LCRchum_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
+<<plot_p_HOS_ts>>
+show(gg)
+```
+
 
 # Forecasting
 

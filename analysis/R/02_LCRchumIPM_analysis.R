@@ -286,7 +286,7 @@ mod_name <- "LCRchum_Ricker"
 save_plot <- TRUE
 
 ## @knitr plot_sex_ratio_ts
-LCRchumIPM_sex_timeseries(mod = get(mod_name), fish_data = fish_data_SMS)
+gg <- LCRchumIPM_sex_timeseries(mod = get(mod_name), fish_data = fish_data_SMS)
 ## @knitr
 
 if(save_plot) {
@@ -305,7 +305,7 @@ mod_name <- "LCRchum_Ricker"
 save_plot <- TRUE
 
 ## @knitr plot_p_HOS_ts
-LCRchumIPM_p_HOS_timeseries(mod = get(mod_name), fish_data = fish_data_SMS)
+gg <- LCRchumIPM_p_HOS_timeseries(mod = get(mod_name), fish_data = fish_data_SMS)
 ## @knitr
 
 if(save_plot) {
