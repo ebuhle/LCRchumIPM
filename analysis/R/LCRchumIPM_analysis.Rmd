@@ -43,55 +43,71 @@ knitr::read_chunk(here("analysis","R","02_LCRchumIPM_analysis.R"))
 
 Background on IPMs, outline of **salmonIPM**...
 
-# Model Description
+# Model Structure
 
 ## Process Model
 
 ### Egg Deposition and Egg-to-Smolt Survival
 
-Three spawner-recruit functional forms
+The chum life cycle begins with spawning, egg incubation and fry emergence, and shortly thereafter the downstream migration of juveniles (which we refer to as smolts). In **salmonIPM** we can fit three alternative spawner-recruit functions to describe the expected relationship between spawner abundance $S_{jt}$ and smolt abundance $M_{jt}$ in brood year $t$ in population $j$: density-independent discrete exponential, Beverton-Holt, and Ricker:
 
 $$
-f( S_{jt} | \alpha_{jt}, M_{\text{max},j} ) = 
+f \left( S_{jt} | \alpha_{jt}, M_{\text{max},j}, A_{jt} \right) = 
 \begin{cases}
 \alpha_{jt} S_{jt} & \text{exponential} 
 \\
-\dfrac{ \alpha_{jt} S_{jt} }{ 1 + \alpha_{jt} S_{jt} / M_{\text{max},j} } 
+\dfrac{ \alpha_{jt} S_{jt} }{ 1 + \alpha_{jt} S_{jt} / A_{jt} M_{\text{max},j} } 
 & \text{Beverton-Holt} 
 \\
-\alpha_{jt} S_{jt} \text{exp}\left(- \dfrac{ \alpha_{jt}S_{jt} }{ \text{exp}(1) M_{\text{max},j} } \right) & \text{Ricker}
+\alpha_{jt} S_{jt} \text{exp}\left(- \dfrac{ \alpha_{jt}S_{jt} }{ \text{exp}(1) A_{jt} M_{\text{max},j} } \right) & \text{Ricker}
 \end{cases}
 $$
 
-Intrinsic productivity is calculated as a weighted mean of age-specific female fecundity, weighted by the spawner age distribution, multiplied by the proportion female spawners and the population-specific density-independent egg-to-smolt survival
+We use a nonstandard parameterization of the Ricker in terms of maximum smolt production or "capacity" $M_{\text{max}}$, corresponding to the mode of the function. This facilitates direct comparison with the Beverton-Holt (where $M_{\text{max}}$ is the asymptote) and is better-identified by data than the standard parameterization based on per capita density dependence. $M_{\text{max}}$ has units of density (fish per stream distance or area) and is then expanded to units of abundance based on habitat size $A_{jt}$. In the case of Lower Columbia chum, this is km of spawning habitat estimated using GIS.
 
-$$ \alpha_{jt} = \psi_{j} q_{F,jt} \sum_{a=3}^{5} q_{jta} \mu_{\text{fec},a} $$
+Intrinsic productivity $\alpha_{jt}$ is calculated as a weighted mean of age-specific female fecundity $\mu_{E,a}$, weighted by the spawner age distribution $q_{jta}$, multiplied by the proportion of female spawners $q_{\text{F},jt}$ (discounted for the proportion of females that are not "green", i.e. not fully fecund, with discount rate $\delta_\text{NG} \in [0,1]$), and finally multiplied by the density-independent maximum egg-to-smolt survival $\psi_j$:
 
-Maxmum smolt production ("capacity") varies randomly among populations according to the hyperdistribution
+$$ 
+\alpha_{jt} = \psi_j q_{F,jt} 
+\left[p_{\text{G},jt} + \delta_\text{NG} \left(1 - p_{\text{G},jt} \right) \right] 
+\sum_{a=3}^{5} q_{jta} \mu_{E,a}.
+$$
+
+The discount for partially spawned females is only relevant for one population, Duncan Channel, a constructed spawning channel in which some translocated females are believed to have already deposited eggs elsewhere. We assume the proportion of "green" females $p_{\text{G},jt}$ is known without error since translocated spawners are individually handled and visually assessed.
+
+This formulation implicitly assumes egg deposition is density-independent while egg-to-smolt survival is density-dependent, resulting in realized survival $< \psi_j$ as spawner density increases. Maximum egg-to-smolt survival varies randomly among populations according to the hyperdistribution
+
+$$
+\text{logit}(\psi_j) \sim N(\mu_\psi, \sigma_\psi).
+$$
+
+Maximum smolt production varies randomly among populations according to the hyperdistribution
 
 $$
 \text{log}(M_{\text{max},j}) \sim 
-N(\mu_{M_{\text{max}}}, \sigma_{M_{\text{max}}}) 
+N(\mu_{M_\text{max}}, \sigma_{M_\text{max}}).
 $$
 
 ### Smolt Recruitment Process Error
 
-Lognormal errors with a common ESU-level autoregressive trend plus unique independent shocks
+Given the expected smolt production, realized smolt production (the unknown "true state") is lognormally distributed with process errors that include a common ESU-level autoregressive trend $\eta^\text{year}_{M,t}$ with first-order autocorrelation coefficient $\rho_{M}$ and innovation SD $\sigma^\text{year}_{M}$, plus unique independent shocks $\epsilon_{M,jt}$:
 
 $$
 \begin{aligned}
-M_{jt} &= f( S_{jt} | \alpha_{jt}, M_{\text{max},j} ) \, 
+M_{jt} &= f \left( S_{jt} | \alpha_{jt}, M_{\text{max},j}, A_{jt} \right) \, 
 \text{exp}( \eta^\text{year}_{M,t} + \epsilon_{M,jt} )
 \\
 \eta^\text{year}_{M,t} &\sim N(\rho_{M} \eta^\text{year}_{M,t-1}, \sigma^\text{year}_{M}) 
 \\
-\epsilon_{M,jt} &\sim N(0, \sigma_{M})
+\epsilon_{M,jt} &\sim N(0, \sigma_{M}).
 \end{aligned}
 $$
 
+In **salmonIPM** we can include covariates of the parameters $\psi_j$ and $M_{\text{max},j}$ as well as the smolt recruitment process error term. We do not consider this option further here, but we anticipate incorporating environmental covariates in future development of the Lower Columbia chum IPM.
+
 ### Smolt-to-Adult Survival
 
-The SAR process is modeled as logistic normal with an ESU-level autoregressive trend plus unique independent shocks
+Smolt-to-adult survival (SAR, $s_{MS}$) is assumed to be density-independent. The SAR process model for outmigrant cohort $t$ in population $j$ is logistic normal, including a common ESU-level first-order autoregressive trend $\eta^\text{year}_{MS,t}$ with first-order autocorrelation coefficient $\rho_{MS}$ and innovation SD $\sigma^\text{year}_{MS}$, plus unique independent shocks $\epsilon_{MS,jt}$:
 
 $$
 \begin{aligned}
@@ -101,14 +117,16 @@ $$
 \eta^\text{year}_{MS,t} &\sim 
 N(\rho_{MS} \eta^\text{year}_{MS,t-1}, \sigma^\text{year}_{MS}) 
 \\
-\epsilon_{MS,jt} &\sim N(0, \sigma_{MS})
+\epsilon_{MS,jt} &\sim N(0, \sigma_{MS}).
 \end{aligned}
 $$
+As with the smolt recruitment parameters, **salmonIPM** can accommodate spatiotemporally varying covariates of $s_{MS}$, but we do not discuss this further here. 
+
 
 ### Conditional Age-at-Return
 
 Adult age structure is modeled by defining a vector of conditional probabilities,
-$\mathbf{p}_{jt} = [p_{3jt}, p_{4jt}, p_{5jt}] ^ \top$, where $p_{ajt}$ is the probability of an outmigrant in year $t$ in population $j$ returning at age $a$, given that it survives to adulthood. The unconditional probability is given by $s_{MS,jt} p_{ajt}$, where both SAR and $p_a$ are functions of underlying annual marine survival and maturation probabilities that are nonidentifiable without some ancillary data. This parameterization resolves the nonidentifiability.
+$\mathbf{p}_{jt} = [p_{3jt}, p_{4jt}, p_{5jt}] ^ \top$, where $p_{ajt}$ is the probability that an outmigrant in year $t$ in population $j$ returns at age $a$, given that it survives to adulthood. The unconditional probability is given by $s_{MS,jt} p_{ajt}$, where both SAR and $p_a$ are functions of underlying annual marine survival and maturation probabilities that are nonidentifiable without some ancillary data. This parameterization resolves the nonidentifiability.
 
 The conditional age probabilities follow a logistic normal process model with hierarchical structure across populations and through time within each population. The additive log ratio,
 
@@ -118,7 +136,7 @@ $$
 \text{log} \left( \dfrac{p_{4jt}}{p_{5jt}} \right) \right] ^ \top
 $$
 
-has a bivariate normal distribution:
+has a hierarchical bivariate normal distribution with population-level random effects $\boldsymbol{\eta}^\text{pop}_{\mathbf{p}, j}$ and unique residuals $\boldsymbol{\epsilon}_{\mathbf{p}, jt}$:
 
 $$
 \begin{aligned}
@@ -134,7 +152,7 @@ N(\mathbf{0}, \boldsymbol{\Sigma}_\mathbf{p}).
 \end{aligned}
 $$
 
-Here the 2 $\times$ 2 covariances matrices $\boldsymbol{\Sigma}^\text{pop}_\mathbf{p}$ and $\boldsymbol{\Sigma}_\mathbf{p}$ allow correlated variation among age classes (on the unconstrained scale, not merely due to the mathematical simplex constraint on $\mathbf{p}$) across populations and through time within a population, respectively. For example, some populations or cohorts may skew overall younger or older than average. We parameterize each covariance matrix by a vector of standard deviations and a correlation matrix: 
+Here the 2 $\times$ 2 covariances matrices $\boldsymbol{\Sigma}^\text{pop}_\mathbf{p}$ and $\boldsymbol{\Sigma}_\mathbf{p}$ allow correlated variation among age classes (on the unconstrained scale, not merely due to the simplex constraint on $\mathbf{p}$) across populations and through time within a population, respectively. For example, some populations or cohorts may skew overall younger or older than average. We parameterize each covariance matrix by a vector of standard deviations and a correlation matrix: 
 
 $$
 \begin{aligned}
@@ -146,29 +164,47 @@ $$
 \boldsymbol{\Sigma}_\mathbf{p} &= 
 \boldsymbol{\sigma}_\mathbf{p} 
 \mathbf{R}_\mathbf{p}
-\boldsymbol{\sigma}_\mathbf{p} ^ \top
+\boldsymbol{\sigma}_\mathbf{p} ^ \top .
+\end{aligned}
+$$
+
+### Sex Structure
+
+Adult sex structure is modeled as the conditional probability $p_{\text{F},jt}$ that an outmigrant from population $j$ in year $t$ is female, given that it survives to adulthood. The proportion of females follows a process model that includes normally distributed population-specific random effects $\eta^\text{pop}_{\text{F}}$ with hyper-SD $\sigma^\text{pop}_\text{F}$ and unique residuals $\epsilon^\text{pop}_{\text{F}}$ with SD $\sigma_\text{F}$ around the hyper-mean $\mu_\text{F}$.
+
+$$
+\begin{aligned}
+\text{logit}( p_{\text{F},jt} ) &= \text{logit}( \mu_\text{F} ) + 
+\eta^\text{pop}_{\text{F},j} + \epsilon_{\text{F},jt} 
+\\
+\eta^\text{pop}_{\text{F},j} &\sim 
+N(0, \sigma^\text{pop}_\text{F}) 
+\\
+\epsilon_{\text{F},jt} &\sim N(0, \sigma_\text{F})
 \end{aligned}
 $$
 
 ### Adult Recruitment
 
-Survival to adults at age, broodstock removal assumed known, harvest assumed to be zero for now
+Survival to adults at age, broodstock removal and translocated spawners assumed known, harvest assumed to be zero for now
 
 $$
 S_{\text{W}, jt} = \left(\sum_{a=3}^{5} 
-s_{MS,j,t-a} \hspace{0.1cm} p_{aj,t-a} \hspace{0.1cm} M_{j,t-a} \right) - B_{jt} =
-\left(\sum_{a=3}^{5} \tilde{S}_{\text{W}, ajt} \right) - B_{jt}
+s_{MS,j,t-a} \hspace{0.1cm} p_{aj,t-a} \hspace{0.1cm} M_{j,t-a} \right) 
+- B_{jt} + S^\text{add}_{jt} =
+\left(\sum_{a=3}^{5} \tilde{S}_{\text{W}, ajt} \right) 
+- B_{jt} + S^\text{add}_{jt}
 $$
-
-Spawner age structure is $\mathbf{q}_{jt} = [q_{3jt}, q_{4jt}, q_{5jt}]$, where $q_{ajt} = \tilde{S}_{\text{W},ajt} / S_{jt}$.
 
 Wild vs. hatchery spawners
 
 $$
-S_{\text{H},jt} = S_{\text{W},jt} p_{\text{HOS},jt} / (1 - p_{\text{HOS},jt})
+S_{\text{H},jt} = \dfrac{ S_{\text{W},jt} \hspace{0.1cm} p_{\text{HOS},jt} } 
+{ (1 - p_{\text{HOS},jt}) }
 $$
 
-Total spawner abundance is then $S_{jt} = S_{\text{W},jt} + S_{\text{H},jt}$.
+Total spawner abundance is then $S_{jt} = S_{\text{W},jt} + S_{\text{H},jt}$. Spawner age structure is given by $\mathbf{q}_{jt} = [q_{3jt}, q_{4jt}, q_{5jt}]$, where $q_{ajt} = \tilde{S}_{\text{W},ajt} / S_{jt}$. Spawner sex structure is given by the age-weighted average of female proportions from the respective outmigrant cohorts: $q_{\text{F},jt} = \sum_{a} {q_{ajt} \hspace{0.1cm} p_{\text{F},j,t-a}}$.
+
 
 ## Observation Model
 
@@ -176,7 +212,7 @@ Total spawner abundance is then $S_{jt} = S_{\text{W},jt} + S_{\text{H},jt}$.
 
 We modeled observations of fecundity from individual female chum salmon collected at hatcheries. The likelihood for the fecundity of female $i$ of age $a$ is a zero-truncated normal with age-specific mean and SD.
 
-$$ E_{a,i}^\text{obs} \sim N(\mu_{E,a}, \sigma_{E,a}) \hspace{0.1cm} T[0, \infty) $$
+$$ E_{a,i}^\text{obs} \sim N_{+}(\mu_{E,a}, \sigma_{E,a}) $$
 
 ### Smolt and Spawner Abundance
 
@@ -200,7 +236,7 @@ $$
 \end{aligned}
 $$
 
-### Spawner Age and Origin Composition
+### Spawner Age Composition
 
 Age composition of wild spawners $\mathbf{n}_{ajt}^\text{obs} = [n_{3jt}^\text{obs}, n_{4jt}^\text{obs}, n_{5jt}^\text{obs}] ^\top$ is assumed to follow a multinomial likelihood with the expected proportions given by the unobserved true state
 
@@ -210,6 +246,8 @@ $$
 \mathbf{q}_{jt} \right)
 $$
 
+### Spawner Rearing Type
+
 Hatchery/wild composition of spawners
 
 $$
@@ -218,8 +256,20 @@ n_{\text{H},jt}^\text{obs} \sim
 p_{\text{HOS},jt} \right)
 $$
 
+### Spawner Sex Composition
+
+Proportion female spawners
+
+$$
+n_{\text{F},jt}^\text{obs} \sim 
+\text{Bin} \left( n_{\text{M},jt}^\text{obs} + n_{\text{F},jt}^\text{obs},
+q_{\text{F},jt} \right)
+$$
+
+
 ## Priors
 
+Table of hyperpriors
 
 # Setup and Data
 
