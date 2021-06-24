@@ -184,92 +184,137 @@ N(0, \sigma^\text{pop}_\text{F})
 \end{aligned}
 $$
 
-### Adult Recruitment
+### Adult Recruitment and Composition
 
-Survival to adults at age, broodstock removal and translocated spawners assumed known, harvest assumed to be zero for now
+Recruitment of wild-origin adult spawners $S_\text{W}$ is calculated by summing over the corresponding outmigrant cohorts and subtracting the number of spawners removed for hatchery broodstock or to spawning channels ($B_{jt}$, assumed known without error). Fishery mortality of Lower Columbia chum is thought to be minimal.
 
 $$
 S_{\text{W}, jt} = \left(\sum_{a=3}^{5} 
-s_{MS,j,t-a} \hspace{0.1cm} p_{aj,t-a} \hspace{0.1cm} M_{j,t-a} \right) 
-- B_{jt} + S^\text{add}_{jt} =
-\left(\sum_{a=3}^{5} \tilde{S}_{\text{W}, ajt} \right) 
-- B_{jt} + S^\text{add}_{jt}
+s_{MS,j,t-a} \hspace{0.1cm} p_{aj,t-a} \hspace{0.1cm} M_{j,t-a} \right) - B_{jt} =
+\left(\sum_{a=3}^{5} \tilde{S}_{\text{W}, ajt} \right) - B_{jt}.
 $$
 
-Wild vs. hatchery spawners
+The proportion of naturally spawning hatchery-origin adults is modeled as an independent parameter in each population and year when hatchery programs were operational in the basin or when observed origin-frequency data indicate hatchery spawners were present. That is, we do not include a process model linking $p_{\text{HOS},jt}$ to hatchery releases and returns, although this is planned as a component of future model development. Abundance of hatchery-origin spawners is then calculated as
 
 $$
 S_{\text{H},jt} = \dfrac{ S_{\text{W},jt} \hspace{0.1cm} p_{\text{HOS},jt} } 
-{ (1 - p_{\text{HOS},jt}) }
+{ (1 - p_{\text{HOS},jt}) }.
 $$
 
-Total spawner abundance is then $S_{jt} = S_{\text{W},jt} + S_{\text{H},jt}$. Spawner age structure is given by $\mathbf{q}_{jt} = [q_{3jt}, q_{4jt}, q_{5jt}]$, where $q_{ajt} = \tilde{S}_{\text{W},ajt} / S_{jt}$. Spawner sex structure is given by the age-weighted average of female proportions from the respective outmigrant cohorts: $q_{\text{F},jt} = \sum_{a} {q_{ajt} \hspace{0.1cm} p_{\text{F},j,t-a}}$.
+Total spawner abundance is then 
+
+$$
+S_{jt} = S_{\text{W},jt} + S_{\text{H},jt} + S^\text{add}_{jt}
+$$ 
+where $S^\text{add}_{jt}$ is the number of spawners that returned to populations $i \neq j$ and were translocated into population $j$. This is only nonzero in the case of Duncan Channel.
+
+Spawner age structure is given by $\mathbf{q}_{jt} = [q_{3jt}, q_{4jt}, q_{5jt}]$, where $q_{ajt} = \tilde{S}_{\text{W},ajt} / \sum_a{\tilde{S}_{\text{W},ajt}}$. Spawner sex structure is given by the age-weighted average of female proportions from the respective outmigrant cohorts: $q_{\text{F},jt} = \sum_{a} {q_{ajt} \hspace{0.1cm} p_{\text{F},j,t-a}}$.
 
 
 ## Observation Model
 
 ### Fecundity
 
-We modeled observations of fecundity from individual female chum salmon collected at hatcheries. The likelihood for the fecundity of female $i$ of age $a$ is a zero-truncated normal with age-specific mean and SD.
+We modeled observations of fecundity from individual female chum salmon collected at hatcheries. The observation likelihood for the fecundity of female $i$ of age $a$ is a zero-truncated normal with age-specific mean and SD:
 
-$$ E_{a,i}^\text{obs} \sim N_{+}(\mu_{E,a}, \sigma_{E,a}) $$
+$$ E_{a,i}^\text{obs} \sim N_+(\mu_{E,a}, \sigma_{E,a}). $$
 
 ### Smolt and Spawner Abundance
 
-Informative priors based on Bayesian observation models applied to field data of various kinds
+Empirical estimates of smolt and spawner abundance come from monitoring programs that use various sampling methods (e.g., rotary screw traps for outmigrants and weirs or mark-recapture for adults) and statistical models (e.g., the **BTSPAS** R package or other Bayesian time-series models) to produce a posterior distribution of the abundance of a given life-history stage in each population and year. These methods have previously been applied and their output summarized by the posterior mean and SD. We used the posterior moments of abundance to compute the log-mean $\mu_{K,jt}$ and log-SD $\tau_{K,jt}$ for each life stage $K$ assuming the posterior is lognormal, which appears to be reasonable in general. We then used the observation-model posteriors as informative priors on the corresponding state variables in the IPM.
+
+One complication is that outmigrant monitoring sites do not always have a one-to-one correspondence with independent populations. Specifically, the smolt trap in the mainstem Grays River intercepts juveniles produced in the mainstem population itself as well as the upstream West Fork Grays River and Crazy Johnson Creek populations, the latter of which is also sampled with a dedicated trap. To make the states comparable to the observations, we defined a derived state $\tilde{M}_{jt}$ that is the sum of smolts produced in population $j$ and all upstream populations.
 
 $$
 \begin{aligned}
-\text{log}(M_{jt}) &\sim N(\mu_{M,jt}, \tau_{M,ij})
+\text{log}(\tilde{M}_{jt}) &\sim N(\mu_{\tilde{M},jt}, \tau_{\tilde{M},jt})
 \\
-\text{log}(S_{jt}) &\sim N(\mu_{S,jt}, \tau_{S,ij})
+\text{log}(S_{jt}) &\sim N(\mu_{S,jt}, \tau_{S,jt}).
 \end{aligned}
 $$
 
-Some prior observation error SDs are missing or unknown, and so were imputed by fitting a lognormal hyperdistribution to the known SDs
+The IPM framework naturally handles missing observations, but in some cases an estimate of the observation prior log-mean $\mu_{K,jt}$ was available while the observation error log-SD $\tau_{K,jt}$ was missing or unknown. These missing values were imputed within the IPM by fitting a lognormal hyperdistribution to the known log-SDs:
 
 $$
 \begin{aligned}
 \text{log}(\tau_{M,ij}) &\sim N( \mu_{\tau_M},  \sigma_{\tau_M})
 \\
-\text{log}(\tau_{S,ij}) &\sim N( \mu_{\tau_S},  \sigma_{\tau_S})
+\text{log}(\tau_{S,ij}) &\sim N( \mu_{\tau_S},  \sigma_{\tau_S}).
 \end{aligned}
 $$
 
 ### Spawner Age Composition
 
-Age composition of wild spawners $\mathbf{n}_{ajt}^\text{obs} = [n_{3jt}^\text{obs}, n_{4jt}^\text{obs}, n_{5jt}^\text{obs}] ^\top$ is assumed to follow a multinomial likelihood with the expected proportions given by the unobserved true state
+Spawner age-composition data are collected from scale samples in each population and year (the IPM framework naturally handles cases in which no age samples are available). Age frequencies of wild spawners $\mathbf{n}_{ajt}^\text{obs} = [n_{3jt}^\text{obs}, n_{4jt}^\text{obs}, n_{5jt}^\text{obs}] ^\top$ are assumed to follow a multinomial observation likelihood with expected proportions given by the true state:
 
 $$
 \mathbf{n}_{ajt}^\text{obs} \sim 
-\text{Multinomial} \left(  \sum_a n_{ajt}^\text{obs},
-\mathbf{q}_{jt} \right)
+\text{Multinomial} \left(  \sum_{a=3}^5 n_{ajt}^\text{obs},
+\mathbf{q}_{jt} \right).
 $$
 
 ### Spawner Rearing Type
 
-Hatchery/wild composition of spawners
+Frequencies of wild- and hatchery-origin spawners are estimated based on otolith marking or genetic parentage-based tagging (PBT), and are assumed to follow a binomial observation likelihood given the total sample size assigned to rearing origin:
 
 $$
 n_{\text{H},jt}^\text{obs} \sim 
 \text{Bin} \left( n_{\text{W},jt}^\text{obs} + n_{\text{H},jt}^\text{obs},
-p_{\text{HOS},jt} \right)
+p_{\text{HOS},jt} \right).
 $$
 
 ### Spawner Sex Composition
 
-Proportion female spawners
+The observed frequency of female spawners is modeled with a binomial observation likelihood given the total sample size assigned to sex:
 
 $$
 n_{\text{F},jt}^\text{obs} \sim 
 \text{Bin} \left( n_{\text{M},jt}^\text{obs} + n_{\text{F},jt}^\text{obs},
-q_{\text{F},jt} \right)
+q_{\text{F},jt} \right).
 $$
 
 
 ## Priors
 
 Table of hyperpriors
+
+$$
+\begin{aligned}
+\mu_{E,a} &\sim N_+(2500,500) \\
+\sigma_{E,a} &\sim N_+(500,1000) \\
+\delta_{\text{NG}} &\sim U(0,1) \\
+\mu_\psi &\sim U(0,1) \\
+\sigma_\psi &\sim N_+(0,1) \\
+\mu_{M_\text{max}} &\sim N(m_{M_\text{max}}, s_{M_\text{max}}) \\
+\sigma_{M_\text{max}} &\sim N_+(0,3) \\
+\rho_M &\sim \text{PowerExp}_+(0,0.85,20) \\
+\sigma^\text{year}_M &\sim N_+(0,2) \\
+\sigma_M &\sim N_+(0,2) \\
+\mu_{MS} &\sim U(0,1) \\
+\rho_{MS} &\sim \text{PowerExp}_+(0,0.85,20) \\
+\sigma^\text{year}_{MS} &\sim N_+(0,2) \\
+\sigma_{MS} &\sim N_+(0,2) \\
+\boldsymbol{\sigma}^\text{pop}_\mathbf{p} &\sim N_+(0,2) \\
+\boldsymbol{\sigma}_\mathbf{p} &\sim N_+(0,2) \\
+\mathbf{L}_\mathbf{p}^\text{pop} &\sim \text{LKJ}(1) \\
+\mathbf{L}_\mathbf{p} &\sim \text{LKJ}(1) \\
+\mu_\text{F} &\sim U(0,1) \\
+\sigma^\text{pop}_\text{F} &\sim N_+(0,2) \\
+\sigma_\text{F} &\sim N_+(0,2) \\
+\mu_{\tau_M} &\sim N(0,1) \\
+\sigma_{\tau_M} &\sim N_+(0,5) \\
+\mu_{\tau_S} &\sim N(0,1) \\
+\sigma_{\tau_S} &\sim N_+(0,5)
+\end{aligned}
+$$
+
+
+```{r prior_table, results="asis", echo=FALSE, include=FALSE}
+## alternative presentation
+prior_table <- read.csv(here("analysis","prior_table.csv"))
+knitr::kable(prior_table, escape = FALSE)
+```
+
 
 # Setup and Data
 
