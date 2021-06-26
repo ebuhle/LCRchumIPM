@@ -49,7 +49,7 @@ knitr::read_chunk(here("analysis","R","02_LCRchumIPM_analysis.R"))
 
 # Overview
 
-Background on IPMs, outline of **salmonIPM**...
+[insert boilerplate from SOW and/or Tech Memo; expand a bit on **salmonIPM**...]
 
 # Model Structure
 
@@ -271,7 +271,7 @@ n_{\text{H},jt}^\text{obs} \sim
 p_{\text{HOS},jt} \right).
 $$
 
-### Spawner Sex Composition
+### Spawner Sex Ratio
 
 The observed frequency of female spawners is modeled with a binomial observation likelihood given the total sample size assigned to sex:
 
@@ -334,7 +334,7 @@ Finally, lognormal priors on initial smolt abundance (in year 1 of each populati
 
 # Data Structure
 
-Let's look at the first few rows of `fish_data` to see the format **salmonIPM** expects...
+User inputs needed to fit the Lower Columbia chum IPM include, first, a data frame containing observations and ancillary information organized by population and year. We can look at the subset of rows of `fish_data_SMS` for the Crazy Johnson Creek population (coded `Grays CJ`) to see what column names and formats **salmonIPM** expects:
 
 ```{r print_fish_data_SMS, echo=FALSE}
 library(kableExtra)
@@ -345,7 +345,10 @@ fish_data_SMS %>% select(-strata) %>% filter(pop %in% c("Grays CJ")) %>%
   scroll_box(width = "100%")
 ```
 <br>
-The observations of hatchery spawner fecundity are contained in `fecundity_data`.
+Column names generally follow the mathematical notation; `fit_p_HOS` is a logical or numeric variable indicating whether $p_{\text{HOS},jt}$ should be estimated or set to zero, and `downstream_trap` gives the row index corresponding to the downstream smolt trap that captures outmigrants from the given `pop` and `year`. (In this case, `Grays CJ` smolts are also counted at a local trap.)
+
+
+Second, `fecundity_data` contains observations of individual fecundity indexed by hatchery female. Here are the first few rows (`year` and `ID` are not actually used in modeling):
 
 ```{r print_fecundity_data, echo=FALSE}
 library(kableExtra)
@@ -355,26 +358,45 @@ fecundity_data %>% select(-strata) %>% head(10) %>% kable() %>%
 
 # Retrospective Models
 
-Fit two-stage spawner-smolt-spawner models and explore output...
+## Model Fitting
 
-We fit exponential, Beverton-Holt and Ricker models, but model comparison using LOO is not feasible, so here we focus on the Ricker.
+We can now call the function `salmonIPM()` to fit models to the historical Lower Columbia chum monitoring data. Here we use the Ricker spawner-recruit function:
 
 ```{r fit_LCRchum_Ricker, eval = !exists("LCRchum_Ricker")}
 ```
+
 ```{r print_LCRchum_Ricker}
 ```
 
+The results (showing only hyperparameters for readability) suggest that the Markov chains mixed adequately, since the Gelman-Rubin $\widehat{R}$ diagnostics are all $\leq$ 1.01 and effective sample sizes $n_\text{eff}$ are sufficient for computing 90% credible intervals. We could further explore the chains and HMC diagnostics using visualizations in the [**shinystan**](https://mc-stan.org/users/interfaces/shinystan) package. 
 
-Plot estimated spawner-smolt production curves and parameters for the Beverton-Holt model.
+In principle we could fit all three spawner-recruit functions and compare them based on estimated out-of-sample predictive performance using the approximate leave-one-out cross-validation score ([LOO](http://mc-stan.org/loo/); Vehtari et al. 2017). In practice we find that LOO estimates for IPMs fitted to the Lower Columbia chum data are too unstable to be usable (excessive Pareto *k*-values), requiring brute-force cross-validation or customized methods. These are under development, but in the meantime we proceed to use the Ricker model for inference since it is biologically plausible and fits the data reasonably well.
+
+## Life-Cycle Parameters and States
+
+The plot below summarizes posterior distributions of the main hyperparameters and states across the life cycle. In panels C-H, thick lines and shading correspond to the hyper-mean or ESU level and thin lines correspond to each of the 12 populations in the data set. In panels E-H, lines indicate posterior medians and shading indicates 90% posterior credible intervals at the ESU level (uncertainty around population-level curves is omitted for clarity). 
 
 ```{r multiplot_LCRchum_Ricker, echo=FALSE, warning=FALSE, fig.width=12, fig.height=5.5, out.width="100%"}
 mod_name <- "LCRchum_Ricker"
 <<multiplot>>
 ```
 
-`r fig_nums("plot_SR_LCRchum_Ricker", "Estimated Ricker spawner-recruit relationship (A, B) and intrinsic productivity (C) and capacity (D) parameters for the multi-population IPM. Thin lines correspond to each of 12 populations of Lower Columbia chum salmon; thick lines represent hyper-means across populations. In (A, B), each curve is a posterior median and the shaded region represents the 90% credible interval of the hyper-mean curve (uncertainty around the population-specific curves is omitted for clarity).")`
+There is clear evidence of density-dependence, with more among-population heterogeneity in smolt capacity than in maximum egg-to-smolt survival, but most populations exhibit little if any overcompensation over the range of observed spawner densities (shown by the *x*-axis rug in E-F). Both freshwater productivity (total smolt process error, G) and SAR are strongly synchronous at the ESU scale. Freshwater productivity is relatively stable except for the sharp drop in 2019, the most recent year of available data. Smolt-to-adult survival, by contrast, shows strong and quasiperiodic fluctuations consistent with large-scale oceanographic or other environmental drivers. Because of this large and as-yet-unexplained process stochasticity, the uncertainty around the final 4 years of SAR estimates (corresponding to cohorts that have not yet fully returned as adults, and thus informed more by the process model than by data) is very wide.
 
-Here are the fits to the spawner data:
+We now examine model fits to data components in more detail.
+
+## Fecundity
+
+Fecundity was higher for 4- and 5-year old females than for the youngest age class. Here the histograms show observations and the lines and shading show the posterior median and 95% credible interval, respectively, of the estimated zero-truncated normal density, which fits the data reasonably well.
+
+```{r plot_fecundity_fit_LCRchum_Ricker, echo=FALSE, fig.width=5, fig.height=5}
+mod_name <- "LCRchum_Ricker"
+<<plot_fecundity_fit>>
+```
+
+## Spawner Abundance
+
+The next plot shows observed (observation-model posterior medians; points) and estimated spawner abundance for each population. Filled points indicate observations with known error SD (90% intervals are sometimes too narrow to be visible), while the SD for open points is imputed. The solid gray line is the posterior median of the true state from the IPM. Posterior 90% credible intervals indicate process (dark shading) and observation (light shading) uncertainty, i.e. the posterior predictive distribution (PPD) of hypothetical replicate data under the model. Leading or trailing years without spawner abundance estimates are included if smolt abundance is available.
 
 ```{r plot_spawners_LCRchum_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
 life_stage <- "S"
@@ -382,9 +404,9 @@ life_stage <- "S"
 show(gg)
 ```
 
-`r fig_nums("plot_spawners_LCRchum_Ricker", "Observed (points) and estimated spawner abundance for Lower Columbia River chum salmon populations. Filled points indicate known observation error SD, while SD for open points is imputed. The posterior median (solid gray line) is from the multi-population IPM. Posterior 90% credible intervals indicate process (dark shading) and observation (light shading) uncertainty.")`
+## Smolt Abundance
 
-And here are the fits to the much sparser smolt data:
+Fits to the smolt abundance data, following the same conventions as for spawner abundance, immediately show how much sparser the juvenile sampling is. Only six populations are monitored with smolt traps (including `Grays WF`, which along with `Grays CJ` is incorporated into the summed smolt observations and estimates for the downstream `Grays MS` trap) and several of those time series are incomplete. For that reason, a greater share of the information about the underlying state comes from the process model, which induces synchronous fluctuations.
 
 ```{r plot_smolts_LCRchum_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
 life_stage <- "M"
@@ -392,33 +414,35 @@ life_stage <- "M"
 show(gg)
 ```
 
-`r fig_nums("plot_smolts_LCRchum_Ricker", "Observed (points) and estimated smolt abundance for Lower Columbia River chum salmon populations. Filled points indicate known observation error SD, while SD for open points is imputed. The posterior median (solid gray line) is from the multi-population IPM. Posterior 90% credible intervals indicate process (dark shading) and observation (light shading) uncertainty.")`
+## Observation Error
 
-To understand how the IPM is imputing the observation error SD in cases where it is not reported, let's look at the lognormal hyperdistribution fitted to the known SD values...
+To understand how the IPM imputes the abundance observation error SD in cases where it is not reported, we can plot the lognormal hyperdistribution (posterior median and 90% credible interval) fitted to the known SD values (histogram).
 
 ```{r plot_obs_error_fit_LCRchum_Ricker, echo = FALSE, fig.width = 6, fig.height = 8}
 <<plot_obs_error_fit>>
 ```
 
-`r fig_nums("plot_obs_error_fit_LCRchum_Ricker", "Lognormal hyperdistributions used to impute unknown smolt and spawner observation error SDs in the IPM. The posterior median (line) and 90% credible interval (shading) of the distribution fitted to the known SD values (histogram) are shown for each life stage.")`
+## Spawner Age Composition
 
-We can also compare the estimated spawner age-frequencies to the sample proportions from the BioData. Age composition varies quite a bit across populations and through time, reflecting fluctuations in cohort strength.
+Next we compare the estimated true spawner age-frequencies (posterior median and 90% credible interval) to the observed sample proportions (with 90% binomial confidence interval). Age composition varies considerably across populations and through time, tracking fluctuations in cohort strength. The precision of the estimated states follows the sample size, with smaller samples giving relatively more weight to the hierarchical process model.
 
-```{r plot_sex_ratio_ts_LCRchum_Ricker, echo = FALSE, warning=FALSE, fig.width=12, fig.height=7, out.width="100%"}
+```{r plot_spawner_age_LCRchum_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7*11/12, out.width="100%"}
+<<plot_spawner_age_ts>>
+show(gg)
+```
+
+## Spawner Sex Ratio
+
+Plots of the estimated adult sex ratio, following a similar format, likewise show strong interannual fluctuations and some systematic deviations from a 1:1 sex ratio across populations.
+
+```{r plot_sex_ratio_ts_LCRchum_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
 <<plot_sex_ratio_ts>>
 show(gg)
 ```
 
-`r fig_nums("plot_spawner_age_LCRchum_Ricker", "Observed (points) and estimated spawner age composition for Lower Columbia River chum salmon populations. The posterior distribution from the multi-population IPM is summarized by the median (solid line) and 90% credible interval (shading). The error bar around each observed proportion indicates the 90% binomial confidence interval based on sample size.")`
+## Spawner Rearing Type
 
-Sex ratio
-
-```{r plot_spawner_age_LCRchum_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
-<<plot_sex_ratio_ts>>
-show(gg)
-```
-
-Proportion of hatchery-origin spawners
+Proportion of hatchery-origin spawners was generally low, with some very small samples that cannot definitively rule out higher $p_\text{HOS}$. In terminal years when spawner data are not yet available but hatcheries are known to be operating in the population, the estimates revert back to the independent $U(0,1)$ prior. This is not a problem, but will change if we are able to expand the process model to include hatchery releases and returns, which would generate predictions of $p_{\text{HOS},jt}$.
 
 ```{r plot_p_HOS_ts_LCRchum_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
 <<plot_p_HOS_ts>>
@@ -428,7 +452,7 @@ show(gg)
 
 # Forecasting
 
-It is straightforward to use the IPM to generate forecasts of population dynamics...
+[need to update this or leave it out for now]
 
 ```{r plot_spawners_LCRchum_Ricker_fore, echo = FALSE, warning=FALSE, fig.width=11.7, fig.height=7.2, out.width="100%", eval=FALSE}
 mod_name <- "LCRchum_Ricker_fore"
@@ -436,17 +460,13 @@ life_stage <- "S"
 <<plot_spawner_smolt_ts>>
 ```
 
-`r fig_nums("plot_spawners_LCRchum_Ricker_fore", "Observed (points) and estimated spawner abundance for Lower Columbia River chum salmon populations, including 5-year forecasts. Filled points indicate known observation error SD, while SD for open points is imputed. The posterior median (solid gray line) is from the multi-population IPM. Posterior 90% credible intervals indicate process (dark shading) and observation (light shading) uncertainty.")`
+
+# Reporting Metrics
+
+[summary from GitHub Issues, many / most of which are shown in plots above]
 
 
-Of course we could also look at forecasts of smolts, or any other state variable. Here are the 2020 forecasts of wild spawners for each population...
+# Next Steps
 
-```{r spawner_forecast_table, echo = FALSE, eval=FALSE}
-mod_name <- "LCRchum_Ricker_fore"
-life_stage <- "S"   # "S" = spawners, "M" = smolts
-<<forecast_df>>
-kable(forecast_df, align = "l") %>% 
-  kable_styling(bootstrap_options = c("striped","hover"), full_width = FALSE)
-```
-
+[proposed future model development from 2021 SOW]
 

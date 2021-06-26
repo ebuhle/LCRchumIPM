@@ -325,8 +325,8 @@ save_plot <- TRUE
 
 if(save_plot) {
    png(filename=here("analysis","results",paste0("fecundity_fit_", mod_name, ".png")), 
-       width=7, height=7, units="in", res=200, type="cairo-png")
-} else dev.new(width=7,height=7)
+       width=5, height=5, units="in", res=200, type="cairo-png")
+} else dev.new(width=5,height=5)
 
 ## @knitr plot_fecundity_fit
 LCRchumIPM_fecundity_plot(get(mod_name), fish_data = fish_data_SMS, fecundity_data = fecundity_data)

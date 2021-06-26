@@ -246,6 +246,7 @@ LCRchumIPM_MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data)
            N_obs_L = qlnorm(0.05, log(N_obs), tau_obs),
            N_obs_U = qlnorm(0.95, log(N_obs), tau_obs),
            N_L = colQuantiles(N, probs = 0.05),
+           N_m = colMedians(N),
            N_U = colQuantiles(N, probs = 0.95),
            N_ppd_L = colQuantiles(N_ppd, probs = 0.05),
            N_ppd_U = colQuantiles(N_ppd, probs = 0.95),
@@ -253,6 +254,7 @@ LCRchumIPM_MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data)
     ggplot(aes(x = year, y = N_obs)) +
     geom_ribbon(aes(ymin = N_L, ymax = N_U), fill = "slategray4", alpha = 0.5) +
     geom_ribbon(aes(ymin = N_ppd_L, ymax = N_ppd_U), fill = "slategray4", alpha = 0.3) +
+    geom_line(aes(y = N_m), lwd = 1, col = "slategray4") +
     geom_point(aes(shape = pch), size = 2.5) + scale_shape_identity() +
     geom_errorbar(aes(ymin = N_obs_L, ymax = N_obs_U), width = 0) +
     labs(x = "Year", y = switch(life_stage, M = "Smolts (thousands)", S = "Spawners")) + 
@@ -383,7 +385,7 @@ LCRchumIPM_fecundity_plot <- function(mod, fish_data, fecundity_data)
               rev(colQuantiles(E_fit[,,a], probs = 0.95))),
             col = c1t[a], border = NA)
     text(par("usr")[1] + 0.8*diff(par("usr")[1:2]), par("usr")[4]*0.5, 
-         labels = paste("age", ages[a]), cex = 1.5, col = c1[a], adj = 1)
+         labels = paste("age", ages[a]), cex = 1.8, col = c1[a], adj = 1)
   }
   title(xlab = "Fecundity", ylab = "Probability density", cex.lab = 1.9, line = 0, outer = TRUE)
 }
@@ -411,7 +413,7 @@ LCRchumIPM_obs_error_plot <- function(mod, fish_data)
   c1 <- "slategray4"
   c1t <- transparent(c1, trans.val = 0.6)
   
-  par(mfcol = c(2,1), mar = c(5,5,0,1),  oma = c(0,0,0,0))
+  par(mfcol = c(2,1), mar = c(5,5,0,1),  oma = c(0,0,1,0))
   
   # smolt observation error SD
   hist(tau_M_obs, 10, prob = TRUE, las = 1, cex.axis = 1.2, cex.lab = 1.5, 
