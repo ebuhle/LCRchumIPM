@@ -47,9 +47,16 @@ knitr::read_chunk(here("analysis","R","02_LCRchumIPM_analysis.R"))
 ```{r data, echo=FALSE, warning = FALSE, message = FALSE}
 ```
 
-# Overview
+# Background
 
-[insert boilerplate from SOW and/or Tech Memo; expand a bit on **salmonIPM**...]
+Historically, hundreds of thousands of chum salmon (*Oncorhynchus keta*) adults returned annually to the Lower Columbia River (LCR). However, much like other salmon populations throughout the Pacific Northwest, the overall abundance of LCR chum has declined precipitously as a result of anthropogenic impacts and climatic changes. In 1999, Columbia River chum salmon were listed as Threatened under the Endangered Species Act (ESA), prompting state and federal agencies to begin recovery efforts. Specifically, the Washington Department of Fish and Wildlife (WDFW) began implementing a chum recovery program that uses a three-pronged approach, which includes habitat restoration, hatchery supplementation, and monitoring and evaluation. Each of these prongs has been implemented for 15–20 years, but the resulting data sets have not previously been directly integrated to understand the patterns and drivers of temporal and spatial variability in chum abundance and productivity.
+
+In 2016, WDFW proposed the development of a life-cycle model (LCM) to improve our understanding of LCR chum population dynamics and to provide a platform for future analyses that could: (1) help identify limiting life stages through time and space, (2) help identify criteria to assess the need for supplementation, and (3) help prioritize habitat restoration by identifying the features of viable chum habitat patches. 
+
+We will estimate the parameters in a stage-structured, multi-population LCM for Lower Columbia chum by casting it as an integrated population model (IPM), in which a joint likelihood function allows the model to be fitted to all available data at once. IPMs are the state-of-the-art framework for parameterizing structured population models and have been used widely in fisheries and wildlife because they offer numerous advantages over an ad hoc, piecemeal approach, especially when data are sparse or heterogeneous. The heart of an IPM is a state-space model, which distinguishes true ecological process variation from observation noise, reducing bias in estimates of density-dependence and extinction risk. 
+Specifically, we will build on the R package salmonIPM developed by NOAA and Biomark, which facilitates fitting a variety of age- and stage-structured IPMs tailored to anadromous salmonid life histories. Using this platform will allow a reproducible workflow from data to model-fitting and management scenario analysis, which can be easily updated as new data become available. 
+
+Existing functionality in salmonIPM includes multi-population, age-structured spawner-to-spawner models (see Figures 1 & 2) as well as two-stage spawner-smolt models. As a starting point for the Lower Columbia chum work, these models can already address many of WDFW’s objectives, such as characterizing spatiotemporal variation in freshwater productivity and marine survival, short-term forecasting, and long-term population viability analysis (PVA). These generic models will serve as building blocks for a more detailed, bespoke model for Lower Columbia chum that includes sex, age-specific fecundity, sample-based estimates of observation errors, hatchery operations, and habitat and environmental drivers of stage-specific vital rates. The fitted model will be used to identify stage- and location-specific bottlenecks limiting viability at the population and ESU level. Beyond the present scope of work, this model will also lend itself naturally to scenario analyses aimed at questions such as monitoring design (e.g., data gaps and value of specific data types relative to their cost); prioritization of habitat restoration; effectiveness of supplementation; and potential rates of recolonization.
 
 # Model Structure
 
@@ -450,17 +457,6 @@ show(gg)
 ```
 
 
-# Forecasting
-
-[need to update this or leave it out for now]
-
-```{r plot_spawners_LCRchum_Ricker_fore, echo = FALSE, warning=FALSE, fig.width=11.7, fig.height=7.2, out.width="100%", eval=FALSE}
-mod_name <- "LCRchum_Ricker_fore"
-life_stage <- "S"
-<<plot_spawner_smolt_ts>>
-```
-
-
 # Reporting Metrics
 
 [summary from GitHub Issues, many / most of which are shown in plots above]
@@ -468,5 +464,14 @@ life_stage <- "S"
 
 # Next Steps
 
-[proposed future model development from 2021 SOW]
+Relative to our broader model development goals, we continue to:
+
+1. Include habitat and environmental drivers – Incorporate covariates (e.g., freshwater habitat quality, oceanographic factors) into the IPM to estimate effects on stage-specific productivity, capacity, or survival. To date, these include spawning habitat area and basic oceanographic indices (e.g., PDO). We also developed a general formula-based syntax for specifying covariate effects to make model fitting more flexible and user-friendly.
+
+2. Model hatchery operations – We are in the process of expanding the IPM to include hatchery fry/smolt releases. This will allow jointly modeling wild and hatchery SAR, which will help to inform estimates of common trends and environmental covariate effects. Longer-term, we plan to explicitly model hatchery operations, i.e., broodstock transfers into hatchery or quasi-hatchery populations and fry production. Explicitly accounting for translocated adults was a necessary first step toward these goals.
+
+3. Explore straying and spatial connectivity – Along with modeling hatchery releases and returns, we plan to model dispersal among populations using a straying matrix parameterized by inter-population distance (i.e., a dispersal kernel), estimated using origin data from hatcheries and spawning channels. This could potentially affect inferences about metapopulation viability and allow scenario analyses related to recolonization. Explicitly accounting for translocated adults was a necessary first step toward this goal.
+
+4. Conduct scenario analyses – Use the parameterized IPM to evaluate life-cycle bottlenecks (i.e., sensitivity to specific vital rates) and to ask questions about monitoring design (e.g., data gaps and value of specific data types relative to their cost); prioritization of habitat restoration; effectiveness of supplementation; and potential rates of recolonization. As a first step, we have compiled a list of reporting metrics that are or could be estimated by the IPM; currently the model generates 11 out of 15 such metrics.
+
 
