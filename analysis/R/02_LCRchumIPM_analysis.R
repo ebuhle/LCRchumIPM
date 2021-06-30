@@ -171,17 +171,16 @@ loo_compare(LOO_LCRchum[c("BH","Ricker")])
 #--------------------------------------------------------------
 
 # Ricker
-## @knitr fit_LCRchum_BH_fore
-LCRchum_BH_fore <- salmonIPM(fish_data = fish_data_SMS_fore, fecundity_data = fecundity_data,
-                             ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "BH",
-                             pars = c("Emax","p","p_HOS","B_rate"), 
-                             include = FALSE, chains = 3, iter = 1500, warmup = 500,
-                             control = list(adapt_delta = 0.99, max_treedepth = 15))
+## @knitr fit_LCRchum_Ricker_fore
+LCRchum_Ricker_fore <- salmonIPM(fish_data = fish_data_SMS_fore, fecundity_data = fecundity_data,
+                                 ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
+                                 chains = 3, iter = 1500, warmup = 500,
+                                 control = list(adapt_delta = 0.99, max_treedepth = 14))
 
 ## @knitr
-print(LCRchum_BH_fore, prob = c(0.05,0.5,0.95),
-      pars = c("eta_pop_EM","eta_year_EM","eta_year_MS","eta_pop_p",
-               "E","S","M","s_EM","s_MS","q","tau_M","tau_S"), 
+print(LCRchum_Ricker_fore, prob = c(0.05,0.5,0.95),
+      pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p","p_F",
+               "tau_M","tau_S","p_HOS","B_rate","E_hat","M","S","s_MS","q","q_F","LL"), 
       include = FALSE, use_cache = FALSE)
 
 

@@ -234,12 +234,12 @@ fish_data_SMS <- fish_data_SMS %>%
                                    which(pop == "Grays MS")))
 
 # pad data with future years to generate forecasts
-# use 5-year (1-generation) time horizon
+# use 1-year time horizon
 fish_data_SMS_fore <- fish_data_SMS %>% group_by(pop) %>% 
-  slice(rep(n(), max(fish_data_SMS$year) + 5 - max(year))) %>% 
-  mutate(year = (unique(year) + 1):(max(fish_data_SMS$year) + 5),
+  slice(rep(n(), max(fish_data_SMS$year) + 1 - max(year))) %>% 
+  mutate(year = (unique(year) + 1):(max(fish_data_SMS$year) + 1),
          S_obs = NA, tau_S_obs = NA, M_obs = NA, tau_M_obs = NA,
-         fit_p_HOS = 0, B_take_obs = 0, F_rate = 0) %>% 
+         p_G_obs = 1, S_add_obs = 0, fit_p_HOS = 0, B_take_obs = 0, F_rate = 0) %>% 
   mutate_at(vars(starts_with("n_")), ~ 0) %>% 
   full_join(fish_data_SMS) %>% arrange(pop, year) %>% 
   mutate(forecast = year > max(fish_data_SMS$year), downstream_trap = NA) %>% 
