@@ -67,7 +67,7 @@ Historically, hundreds of thousands of chum salmon (*Oncorhynchus keta*) adults 
 
 In 2016, WDFW proposed the development of a life-cycle model (LCM) to improve our understanding of LCR chum population dynamics and to provide a platform for future analyses that could: (1) help identify limiting life stages through time and space, (2) help identify criteria to assess the need for supplementation, and (3) help prioritize habitat restoration by identifying the features of viable chum habitat patches. 
 
-Here we describe a stage-structured, multi-population LCM for LCR chum formulated as an integrated population model (IPM), in which a joint likelihood function allows the model to be fitted to all available data at once [@schaub_integrated_2011]. IPMs are the state-of-the-art framework for parameterizing structured population models and have been used widely in fisheries and wildlife ecology because they offer numerous advantages over an ad hoc, piecemeal approach, especially when data are sparse or heterogeneous [@newman_hidden_2006, @su_performance_2012, @fleischman_age-structured_2013, @maunder_review_2013]. The heart of an IPM is a state-space model, a form of hierarchical model that distinguishes true ecological process stochasticity from observation noise [@de_valpine_state-space_2005].
+Here we describe a stage-structured, multi-population LCM for LCR chum formulated as an integrated population model (IPM), in which a joint likelihood function allows the model to be fitted to all available data at once [@schaub_integrated_2011]. IPMs are the state-of-the-art framework for parameterizing structured population models and have been used widely in fisheries and wildlife ecology because they offer numerous advantages over an ad hoc, piecemeal approach, especially when data are sparse or heterogeneous [@newman_hidden_2006; @su_performance_2012; @fleischman_age-structured_2013; @maunder_review_2013]. The heart of an IPM is a state-space model, a form of hierarchical model that distinguishes true ecological process stochasticity from observation noise [@de_valpine_state-space_2005].
 
 Our LCR chum IPM is developed as part of the R package **salmonIPM** [@buhle_using_2018], which facilitates fitting a variety of age- and stage-structured IPMs tailored to anadromous salmonid life histories. This platform allows a reproducible workflow from data to model-fitting and management scenario analysis, which can be easily updated as new data become available. Models in **salmonIPM** are implemented in [Stan](https://mc-stan.org) [@stan_development_team_stan_2019], a probabilistic programming language for Bayesian estimation that uses the cutting-edge Hamiltonian Monte Carlo (HMC) algorithm to draw samples from the posterior distribution [@monnahan_faster_2017].
 
@@ -314,7 +314,7 @@ $$
 \text{exp} \left[ - \left( \dfrac{|x - u|}{s} \right)^r \right]
 $$
 
-is used to regularize autocorrelation coefficients away from the computationally problematic boundaries 1 and -1. The Lewandowski, Kurowicka and Joe (2009) distribution with density $\text{LKJ}(\eta)$, is a distribution over correlation matrices; when $\eta = 1$ it is uniform. The prior mean and SD of log-mean smolt capacity, $m_{M_\text{max}}$ and $s_{M_\text{max}}$, are the sample 90th percentile and SD of observed log smolt density, respectively. While this data-aware prior technically uses the data twice, it is broad and weakly informative and merely serves to find a reasonable scale for overall population size, similar to [widely used Bayesian inference packages](https://cran.r-project.org/web/packages/rstanarm/vignettes/priors.html).
+is used to regularize autocorrelation coefficients away from the computationally problematic boundaries 1 and -1. The Lewandowski, Kurowicka and Joe [@lewandowski_generating_2009] distribution with density $\text{LKJ}(\eta)$, is a distribution over correlation matrices; when $\eta = 1$ it is uniform. The prior mean and SD of log-mean smolt capacity, $m_{M_\text{max}}$ and $s_{M_\text{max}}$, are the sample 90th percentile and SD of observed log smolt density, respectively. While this data-aware prior technically uses the data twice, it is broad and weakly informative and merely serves to find a reasonable scale for overall population size, similar to [widely used Bayesian inference packages](https://cran.r-project.org/web/packages/rstanarm/vignettes/priors.html).
 
 $$
 \begin{aligned}
@@ -473,7 +473,12 @@ show(gg)
 
 # Forecasting
 
-It is straightforward to use the IPM to generate forecasts of population dynamics...
+It is straightforward to use the IPM to forecast future population dynamics, given the observed historical data. We can simply pad `fish_data_SMS` with empty rows corresponding to future years in each population and re-fit the model. Estimated states will then include the future years, just as they would any past years with missing data. This seamless integration of retrospective fitting and forward projection is a major advantage of the IPM approach; there is no need to separately specify initial conditions or devise ad hoc methods for simulating parameter uncertainty or process noise.
+
+In this example, we forecast adult returns in 2021 given available data through 2020 (albeit not for all variables in all populations). Although the posterior samples include all states in the model -- for example, we could forecast smolt abundance or adult age structure -- we focus here on total wild-origin spawners of all ages.
+
+```{r fit_LCRchum_Ricker_fore, echo=FALSE, eval = !exists("LCRchum_Ricker_fore")}
+```
 
 ```{r plot_spawners_LCRchum_Ricker_fore, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
 mod_name <- "LCRchum_Ricker_fore"
@@ -482,7 +487,9 @@ life_stage <- "S"
 show(gg)
 ```
 
-Of course we could also look at forecasts of smolts, or any other state variable. Here are the 2021 forecasts of wild spawners for each population...
+This plot is identical to the retrospective fits to spawner abundance except for the added final year. The forecast intervals are much wider than the credible intervals around the retrospective estimates; this is expected in general, of course, but is especially pronounced because of the large process-error fluctuations in SAR. As this logit-AR(1) process is simulated forward in time, the marine survival rates and associated population dynamics will rapidly blow up, converging to a wide stationary distribution. Within a single chum generation, however, the forecast is constrained by observations of the abundance of parent cohorts and outmigrants as well as younger age-classes whose older siblings will return in 2021. Thus the IPM automatically incorporates the information used in "sibling regression" models [@peterman_model_1982], but without the restrictive assumption of constant within-cohort age structure.
+
+The table below gives a more detailed look at the projections (posterior medians and 90% forecast intervals) of wild spawner abundance in 2021. 
 
 ```{r spawner_forecast_table, echo = FALSE}
 mod_name <- "LCRchum_Ricker_fore"
@@ -495,7 +502,7 @@ knitr::kable(forecast_df, align = "l") %>%
 
 # Reporting Metrics
 
-
+As shown in the figures above, the LCR chum IPM currently generates estimates (or forecasts) of a number of management-relevant quantities and reporting metrics:
 
 * Total spawner abundance by return year
 * Spawner rearing-type (wild / hatchery) composition
@@ -507,12 +514,14 @@ knitr::kable(forecast_df, align = "l") %>%
 * Proportion hatchery-origin spawners ($p_{\text{HOS}}$)
 * Natural smolt-to-adult survival (SAR; $s_{MS}$)
 
+We anticipate that future model development will add to this list, particularly for metrics related to hatchery program effectiveness (e.g., SAR) and contribution to wild populations (e.g., program-specific $p_{\text{HOS}}$).
+
 
 # Next Steps
 
 The LCR chum IPM remains under active development, with an ultimate goal of providing decision support for adaptive management of habitat restoration, hatchery supplementation, and monitoring design. Toward those ends, our highest priorities for further model development in the near and medium term include the following:
 
-1. Habitat and environmental drivers. Incorporate covariates (e.g., freshwater habitat quality, oceanographic factors) into the IPM to estimate effects on stage-specific productivity, capacity, and/or survival.
+1. Habitat and environmental drivers. Incorporate covariates (e.g., freshwater habitat quality, oceanographic factors) into the IPM to estimate effects on stage-specific productivity, capacity, and/or survival. For example, strong leading indicators of SAR could reduce the unexplained process noise and thus help to constrain near-term forecasts.
 
 2. Hatchery operations. Expand the IPM to model hatchery fry/smolt releases and adult returns. This will allow jointly modeling wild and hatchery SAR, which may help to inform estimates of common trends and environmental covariate effects. A longer-term goal is to explicitly model hatchery operations, i.e., broodstock transfers into hatchery or quasi-hatchery populations and fry production.
 
