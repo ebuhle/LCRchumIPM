@@ -1,7 +1,21 @@
 ---
 title: 'Fitting Integrated Population Models to Lower Columbia River Chum Salmon Monitoring Data'
-author: "Eric Buhle, Kale Bentley, Thomas Buehrens, Mark Scheuerell, Todd Hillson, and ..."
+author: 
+  - name: Eric Buhle
+    affiliation: 
+    - Biomark Applied Biological Services, Northwest Fisheries Science Center
+  - name: Kale Bentley
+    affiliation: Washington Department of Fish and Wildlife
+  - name: Thomas Buehrens
+    affiliation: Washington Department of Fish and Wildlife
+  - name: Todd Hillson
+    affiliation: Washington Department of Fish and Wildlife
+  - name: Mark Scheuerell
+    affiliation: 
+    - US Geological Survey, University of Washington
 date: "`r format(Sys.time(), '%Y-%m-%d')`"
+bibliography: vignette_bibliography.bib
+csl: ecology.csl
 output:
   html_document:
     theme: cerulean
@@ -49,14 +63,16 @@ knitr::read_chunk(here("analysis","R","02_LCRchumIPM_analysis.R"))
 
 # Background
 
-Historically, hundreds of thousands of chum salmon (*Oncorhynchus keta*) adults returned annually to the Lower Columbia River (LCR). However, much like other salmon populations throughout the Pacific Northwest, the overall abundance of LCR chum has declined precipitously as a result of anthropogenic impacts and climatic changes. In 1999, Columbia River chum salmon were listed as Threatened under the Endangered Species Act (ESA), prompting state and federal agencies to begin recovery efforts. Specifically, the Washington Department of Fish and Wildlife (WDFW) began implementing a chum recovery program that uses a three-pronged approach, which includes habitat restoration, hatchery supplementation, and monitoring and evaluation. Each of these prongs has been implemented for 15–20 years, but the resulting data sets have not previously been directly integrated to understand the patterns and drivers of temporal and spatial variability in chum abundance and productivity.
+Historically, hundreds of thousands of chum salmon (*Oncorhynchus keta*) adults returned annually to the Lower Columbia River (LCR). However, much like other salmon populations throughout the Pacific Northwest, the overall abundance of LCR chum has declined precipitously as a result of anthropogenic impacts and climatic changes. In 1999, Columbia River chum salmon were listed as Threatened under the Endangered Species Act (ESA), prompting state and federal agencies to begin recovery efforts. Specifically, the Washington Department of Fish and Wildlife (WDFW) began implementing a chum recovery program that uses a three-pronged approach, which includes habitat restoration, hatchery supplementation, and monitoring and evaluation. Each of these prongs has been implemented for 15–20 years, but the resulting data sets have not previously been integrated to understand the patterns and drivers of temporal and spatial variability in chum abundance and productivity.
 
 In 2016, WDFW proposed the development of a life-cycle model (LCM) to improve our understanding of LCR chum population dynamics and to provide a platform for future analyses that could: (1) help identify limiting life stages through time and space, (2) help identify criteria to assess the need for supplementation, and (3) help prioritize habitat restoration by identifying the features of viable chum habitat patches. 
 
-We will estimate the parameters in a stage-structured, multi-population LCM for Lower Columbia chum by casting it as an integrated population model (IPM), in which a joint likelihood function allows the model to be fitted to all available data at once. IPMs are the state-of-the-art framework for parameterizing structured population models and have been used widely in fisheries and wildlife because they offer numerous advantages over an ad hoc, piecemeal approach, especially when data are sparse or heterogeneous. The heart of an IPM is a state-space model, which distinguishes true ecological process variation from observation noise, reducing bias in estimates of density-dependence and extinction risk. 
-Specifically, we will build on the R package salmonIPM developed by NOAA and Biomark, which facilitates fitting a variety of age- and stage-structured IPMs tailored to anadromous salmonid life histories. Using this platform will allow a reproducible workflow from data to model-fitting and management scenario analysis, which can be easily updated as new data become available. 
+Here we describe a stage-structured, multi-population LCM for LCR chum formulated as an integrated population model (IPM), in which a joint likelihood function allows the model to be fitted to all available data at once [@schaub_integrated_2011]. IPMs are the state-of-the-art framework for parameterizing structured population models and have been used widely in fisheries and wildlife ecology because they offer numerous advantages over an ad hoc, piecemeal approach, especially when data are sparse or heterogeneous [@newman_hidden_2006, @su_performance_2012, @fleischman_age-structured_2013, @maunder_review_2013]. The heart of an IPM is a state-space model, a form of hierarchical model that distinguishes true ecological process stochasticity from observation noise [@de_valpine_state-space_2005].
 
-Existing functionality in salmonIPM includes multi-population, age-structured spawner-to-spawner models (see Figures 1 & 2) as well as two-stage spawner-smolt models. As a starting point for the Lower Columbia chum work, these models can already address many of WDFW’s objectives, such as characterizing spatiotemporal variation in freshwater productivity and marine survival, short-term forecasting, and long-term population viability analysis (PVA). These generic models will serve as building blocks for a more detailed, bespoke model for Lower Columbia chum that includes sex, age-specific fecundity, sample-based estimates of observation errors, hatchery operations, and habitat and environmental drivers of stage-specific vital rates. The fitted model will be used to identify stage- and location-specific bottlenecks limiting viability at the population and ESU level. Beyond the present scope of work, this model will also lend itself naturally to scenario analyses aimed at questions such as monitoring design (e.g., data gaps and value of specific data types relative to their cost); prioritization of habitat restoration; effectiveness of supplementation; and potential rates of recolonization.
+Our LCR chum IPM is developed as part of the R package **salmonIPM** [@buhle_using_2018], which facilitates fitting a variety of age- and stage-structured IPMs tailored to anadromous salmonid life histories. This platform allows a reproducible workflow from data to model-fitting and management scenario analysis, which can be easily updated as new data become available. Models in **salmonIPM** are implemented in [Stan](https://mc-stan.org) [@stan_development_team_stan_2019], a probabilistic programming language for Bayesian estimation that uses the cutting-edge Hamiltonian Monte Carlo (HMC) algorithm to draw samples from the posterior distribution [@monnahan_faster_2017].
+
+This vignette first details the structure of the LCR chum IPM, including the process model (the true underlying population dynamics), the observation model (the likelihood of data arising from field monitoring programs given the unknown true state), and the priors. We then demonstrate how to fit LCR chum models using **salmonIPM** and discuss and interpret the main results, including reporting metrics of interest to managers. We conclude by outlining our plans for further model development. The goal of the vignette is to provide an introduction to both the mathematical structure of the model and the workflow involved in fitting it in R and working with the output. To that end, we display a minimal amount of R code, but all the code used in the examples shown here can be found in the RMarkdown source used to generate this document.
+
 
 # Model Structure
 
@@ -78,7 +94,7 @@ f \left( S_{jt} | \alpha_{jt}, M_{\text{max},j}, A_{jt} \right) =
 \end{cases}
 $$
 
-We use a nonstandard parameterization of the Ricker in terms of maximum smolt production or "capacity" $M_{\text{max}}$, corresponding to the mode of the function. This facilitates direct comparison with the Beverton-Holt (where $M_{\text{max}}$ is the asymptote) and is better-identified by data than the standard parameterization based on per capita density dependence. $M_{\text{max}}$ has units of density (fish per stream distance or area) and is then expanded to units of abundance based on habitat size $A_{jt}$. In the case of Lower Columbia chum, this is km of spawning habitat estimated using GIS.
+We use a nonstandard parameterization of the Ricker in terms of maximum smolt production or "capacity" $M_{\text{max}}$, corresponding to the mode of the function. This facilitates direct comparison with the Beverton-Holt (where $M_{\text{max}}$ is the asymptote) and is better-identified by data than the standard parameterization based on per capita density dependence. $M_{\text{max}}$ has units of density (fish per stream distance or area) and is then expanded to units of abundance based on habitat size $A_{jt}$. In the case of LCR chum, this is km of spawning habitat estimated using GIS.
 
 Intrinsic productivity $\alpha_{jt}$ is calculated as a weighted mean of age-specific female fecundity $\mu_{E,a}$, weighted by the spawner age distribution $q_{jta}$, multiplied by the proportion of female spawners $q_{\text{F},jt}$ (discounted for the proportion of females that are not "green", i.e. not fully fecund, with discount rate $\delta_\text{NG} \in [0,1]$), and finally multiplied by the density-independent maximum egg-to-smolt survival $\psi_j$:
 
@@ -118,7 +134,7 @@ M_{jt} &= f \left( S_{jt} | \alpha_{jt}, M_{\text{max},j}, A_{jt} \right) \,
 \end{aligned}
 $$
 
-In **salmonIPM** we can include covariates of the parameters $\psi_j$ and $M_{\text{max},j}$ as well as the smolt recruitment process error term. We do not consider this option further here, but we anticipate incorporating environmental covariates in future development of the Lower Columbia chum IPM.
+In **salmonIPM** we can include covariates of the parameters $\psi_j$ and $M_{\text{max},j}$ as well as the smolt recruitment process error term. We do not consider this option further here, but we anticipate incorporating environmental covariates in future development of the LCR chum IPM.
 
 ### Smolt-to-Adult Survival
 
@@ -201,7 +217,7 @@ $$
 
 ### Adult Recruitment and Composition
 
-Recruitment of wild-origin adult spawners $S_\text{W}$ is calculated by summing over the corresponding outmigrant cohorts and subtracting the number of spawners removed for hatchery broodstock or to spawning channels ($B_{jt}$, assumed known without error). Fishery mortality of Lower Columbia chum is thought to be minimal.
+Recruitment of wild-origin adult spawners $S_\text{W}$ is calculated by summing over the corresponding outmigrant cohorts and subtracting the number of spawners removed for hatchery broodstock or to spawning channels ($B_{jt}$, assumed known without error). Fishery mortality of LCR chum is thought to be minimal.
 
 $$
 S_{\text{W}, jt} = \left(\sum_{a=3}^{5} 
@@ -341,7 +357,7 @@ Finally, lognormal priors on initial smolt abundance (in year 1 of each populati
 
 # Data Structure
 
-User inputs needed to fit the Lower Columbia chum IPM include, first, a data frame containing observations and associated information organized by population and year. We can look at the subset of rows of `fish_data_SMS` for the Crazy Johnson Creek population (coded `Grays CJ`) to see what column names and formats **salmonIPM** expects:
+User inputs needed to fit the LCR chum IPM include, first, a data frame containing observations and associated information organized by population and year. We can look at the subset of rows of `fish_data_SMS` for the Crazy Johnson Creek population (coded `Grays CJ`) to see what column names and formats **salmonIPM** expects:
 
 ```{r print_fish_data_SMS, echo=FALSE}
 library(kableExtra)
@@ -367,7 +383,7 @@ fecundity_data %>% select(-strata) %>% head(10) %>% kable() %>%
 
 ## Model Fitting
 
-We can now call the function `salmonIPM()` to fit models to the historical Lower Columbia chum monitoring data. Here we use the Ricker spawner-recruit function. This model takes approximately `r round(mean(rowSums(get_elapsed_time(LCRchum_Ricker)))/3600)` hr to fit on a multicore 3-GHz Intel processor.
+We can now call the function `salmonIPM()` to fit models to the historical LCR chum monitoring data. Here we use the Ricker spawner-recruit function. This model takes approximately `r round(mean(rowSums(get_elapsed_time(LCRchum_Ricker)))/3600)` hr to fit on a multicore 3-GHz Intel processor.
 
 ```{r fit_LCRchum_Ricker, eval = !exists("LCRchum_Ricker")}
 ```
@@ -377,7 +393,7 @@ We can now call the function `salmonIPM()` to fit models to the historical Lower
 
 The results (showing only hyperparameters for readability) suggest that the Markov chains mixed adequately, since the Gelman-Rubin $\widehat{R}$ diagnostics are all &leq; 1.01 and effective sample sizes $n_\text{eff}$ are sufficient for computing 90% credible intervals. We may get false-positive warnings that some $\widehat{R}$ and $n_\text{eff}$ estimates are `NaN`, but these are for fixed diagonal elements of correlation matrices. We could further explore the chains and HMC diagnostics using visualizations in the [**shinystan**](https://mc-stan.org/users/interfaces/shinystan) package. 
 
-In principle we could fit all three spawner-recruit functions and compare them based on estimated out-of-sample predictive performance using the approximate leave-one-out cross-validation score ([LOO](http://mc-stan.org/loo/); Vehtari et al. 2017). In practice we find that LOO estimates for IPMs fitted to the Lower Columbia chum data are too unstable to be usable (excessive Pareto *k*-values indicating that some observations are highly influential on the posterior), requiring brute-force cross-validation or customized methods. These are under development, but in the meantime we proceed to use the Ricker model for inference since it is biologically plausible and fits the data reasonably well.
+In principle we could fit all three spawner-recruit functions and compare them based on estimated out-of-sample predictive performance using the approximate leave-one-out cross-validation score ([LOO](http://mc-stan.org/loo/); Vehtari et al. 2017). In practice we find that LOO estimates for IPMs fitted to the LCR chum data are too unstable to be usable (excessive Pareto *k*-values indicating that some observations are highly influential on the posterior), requiring brute-force cross-validation or customized methods. These are under development, but in the meantime we proceed to use the Ricker model for inference since it is biologically plausible and fits the data reasonably well.
 
 ## Life-Cycle Parameters and States
 
@@ -459,19 +475,30 @@ show(gg)
 
 # Reporting Metrics
 
-[summary from GitHub Issues, many / most of which are shown in plots above]
+
+
+* Total spawner abundance by return year
+* Spawner rearing-type (wild / hatchery) composition
+* Spawner age composition
+* Spawner sex composition
+* Juvenile abundance at monitoring sites
+* Mining Rate (fraction of natural spawners removed for broodstock)
+* Natural recruits per spawner
+* Proportion hatchery-origin spawners ($p_{\text{HOS}}$)
+* Natural smolt-to-adult survival (SAR; $s_{MS}$)
 
 
 # Next Steps
 
-Relative to our broader model development goals, we continue to:
+The LCR chum IPM remains under active development, with an ultimate goal of providing decision support for adaptive management of habitat restoration, hatchery supplementation, and monitoring design. Toward those ends, our highest priorities for further model development in the near and medium term include the following:
 
-1. Include habitat and environmental drivers – Incorporate covariates (e.g., freshwater habitat quality, oceanographic factors) into the IPM to estimate effects on stage-specific productivity, capacity, or survival. To date, these include spawning habitat area and basic oceanographic indices (e.g., PDO). We also developed a general formula-based syntax for specifying covariate effects to make model fitting more flexible and user-friendly.
+1. Habitat and environmental drivers. Incorporate covariates (e.g., freshwater habitat quality, oceanographic factors) into the IPM to estimate effects on stage-specific productivity, capacity, and/or survival.
 
-2. Model hatchery operations – We are in the process of expanding the IPM to include hatchery fry/smolt releases. This will allow jointly modeling wild and hatchery SAR, which will help to inform estimates of common trends and environmental covariate effects. Longer-term, we plan to explicitly model hatchery operations, i.e., broodstock transfers into hatchery or quasi-hatchery populations and fry production. Explicitly accounting for translocated adults was a necessary first step toward these goals.
+2. Hatchery operations. Expand the IPM to model hatchery fry/smolt releases and adult returns. This will allow jointly modeling wild and hatchery SAR, which may help to inform estimates of common trends and environmental covariate effects. A longer-term goal is to explicitly model hatchery operations, i.e., broodstock transfers into hatchery or quasi-hatchery populations and fry production.
 
-3. Explore straying and spatial connectivity – Along with modeling hatchery releases and returns, we plan to model dispersal among populations using a straying matrix parameterized by inter-population distance (i.e., a dispersal kernel), estimated using origin data from hatcheries and spawning channels. This could potentially affect inferences about metapopulation viability and allow scenario analyses related to recolonization. Explicitly accounting for translocated adults was a necessary first step toward this goal.
+3. Straying and spatial connectivity. In tandem with modeling hatchery releases and returns, we plan to model dispersal among populations using a straying matrix parameterized by inter-population distance (i.e., a dispersal kernel), estimated using origin data from hatcheries and spawning channels. This could potentially affect inferences about metapopulation viability and allow scenario analyses related to recolonization. Explicitly accounting for translocated adults was a necessary first step toward this goal.
 
-4. Conduct scenario analyses – Use the parameterized IPM to evaluate life-cycle bottlenecks (i.e., sensitivity to specific vital rates) and to ask questions about monitoring design (e.g., data gaps and value of specific data types relative to their cost); prioritization of habitat restoration; effectiveness of supplementation; and potential rates of recolonization. As a first step, we have compiled a list of reporting metrics that are or could be estimated by the IPM; currently the model generates 11 out of 15 such metrics.
+4. Scenario analyses. Use the parameterized IPM to evaluate life-cycle bottlenecks (sensitivity to specific vital rates) and to ask questions about monitoring design (e.g., data gaps and value of specific data types relative to their cost), prioritization of habitat restoration, effectiveness of supplementation, and potential rates of recolonization.
 
 
+# References
