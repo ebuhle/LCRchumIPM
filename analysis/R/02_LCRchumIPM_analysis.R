@@ -241,13 +241,14 @@ if(save_plot) dev.off()
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_Ricker"
+mod_name <- "LCRchum_Ricker_fore"
 life_stage <- "S"   # "S" = spawners, "M" = smolts
-save_plot <- TRUE
+save_plot <- FALSE
 
 ## @knitr plot_spawner_smolt_ts
 gg <- LCRchumIPM_MS_timeseries(mod = get(mod_name), life_stage = life_stage, 
-                               fish_data = fish_data_SMS)
+                               fish_data = switch(tail(unlist(strsplit(mod_name, "_")), 1),
+                                                  fore = fish_data_SMS_fore, fish_data_SMS))
 ## @knitr
 
 if(save_plot) {
@@ -361,7 +362,7 @@ if(save_plot) dev.off()
 # Summary of 1-year-ahead forecasts by pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_BH_fore"
+mod_name <- "LCRchum_Ricker_fore"
 life_stage <- "S"   # "S" = spawners, "M" = smolts
 
 ## @knitr forecast_df

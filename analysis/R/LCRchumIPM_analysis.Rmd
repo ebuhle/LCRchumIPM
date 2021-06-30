@@ -360,7 +360,6 @@ Finally, lognormal priors on initial smolt abundance (in year 1 of each populati
 User inputs needed to fit the LCR chum IPM include, first, a data frame containing observations and associated information organized by population and year. We can look at the subset of rows of `fish_data_SMS` for the Crazy Johnson Creek population (coded `Grays CJ`) to see what column names and formats **salmonIPM** expects:
 
 ```{r print_fish_data_SMS, echo=FALSE}
-library(kableExtra)
 fish_data_SMS %>% select(-strata) %>% filter(pop %in% c("Grays CJ")) %>%
   kable(digits = replace(rep(0, ncol(.)), c(3,5,7), c(1,2,2))) %>% 
   column_spec(column = 1, width_min = "80px") %>%
@@ -374,7 +373,6 @@ Column names generally follow the mathematical notation; `fit_p_HOS` is a logica
 Second, `fecundity_data` contains observations of individual fecundity indexed by hatchery female. Here are the first few rows (`year` and `ID` are not actually used in modeling):
 
 ```{r print_fecundity_data, echo=FALSE}
-library(kableExtra)
 fecundity_data %>% select(-strata) %>% head(10) %>% kable() %>% 
   kable_styling(bootstrap_options = c("striped","hover","condensed"), full_width = FALSE)
 ```
@@ -470,6 +468,28 @@ Proportion of hatchery-origin spawners was generally low, with some very small s
 ```{r plot_p_HOS_ts_LCRchum_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
 <<plot_p_HOS_ts>>
 show(gg)
+```
+
+
+# Forecasting
+
+It is straightforward to use the IPM to generate forecasts of population dynamics...
+
+```{r plot_spawners_LCRchum_Ricker_fore, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
+mod_name <- "LCRchum_Ricker_fore"
+life_stage <- "S"
+<<plot_spawner_smolt_ts>>
+show(gg)
+```
+
+Of course we could also look at forecasts of smolts, or any other state variable. Here are the 2021 forecasts of wild spawners for each population...
+
+```{r spawner_forecast_table, echo = FALSE}
+mod_name <- "LCRchum_Ricker_fore"
+life_stage <- "S"   # "S" = spawners, "M" = smolts
+<<forecast_df>>
+knitr::kable(forecast_df, align = "l") %>% 
+  kable_styling(bootstrap_options = c("striped","hover"), full_width = FALSE)
 ```
 
 
