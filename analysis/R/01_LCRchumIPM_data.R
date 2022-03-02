@@ -50,7 +50,7 @@ habitat_data <- read.csv(here("data","Data_Habitat_Spawning_Linear_2021-04-15.cs
 # (4) When calculating the observation error of log(S_obs), tau_S_obs, assume
 #     Abund.Mean and Abund.SD are the mean and SD of a lognormal posterior distribution
 #     of spawner abundance based on the sample
-spawner_data <- read.csv(here("data","Data_Abundance_Spawners_Chum_2021-04-06.csv"), 
+spawner_data <- read.csv(here("data","Data_Abundance_Spawners_Chum_2022-02-22.csv"), 
                          header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(year = Return.Yr., strata = Strata, location = Location.Reach, 
          disposition = Disposition, method = Method, S_obs = Abund.Mean, SD = Abund.SD) %>% 
@@ -107,7 +107,7 @@ spawner_data_agg <- spawner_data %>% group_by(strata, disposition, year) %>%
 #     return location to another disposition (i.e., Duncan Channel).
 #     So "H" now includes true hatchery fish based on origin *plus* any others whose
 #     known origin (i.e., Duncan Channel) does not match the disposition.
-bio_data <- read.csv(here("data","Data_BioData_Spawners_Chum_2021-04-06.csv"), 
+bio_data <- read.csv(here("data","Data_BioData_Spawners_Chum_2022-02-22.csv"), 
                      header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(year = Return.Yr., strata = Strata, location = Location.Reach, 
          disposition = Disposition, origin = Origin, sex = Sex, age = Age, count = Count) %>% 
@@ -140,7 +140,7 @@ bio_data_sex <- bio_data %>%
 # Non-green (ripe or partial) females are assumed to have lower fecundity
 # Proportion green females outside Duncan Channel assumed to = 1
 # https://github.com/mdscheuerell/chumIPM/issues/5
-green_female_data <- read.csv(here("data","Data_Duncan_Females_by_Condition_2021-04-19.csv"),
+green_female_data <- read.csv(here("data","Data_Duncan_Females_by_Condition_2022-02-22.csv"),
                               header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(year = BY, disposition = Channel_Disposition, sex = Sex, condition = Condition,
          N = Qty, comment = Comment) %>% 
