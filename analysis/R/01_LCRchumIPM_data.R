@@ -36,9 +36,9 @@ hatcheries <- read.csv(here("data","Hatchery_Programs.csv"), header = TRUE, stri
 habitat_data <- read.csv(here("data","Data_Habitat_Spawning_Linear_2021-04-15.csv"),
                          header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(year = Return.Yr., strata = Strata, pop = Location.Reach, mi = Habitat_Length_miles) %>% 
-  complete(nesting(strata, pop), year = min(year):2020) %>%
+  complete(nesting(strata, pop), year = min(year):2021) %>% fill(mi) %>% 
   mutate(pop = gsub("Duncan Creek", "Duncan Channel", gsub("I205", "I-205", gsub("_", " ", pop))), 
-         mi = replace(mi, is.na(mi), mi[which(is.na(mi)) - 1]), km = mi*1.6) %>%  # convert to km
+         km = mi*1.6) %>%  # convert to km
   select(strata, pop, year, km) %>% arrange(strata, pop, year)
   
 # Spawner abundance data
@@ -156,7 +156,7 @@ green_female_data <- read.csv(here("data","Data_Duncan_Females_by_Condition_2022
 #     distribution of smolt abundance based on the sample
 # (3) If Abund_SD == 0 (when Analysis=="Census": some years in Duncan_Channel and 
 #     Hamilton_Channel) treat as NA
-juv_data <- read.csv(here("data", "Data_Abundance_Juveniles_Chum_2021-04-07.csv"), 
+juv_data <- read.csv(here("data", "Data_Abundance_Juveniles_Chum_2022-02-22.csv"), 
                      header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(brood_year = Brood.Year, year = Outmigration.Year, strata = Strata, 
          location = Location.Reach, origin = Origin, trap_type = TrapType, 
@@ -168,17 +168,17 @@ juv_data <- read.csv(here("data", "Data_Abundance_Juveniles_Chum_2021-04-07.csv"
   select(strata, location, year, brood_year, origin:CV, tau_M_obs, comments) %>% 
   arrange(strata, location, year)
 
-# drop hatchery or redundant pops and cases with leading or trailing NAs in M_obs
+# drop hatchery or redundant pops, hatchery-origin releases,
+# and cases with leading or trailing NAs in M_obs
 # use only pooled Duncan Channel data for now, not North / South
 head_noNA <- function(x) { cumsum(!is.na(x)) > 0 }
 juv_data_incl <- juv_data %>% group_by(location) %>% 
   filter(head_noNA(M_obs) & rev(head_noNA(rev(M_obs)))) %>%
-  filter(!(location %in% c("Duncan North","Duncan South"))) %>% 
+  filter(!(location %in% c("Duncan North","Duncan South")) & !grepl("Hatchery", origin)) %>% 
   rename(pop = location) %>% as.data.frame()
 
 # Fish data formatted for salmonIPM
 # Drop age-2 and age-6 samples (each is < 0.1% of aged spawners)
-# Use A = 1 for now (so Rmax in units of spawners)
 # Drop Duncan Creek and "populations" that are actually hatcheries
 # Change S_obs and tau_S_obs to NA in Hamilton Channel 2011-2012 based on
 # https://github.com/mdscheuerell/chumIPM/issues/6#issuecomment-807885445
@@ -226,8 +226,8 @@ fish_data_SMS <- fish_data %>% group_by(pop) %>% filter(head_noNA(S_obs) | head_
   add_column(downstream_trap = NA, .after = "tau_M_obs")  %>% as.data.frame()
 
 # fish_data_SMS: 
-# assign Grays_WF and Grays_CJ smolts to the downstream trap in Grays_MS
-# where they will be counted (or double-counted, in the case of Grays_CJ),
+# assign Grays WF and Grays CJ smolts to the downstream trap in Grays MS
+# where they will be counted (or double-counted, in the case of Grays CJ),
 # assuming no mortality between the upstream tributary and the downstream trap
 fish_data_SMS <- fish_data_SMS %>%
   mutate(downstream_trap = replace(downstream_trap, pop %in% c("Grays WF","Grays CJ"),
