@@ -241,9 +241,9 @@ if(save_plot) dev.off()
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_Ricker_fore"
-life_stage <- "S"   # "S" = spawners, "M" = smolts
-save_plot <- FALSE
+mod_name <- "LCRchum_Ricker"
+life_stage <- "M"   # "S" = spawners, "M" = smolts
+save_plot <- TRUE
 
 ## @knitr plot_spawner_smolt_ts
 gg <- LCRchumIPM_MS_timeseries(mod = get(mod_name), life_stage = life_stage, 

@@ -239,6 +239,7 @@ LCRchumIPM_MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data)
     N[,na.omit(fish_data$downstream_trap)] <- N[,na.omit(fish_data$downstream_trap)] + 
     N[,which(!is.na(fish_data$downstream_trap))]
   N_ppd <- N * rlnorm(length(N), 0, tau)
+  year <- fish_data$year
   
   gg <- fish_data %>% 
     mutate(N_obs = !!sym(paste0(life_stage, "_obs")),
@@ -258,6 +259,7 @@ LCRchumIPM_MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data)
     geom_point(aes(shape = pch), size = 2.5) + scale_shape_identity() +
     geom_errorbar(aes(ymin = N_obs_L, ymax = N_obs_U), width = 0) +
     labs(x = "Year", y = switch(life_stage, M = "Smolts (thousands)", S = "Spawners")) + 
+    scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5) +
     scale_y_log10(labels = function(y) y*switch(life_stage, M = 1e-3, S = 1)) + 
     facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) +
     theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank(),
@@ -273,6 +275,7 @@ LCRchumIPM_MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data)
 LCRchumIPM_age_timeseries <- function(mod, fish_data)
 {
   q <- extract1(mod, "q")
+  year <- fish_data$year
   
   gg <- fish_data %>% 
     select(pop, year, starts_with("n_age")) %>% 
@@ -291,6 +294,7 @@ LCRchumIPM_age_timeseries <- function(mod, fish_data)
     geom_errorbar(aes(ymin = Lower, ymax = Upper), width = 0, alpha = 0.8) +
     scale_color_manual(values = viridis(3, end = 0.8, direction = -1)) +
     scale_fill_manual(values = viridis(3, end = 0.8, direction = -1)) +
+    scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5) +
     labs(x = "Year", y = "Proportion at age") + 
     facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) + 
     theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_blank(), 
@@ -307,6 +311,7 @@ LCRchumIPM_age_timeseries <- function(mod, fish_data)
 LCRchumIPM_sex_timeseries <- function(mod, fish_data)
 {
   q_F <- extract1(mod, "q_F")
+  year <- fish_data$year
   
   gg <- cbind(fish_data, colQuantiles(q_F, probs = c(0.05, 0.5, 0.95))) %>%
     mutate(n_MF_obs = n_M_obs + n_F_obs) %>% 
@@ -316,6 +321,7 @@ LCRchumIPM_sex_timeseries <- function(mod, fish_data)
     geom_ribbon(aes(ymin = `5%`, ymax = `95%`), fill = "slategray4", alpha = 0.5) +
     geom_line(aes(y = `50%`), col = "slategray4", lwd = 1) +
     geom_point(pch = 16, size = 2.5) + geom_errorbar(width = 0) +
+    scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5) +
     labs(x = "Year", y = "Proportion female") +
     facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) +
     theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_blank(), 
@@ -331,6 +337,7 @@ LCRchumIPM_sex_timeseries <- function(mod, fish_data)
 LCRchumIPM_p_HOS_timeseries <- function(mod, fish_data)
 {
   p_HOS <- extract1(mod, "p_HOS")
+  year <- fish_data$year
   
   gg <- fish_data %>% 
     mutate(zeros = 0, fit_p_HOS = as.logical(fit_p_HOS),
@@ -344,6 +351,7 @@ LCRchumIPM_p_HOS_timeseries <- function(mod, fish_data)
     geom_line(aes(y = p_HOS_m), col = "slategray4", lwd = 1) +
     geom_point(aes(y = p_HOS_obs.PointEst), pch = 16, size = 2.5) +
     geom_errorbar(aes(ymin = p_HOS_obs.Lower, ymax = p_HOS_obs.Upper), width = 0) +
+    scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5) +
     labs(x = "Year", y = bquote(italic(p)[HOS])) +
     facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) +
     theme(panel.grid.major.y = element_blank(), panel.grid.minor = element_blank(),
