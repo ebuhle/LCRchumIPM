@@ -168,59 +168,87 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data)
   text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "H", cex = 1.5)
 }
 
-#--------------------------------------------------------------------
-# Spawner-to-smolt S-R curve for each pop with data and states
-#--------------------------------------------------------------------
+#--------------------------------------------------------------------------------
+# Spawner-to-smolt S-R plot with fit, states, and observations for each pop
+#--------------------------------------------------------------------------------
 
-### NOT READY FOR PRIME TIME 
-### b/c of orders-of-magnitude differences in axis scales among pops
-### standardizing by habitat area may help
-### ALSO overplotting data for Grays MS doesn't really work b/c of upstream smolts
-
-LCRchumIPM_SR_plot <- function(mod, SR_fun, fish_data)
+LCRchumIPM_SR_plot <- function(mod, SR_fun, life_stage, fish_data)
 {
-  mu_E <- extract1(mod, "mu_E")
-  q <- extract1(mod, "q")
-  q_F <- extract1(mod, "q_F")
-  psi <- extract1(mod, "psi")
-  f <- apply(sweep(q, c(1,3), mu_E, "*"), 1:2, sum) * q_F  # eggs per spawner
-  alpha <- f * psi[,as.numeric(fish_data$pop)]
-  alpha <- t(as.matrix(aggregate(t(alpha), list(pop = fish_data$pop), median)[,-1]))
-  Mmax <- extract1(mod, "Mmax")
-  S <- extract1(mod, "S")
-  M <- extract1(mod, "M")*1e-6  # convert smolts to millions
-  dat <- fish_data %>% 
-    mutate(S_obs_L = qlnorm(0.05, log(S_obs), tau_S_obs),
-           S_obs_U = qlnorm(0.95, log(S_obs), tau_S_obs),
-           M_obs = M_obs*1e-6,  # convert smolts to millions
-           M_obs_L = qlnorm(0.05, log(M_obs), tau_M_obs),
-           M_obs_U = qlnorm(0.95, log(M_obs), tau_M_obs),
-           S_L = colQuantiles(S, probs = 0.05), S_U = colQuantiles(S, probs = 0.95), 
-           S = colMedians(S), M_L = colQuantiles(M, probs = 0.05), 
-           M_U = colQuantiles(M, probs = 0.95), M = colMedians(M), f = colMedians(f))
+  n_grid <- 100
+  cl <- 0.8
+  qnt <- c((1 - cl)/2, 1 - (1 - cl)/2)
   
-  gg <- expand_grid(pop = 1:ncol(alpha), iter = 1:nrow(alpha)) %>% 
-    mutate(pop = factor(levels(fish_data$pop)[pop], levels = levels(fish_data$pop)),
-           alpha = as.vector(alpha), Mmax = as.vector(Mmax), 
-           Sadj = tapply(dat$S, dat$pop, function(x) max(x)*1.5)[pop],
-           Smax = tapply(dat$S_U, dat$pop, max)[pop]) %>%
-    group_by(pop, iter, alpha, Mmax) %>% summarize(S = seq(0, min(Sadj,Smax), length = 100)) %>% 
-    mutate(M = SR(SR_fun, alpha = alpha, Rmax = Mmax*1e3, S = S)*1e-6) %>% 
-    group_by(pop,S) %>% summarize(L = quantile(M,0.05), U = quantile(M,0.95), M = median(M)) %>%
-    ggplot(aes(x = S, y = M)) +
-    geom_ribbon(aes(ymin = L, ymax = U), fill = "slategray4", alpha = 0.5) +
-    geom_line(col = "slategray4", alpha = 0.7, lwd = 1) +
-    geom_pointrange(aes(x = S, y = M, ymin = M_L, ymax = M_U), data = dat,
-                    pch = 16, fatten = 3, col = "slategray4", alpha = 0.7) +
-    # geom_errorbarh(aes(y = M, xmin = S_L, xmax = S_U), data = dat,
-    #                col = "slategray4", alpha = 0.7) +
-    geom_pointrange(aes(x = S_obs, y = M_obs, ymin = M_obs_L, ymax = M_obs_U), data = dat,
-                    pch = 16, fatten = 3, alpha = 0.7) +
-    geom_errorbarh(aes(y = M_obs, xmin = M_obs_L, xmax = M_obs_U), data = dat, alpha = 0.7) +
-    scale_x_continuous(expand = expansion(0,0)) + labs(x = "Spawners", y = "Smolts") +
+  logit <- function(x) log(x) - log(1 - x)
+  ilogit <- function(x) exp(x) / (1 + exp(x))
+  
+  # S-R parameters, states and observations including reconstructed recruits
+  draws <- as.matrix(mod, c("mu_E", "q", "q_F", "psi", "S", "M", "s_MS")) %>% 
+    as_draws_rvars() %>% 
+    mutate_variables(alpha = (q %**% mu_E) * q_F * psi[fish_data$pop], 
+                     R = M * s_MS,
+                     N = switch(life_stage, M = M, R = R))
+  
+  states_obs <- run_recon(fish_data) %>% 
+    mutate(N_obs = switch(life_stage, M = fish_data$M_obs, R = R_obs)) %>% 
+    select(pop, year, A, S_obs, N_obs) %>% 
+    data.frame(alpha = draws$alpha, S = draws$S, N = draws$N)
+  
+  # spawner densities at which to evaluate S-R function
+  S_grid <- states_obs %>% group_by(pop) %>% 
+    summarize(A = mean(A), alpha = rvar_mean(alpha), 
+              S = seq(0, max(quantile(S, qnt[2]), S_obs, na.rm = TRUE)*1.05, length = n_grid))
+  
+  # posteriors of S-R fit with total process and proc + obs error (PPD)
+  ppd <- as.matrix(mod, c("Mmax", "sigma_year_M", "rho_M", "sigma_M", "tau_M", "M",
+                          "mu_MS", "sigma_year_MS", "rho_MS", "sigma_MS", "tau_S")) %>% 
+    as_draws_rvars() %>% 
+    mutate_variables(A = as_rvar(S_grid$A), S = S_grid$S,
+                     alpha = S_grid$alpha, Mmax = rep(Mmax*1000, each = n_grid),
+                     M_hat = SR(SR_fun = SR_fun, alpha = alpha, Rmax = Mmax, S = S, A = A),
+                     sd_year_M = sigma_year_M / sqrt(1 - rho_M^2),
+                     sd_proc_M = sqrt(sd_year_M^2 + sigma_M^2),
+                     sd_ppd_M = sqrt(sd_proc_M^2 + tau_M^2),
+                     M_proc = rvar_rng(rlnorm, length(M_hat), log(M_hat), sd_proc_M),
+                     M_ppd = rvar_rng(rlnorm, length(M_hat), log(M_hat), sd_ppd_M),
+                     R_hat = M_hat * mu_MS,
+                     sd_year_MS = sigma_year_MS / sqrt(1 - rho_MS^2),
+                     sd_proc_MS = sqrt(sd_year_MS^2 + sigma_MS^2),
+                     MS_proc = ilogit(rvar_rng(rnorm, length(M_hat), logit(mu_MS), sd_proc_M)),
+                     R_proc = M_proc * MS_proc,
+                     R_ppd = rvar_rng(rlnorm, length(R_proc), log(R_proc), tau_S))
+  
+  ppd <- S_grid %>% select(pop, S) %>% 
+    data.frame(N_hat = switch(life_stage, M = ppd$M_hat, R = ppd$R_hat),
+               N_proc = switch(life_stage, M = ppd$M_proc, R = ppd$R_proc),
+               N_ppd = switch(life_stage, M = ppd$M_ppd, R = ppd$R_ppd))
+  
+  gg <- ppd %>% ggplot(aes(x = S, y = median(N_hat))) +
+    geom_ribbon(aes(ymin = quantile(N_hat, qnt[1]), ymax = quantile(N_hat, qnt[2])), 
+                fill = "slategray4", alpha = 0.4) +
+    geom_ribbon(aes(ymin = quantile(N_proc, qnt[1]), ymax = quantile(N_proc, qnt[2])),
+                fill = "slategray4", alpha = 0.3) +
+    geom_ribbon(aes(ymin = quantile(N_ppd, qnt[1]), ymax = quantile(N_ppd, qnt[2])),
+                fill = "slategray4", alpha = 0.2) +
+    geom_line(lwd = 1, col = "slategray4") +
+    geom_segment(aes(x = quantile(S, qnt[1]), xend = quantile(S, qnt[2]),
+                     y = median(N), yend = median(N)),
+                 data = states_obs, col = "slategray4", alpha = 0.8) +
+    geom_segment(aes(x = median(S), xend = median(S),
+                     y = quantile(N, qnt[1]), yend = quantile(N, qnt[2])),
+                 data = states_obs, col = "slategray4", alpha = 0.8) +
+    geom_segment(aes(x = S_obs, xend = median(S), y = N_obs, yend = median(N)),
+                 data = states_obs, col = "slategray4", alpha = 0.4) +
+    geom_point(aes(x = S_obs, y = N_obs), data = states_obs,
+               pch = 16, size = 2, alpha = 0.6) +
+    geom_point(aes(x = median(S), y = median(N)), data = states_obs,
+               pch = 21, size = 2, col = "slategray4", fill = "white") +
+    scale_x_continuous(labels = label_number(scale = 1e-3)) +
+    scale_y_continuous(labels = label_number(scale = 1e-6)) +
+    labs(x = "Spawners (thousands)", y = "Smolts (millions)") +
     facet_wrap(vars(pop), ncol = 4, scales = "free") + theme_bw(base_size = 16) +
-    theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank(),
-          strip.background = element_rect(fill = NA))
+    theme(axis.text.x = element_text(size = 11), axis.text.y = element_text(size = 11),
+          panel.grid = element_blank(), strip.background = element_rect(fill = NA),
+          strip.text = element_text(margin = margin(b = 3, t = 3)))
   
   return(gg)
 }
@@ -263,7 +291,8 @@ LCRchumIPM_MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data)
     scale_y_log10(labels = function(y) y*switch(life_stage, M = 1e-3, S = 1)) + 
     facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) +
     theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank(),
-          strip.background = element_rect(fill = NA))
+          strip.background = element_rect(fill = NA),
+          strip.text = element_text(margin = margin(b = 3, t = 3)))
 
   return(gg)
 }
@@ -298,7 +327,8 @@ LCRchumIPM_age_timeseries <- function(mod, fish_data)
     labs(x = "Year", y = "Proportion at age") + 
     facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) + 
     theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_blank(), 
-          strip.background = element_rect(fill = NA), 
+          strip.background = element_rect(fill = NA),
+          strip.text = element_text(margin = margin(b = 3, t = 3)), 
           legend.box.margin = margin(0,-10,0,-15))
   
   return(gg)  
@@ -325,7 +355,8 @@ LCRchumIPM_sex_timeseries <- function(mod, fish_data)
     labs(x = "Year", y = "Proportion female") +
     facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) +
     theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_blank(), 
-          strip.background = element_rect(fill = NA))
+          strip.background = element_rect(fill = NA),
+          strip.text = element_text(margin = margin(b = 3, t = 3)))
   
   return(gg)
 }
@@ -355,7 +386,8 @@ LCRchumIPM_p_HOS_timeseries <- function(mod, fish_data)
     labs(x = "Year", y = bquote(italic(p)[HOS])) +
     facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) +
     theme(panel.grid.major.y = element_blank(), panel.grid.minor = element_blank(),
-          strip.background = element_rect(fill = NA))
+          strip.background = element_rect(fill = NA),
+          strip.text = element_text(margin = margin(b = 3, t = 3)))
   
   return(gg)
 }

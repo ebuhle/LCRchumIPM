@@ -6,19 +6,21 @@
 options(device = ifelse(.Platform$OS.type == "windows", "windows", "quartz"))
 options(mc.cores = parallel::detectCores(logical = FALSE) - 1)
 
-library(salmonIPM)
-library(rstan)
-library(shinystan)
-library(matrixStats)
 library(Hmisc)
 library(dplyr)
 library(tidyr)
+library(salmonIPM)
+library(rstan)
+library(shinystan)
+library(posterior)
+library(matrixStats)
 library(yarrr)
-library(magicaxis)
-library(viridis)
 library(zoo)
 library(ggplot2)
 theme_set(theme_bw(base_size = 16))
+library(scales)
+library(magicaxis)
+library(viridis)
 library(here)
 
 # load data
@@ -222,20 +224,21 @@ if(save_plot) dev.off()
 # Spawner-to-smolt S-R curve for each pop with data and states
 #--------------------------------------------------------------------
 
-# mod_name <- "LCRchum_Ricker"
-# save_plot <- FALSE
-# 
-# ## @knitr SR_plot
-# gg <- LCRchumIPM_SR_plot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2],
-#                          fish_data = fish_data_SMS)
-# ## @knitr
-# if(save_plot) {
-#    ggsave(filename=here("analysis","results",paste0("SR_",mod_name,".png")), 
-#           width=11, height=7, units="in", dpi=300, type="cairo-png")
-# } else { 
-#    dev.new(width=11,height=7)
-#    show(gg)
-# }
+mod_name <- "LCRchum_Ricker"
+life_stage <- "R"   # "S" = spawners, "R" = adult recruits
+save_plot <- FALSE
+
+## @knitr SR_plot
+gg <- LCRchumIPM_SR_plot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2],
+                         life_stage = life_stage, fish_data = fish_data_SMS)
+## @knitr
+if(save_plot) {
+   ggsave(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
+          width=11, height=7, units="in", dpi=300, type="cairo-png")
+} else {
+   dev.new(width=11,height=7)
+   show(gg)
+}
 
 #--------------------------------------------------------------------------------
 # Time series of observed and fitted total spawners or smolts for each pop
@@ -243,7 +246,7 @@ if(save_plot) dev.off()
 
 mod_name <- "LCRchum_Ricker"
 life_stage <- "M"   # "S" = spawners, "M" = smolts
-save_plot <- TRUE
+save_plot <- FALSE
 
 ## @knitr plot_spawner_smolt_ts
 gg <- LCRchumIPM_MS_timeseries(mod = get(mod_name), life_stage = life_stage, 
@@ -264,7 +267,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 ## @knitr plot_spawner_age_ts
 gg <- LCRchumIPM_age_timeseries(mod = get(mod_name), fish_data = fish_data_SMS)
@@ -283,7 +286,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 ## @knitr plot_sex_ratio_ts
 gg <- LCRchumIPM_sex_timeseries(mod = get(mod_name), fish_data = fish_data_SMS)
@@ -302,7 +305,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 ## @knitr plot_p_HOS_ts
 gg <- LCRchumIPM_p_HOS_timeseries(mod = get(mod_name), fish_data = fish_data_SMS)
