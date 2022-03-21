@@ -243,8 +243,9 @@ LCRchumIPM_SR_plot <- function(mod, SR_fun, life_stage, fish_data)
     geom_point(aes(x = median(S), y = median(N)), data = states_obs,
                pch = 21, size = 2, col = "slategray4", fill = "white") +
     scale_x_continuous(labels = label_number(scale = 1e-3)) +
-    scale_y_continuous(labels = label_number(scale = 1e-6)) +
-    labs(x = "Spawners (thousands)", y = "Smolts (millions)") +
+    scale_y_continuous(labels = label_number(scale = switch(life_stage, M = 1e-6, R = 1e-3))) +
+    labs(x = "Spawners (thousands)", 
+         y = switch(life_stage, M = "Smolts (millions)", R = "Recruits (thousands)")) +
     facet_wrap(vars(pop), ncol = 4, scales = "free") + theme_bw(base_size = 16) +
     theme(axis.text.x = element_text(size = 11), axis.text.y = element_text(size = 11),
           panel.grid = element_blank(), strip.background = element_rect(fill = NA),
