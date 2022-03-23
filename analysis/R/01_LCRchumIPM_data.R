@@ -95,14 +95,15 @@ spawner_data_agg <- spawner_data %>% group_by(strata, disposition, year) %>%
 
 # Spawner age-, sex-, and origin-frequency (aka BioData)
 # Assumptions:
-# (0) Fix coding error in data that assigns some Duncan Creek rows to Cascade stratum
-# (1) The first generation of salmonIPM models must treat any known nonlocal-origin
+# (0) Fix coding errors in data that assign some Duncan Creek rows to Cascade stratum
+#     and some I-205 rows to Gorge stratum.
+# (1) The first generation of salmonIPM models treated any known nonlocal-origin
 #     spawner as "hatchery-origin" to avoid counting as local recruitment, so "H"
 #     includes true hatchery fish based on origin *plus* any whose known origin 
 #     or return location do not match their disposition *unless* they are NOR or
 #     Duncan Channel fish returning to Duncan Creek and disposed to Duncan Channel,
 #     which are in fact local recruitment.
-# (1b) The development version of IPM_LCRchum_pp allows S_add_obs to represent 
+# (1b) The current version of IPM_LCRchum_pp allows S_add_obs to represent 
 #     nonlocal natural spawners (of known or unknown origin) translocated from
 #     return location to another disposition (i.e., Duncan Channel).
 #     So "H" now includes true hatchery fish based on origin *plus* any others whose
@@ -115,6 +116,7 @@ bio_data <- read.csv(here("data","Data_BioData_Spawners_Chum_2022-02-22.csv"),
          location = gsub("I205", "I-205", gsub("_", " ", location)),
          origin = gsub("_", " ", origin),
          strata = replace(strata, disposition == "Duncan Channel" & strata != "Gorge", "Gorge"),
+         strata = replace(strata, location == "I-205" & strata != "Cascade", "Cascade"),
          count = replace(count, is.na(count), 0), sex = substring(sex,1,1),
          HW = ifelse((grepl("Hatchery", origin) | !(origin %in% c(disposition, "Natural spawner"))), 
                      "H", "W")) %>% 
@@ -352,5 +354,22 @@ if(EDA)
     geom_point(size = 2) + labs(x = "spawners", y = "smolts / spawner") +
     facet_wrap(vars(pop), nrow = 3, ncol = 4) + theme_bw() +
     theme(panel.grid = element_blank())
+  
+  # Distribution of hatchery adults across recipient populations
+  windows()
+  bio_data %>% rename(pop = location) %>% 
+    mutate(pop = factor(pop, levels = unique(pop[order(strata, pop)])),
+           origin = factor(origin, levels = unique(origin[order(strata, origin)]))) %>% 
+    group_by(strata, pop, origin, year) %>% summarize(count = sum(count)) %>% 
+    left_join(spawner_data_agg, by = c("strata", "pop", "year")) %>% 
+    mutate(prop = count/sum(count), S_pop = S_obs*prop) %>% 
+    filter(origin != "Natural spawner") %>% group_by(origin, pop) %>% 
+    summarize(S_pop = sum(S_pop, na.rm = TRUE)) %>% 
+    mutate(prop = S_pop/sum(S_pop, na.rm = TRUE)) %>%  
+    ggplot(aes(x = pop, y = prop)) + geom_col() + 
+    labs(x = "", y = "proportion") +
+    facet_wrap(vars(origin), ncol = 1) + theme_bw(base_size = 14) +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+          panel.grid = element_blank())
   
 }
