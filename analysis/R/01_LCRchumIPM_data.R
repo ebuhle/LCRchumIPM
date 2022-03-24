@@ -18,6 +18,9 @@ library(here)
 #===========================================================================
 
 ## @knitr data
+# Population names
+pop_names <- read.csv(here("data","pop_names.csv"), header = TRUE, stringsAsFactors = FALSE) %>% 
+  arrange(east_to_west)
 
 # List of "bad" or questionable observations
 bad_data <- read.csv(here("data","Data_Chum_estimates_to_censor_2021-04-16.csv"), 
@@ -99,7 +102,7 @@ spawner_data_agg <- spawner_data %>% group_by(strata, disposition, year) %>%
 #     and some I-205 rows to Gorge stratum.
 # (1) The first generation of salmonIPM models treated any known nonlocal-origin
 #     spawner as "hatchery-origin" to avoid counting as local recruitment, so "H"
-#     includes true hatchery fish based on origin *plus* any whose known origin 
+#     included true hatchery fish based on origin *plus* any whose known origin 
 #     or return location do not match their disposition *unless* they are NOR or
 #     Duncan Channel fish returning to Duncan Creek and disposed to Duncan Channel,
 #     which are in fact local recruitment.
@@ -201,7 +204,7 @@ fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("strata","pop","ye
   mutate_at(vars(contains("n_")), ~ replace(., is.na(.), 0)) %>% 
   filter(!grepl("Hatchery|Duncan Creek", pop)) %>% 
   mutate(strata = factor(strata, levels = c("Gorge","Cascade","Coastal")),
-         pop = factor(pop, levels = unique(pop[order(strata, pop)])), # order E-W
+         pop = factor(pop, levels = pop_names$pop[pop_names$pop %in% fish_data$pop]), # order E-W
          S_obs = replace(S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          tau_S_obs = replace(tau_S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0),
@@ -270,6 +273,18 @@ fecundity_data <- fecundity %>%
   filter(age_E %in% 3:5 & !is.na(E_obs) & !is.na(reproductive_effort) & reproductive_effort > 16) %>% 
   mutate(strata = recode(stock, Grays = "Coastal", `I-205` = "Cascade", `Lower Gorge` = "Gorge")) %>% 
   select(strata, year, ID, age_E, E_obs) %>% arrange(strata, year, age_E) 
+
+# Pairwise distance data
+# convert ft to km
+# extract lower triangle to a tidy data frame
+pairwise_dist <- read.csv(here("data","Chum_Pairwise_Points_2021_Mat_Final.csv"), 
+                          header = TRUE, row.names = 1) * 0.0003048
+rownames(pairwise_dist) <- pd_names$pop[match(pd_names$pairwise_dist_name, rownames(pairwise_dist))]
+colnames(pairwise_dist) <- rownames(pairwise_dist)
+indx <- which(lower.tri(pairwise_dist, diag = FALSE), arr.ind = TRUE)
+pairwise_data <- data.frame(pop1 = rownames(pairwise_dist)[indx[,2]],
+                            pop2 = rownames(pairwise_dist)[indx[,1]],
+                            dist = pairwise_dist[indx])
 
 # # Environmental covariates
 # # PDO
@@ -356,7 +371,7 @@ if(EDA)
     theme(panel.grid = element_blank())
   
   # Distribution of hatchery adults across recipient populations
-  windows()
+  windows(width = 5, height = 7)
   bio_data %>% rename(pop = location) %>% 
     mutate(pop = factor(pop, levels = unique(pop[order(strata, pop)])),
            origin = factor(origin, levels = unique(origin[order(strata, origin)]))) %>% 
@@ -366,10 +381,10 @@ if(EDA)
     filter(origin != "Natural spawner") %>% group_by(origin, pop) %>% 
     summarize(S_pop = sum(S_pop, na.rm = TRUE)) %>% 
     mutate(prop = S_pop/sum(S_pop, na.rm = TRUE)) %>%  
-    ggplot(aes(x = pop, y = prop)) + geom_col() + 
-    labs(x = "", y = "proportion") +
+    ggplot(aes(x = pop, y = prop)) + geom_col() + geom_point() +
+    labs(x = "", y = "proportion") + 
     facet_wrap(vars(origin), ncol = 1) + theme_bw(base_size = 14) +
     theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
-          panel.grid = element_blank())
+          panel.grid = element_blank()) 
   
 }
