@@ -405,6 +405,7 @@ if(EDA)
   pairwise_data %>% rename(origin = pop1, pop = pop2) %>% 
     full_join(rename(., pop = origin, origin = pop)) %>% 
     right_join(dat, by = c("origin","pop")) %>%
+    filter(origin != "Big Creek Hatchery") %>% 
     ggplot(aes(x = dist, y = prop)) + geom_point(size = 2.5, pch = 16, alpha = 0.4) +
     labs(x = "Distance from origin (km)", y = "Proportion of adults returning to location") + 
     facet_wrap(vars(origin), ncol = 1) + theme_bw(base_size = 14) +
