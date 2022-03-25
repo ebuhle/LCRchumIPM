@@ -119,7 +119,7 @@ bio_data <- read.csv(here("data","Data_BioData_Spawners_Chum_2022-02-22.csv"),
          location = gsub("I205", "I-205", gsub("_", " ", location)),
          origin = gsub("_", " ", origin),
          strata = replace(strata, disposition == "Duncan Channel" & strata != "Gorge", "Gorge"),
-         strata = replace(strata, location == "I-205" & strata != "Cascade", "Cascade"),
+         strata = replace(strata, disposition == "I-205" & strata != "Cascade", "Cascade"),
          count = replace(count, is.na(count), 0), sex = substring(sex,1,1),
          HW = ifelse((grepl("Hatchery", origin) | !(origin %in% c(disposition, "Natural spawner"))), 
                      "H", "W")) %>% 
@@ -204,7 +204,7 @@ fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("strata","pop","ye
   mutate_at(vars(contains("n_")), ~ replace(., is.na(.), 0)) %>% 
   filter(!grepl("Hatchery|Duncan Creek", pop)) %>% 
   mutate(strata = factor(strata, levels = c("Gorge","Cascade","Coastal")),
-         pop = factor(pop, levels = pop_names$pop[pop_names$pop %in% fish_data$pop]), # order E-W
+         pop = droplevels(factor(pop, levels = pop_names$pop)), # order E-W
          S_obs = replace(S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          tau_S_obs = replace(tau_S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0),
@@ -238,24 +238,26 @@ fish_data_SMS <- fish_data_SMS %>%
   mutate(downstream_trap = replace(downstream_trap, pop %in% c("Grays WF","Grays CJ"),
                                    which(pop == "Grays MS")))
 
-# pad data with future years to generate forecasts
-# use 1-year time horizon
-fish_data_SMS_fore <- fish_data_SMS %>% group_by(pop) %>% 
-  slice(rep(n(), max(fish_data_SMS$year) + 1 - max(year))) %>% 
-  mutate(year = (unique(year) + 1):(max(fish_data_SMS$year) + 1),
-         S_obs = NA, tau_S_obs = NA, M_obs = NA, tau_M_obs = NA,
-         p_G_obs = 1, S_add_obs = 0, fit_p_HOS = 0, B_take_obs = 0, F_rate = 0) %>% 
-  mutate_at(vars(starts_with("n_")), ~ 0) %>% 
-  full_join(fish_data_SMS) %>% arrange(pop, year) %>% 
-  mutate(forecast = year > max(fish_data_SMS$year), downstream_trap = NA) %>% 
-  select(strata:year, forecast, A:F_rate) %>% as.data.frame()
-
-# fish_data_SMS_fore: 
-# assign Grays_WF and Grays_CJ smolts to the downstream trap in Grays_MS
-# (need to do this again b/c row indices have changed)
-fish_data_SMS_fore <- fish_data_SMS_fore %>%
-  mutate(downstream_trap = replace(downstream_trap, pop %in% c("Grays WF","Grays CJ"),
-                                   which(pop == "Grays MS")))
+# # pad data with future years to generate forecasts
+# # use 1-year time horizon
+# fish_data_SMS_fore <- fish_data_SMS %>% group_by(pop) %>% 
+#   slice(rep(n(), max(fish_data_SMS$year) + 1 - max(year))) %>% 
+#   summarize(year = (unique(year) + 1):(max(fish_data_SMS$year) + 1),
+#          S_obs = NA, tau_S_obs = NA, M_obs = NA, tau_M_obs = NA,
+#          downstream_trap = NA, 
+#          p_G_obs = 1, S_add_obs = 0, fit_p_HOS = 0, B_take_obs = 0, F_rate = 0) %>% 
+#   mutate_at(vars(starts_with("n_")), ~ 0) %>%
+#   full_join(fish_data_SMS) %>% arrange(pop, year) %>% 
+#   as.data.frame() %>% head(30)
+#   mutate(forecast = year > max(fish_data_SMS$year), downstream_trap = NA) %>% 
+#   select(strata:year, forecast, A:F_rate) %>% as.data.frame()
+# 
+# # fish_data_SMS_fore: 
+# # assign Grays_WF and Grays_CJ smolts to the downstream trap in Grays_MS
+# # (need to do this again b/c row indices have changed)
+# fish_data_SMS_fore <- fish_data_SMS_fore %>%
+#   mutate(downstream_trap = replace(downstream_trap, pop %in% c("Grays WF","Grays CJ"),
+#                                    which(pop == "Grays MS")))
 
 # Fecundity data
 # Note that L95% and U95% are reversed
@@ -276,14 +278,25 @@ fecundity_data <- fecundity %>%
 
 # Pairwise distance data
 # convert ft to km
+# add missing populations: 
+#  Duncan Channel, Duncan Hatchery (same location as Duncan Creek)
+#  Grays Hatchery (same location as Grays MS)
 # extract lower triangle to a tidy data frame
 pairwise_dist <- read.csv(here("data","Chum_Pairwise_Points_2021_Mat_Final.csv"), 
                           header = TRUE, row.names = 1) * 0.0003048
-rownames(pairwise_dist) <- pd_names$pop[match(pd_names$pairwise_dist_name, rownames(pairwise_dist))]
+rownames(pairwise_dist) <- pop_names$pop[match(rownames(pairwise_dist), pop_names$pairwise_dist_name)]
 colnames(pairwise_dist) <- rownames(pairwise_dist)
+newcols <- pairwise_dist[,c("Duncan Creek", "Duncan Creek", "Grays MS")]
+colnames(newcols) <- c("Duncan Channel", "Duncan Hatchery", "Grays Hatchery")
+pairwise_dist <- cbind(pairwise_dist, newcols)
+newrows <- pairwise_dist[c("Duncan Creek", "Duncan Creek", "Grays MS"),]
+rownames(newrows) <- c("Duncan Channel", "Duncan Hatchery", "Grays Hatchery")
+pairwise_dist <- rbind(pairwise_dist, newrows)
 indx <- which(lower.tri(pairwise_dist, diag = FALSE), arr.ind = TRUE)
-pairwise_data <- data.frame(pop1 = rownames(pairwise_dist)[indx[,2]],
-                            pop2 = rownames(pairwise_dist)[indx[,1]],
+pairwise_data <- data.frame(pop1 = droplevels(factor(rownames(pairwise_dist)[indx[,2]],
+                                                     levels = pop_names$pop)),
+                            pop2 = droplevels(factor(rownames(pairwise_dist)[indx[,1]],
+                                                     levels = pop_names$pop)),
                             dist = pairwise_dist[indx])
 
 # # Environmental covariates
@@ -371,20 +384,30 @@ if(EDA)
     theme(panel.grid = element_blank())
   
   # Distribution of hatchery adults across recipient populations
-  windows(width = 5, height = 7)
-  bio_data %>% rename(pop = location) %>% 
-    mutate(pop = factor(pop, levels = unique(pop[order(strata, pop)])),
-           origin = factor(origin, levels = unique(origin[order(strata, origin)]))) %>% 
-    group_by(strata, pop, origin, year) %>% summarize(count = sum(count)) %>% 
-    left_join(spawner_data_agg, by = c("strata", "pop", "year")) %>% 
-    mutate(prop = count/sum(count), S_pop = S_obs*prop) %>% 
-    filter(origin != "Natural spawner") %>% group_by(origin, pop) %>% 
-    summarize(S_pop = sum(S_pop, na.rm = TRUE)) %>% 
-    mutate(prop = S_pop/sum(S_pop, na.rm = TRUE)) %>%  
-    ggplot(aes(x = pop, y = prop)) + geom_col() + geom_point() +
-    labs(x = "", y = "proportion") + 
+  dat <- bio_data %>% rename(pop = location) %>% 
+    group_by(pop, year, origin) %>% summarize(count = sum(count)) %>% 
+    left_join(spawner_data_agg, by = c("pop", "year")) %>% 
+    mutate(prop = count/sum(count), S_origin = S_obs*prop) %>% group_by(origin, pop) %>% 
+    summarize(count = sum(count), S_pop = sum(S_origin, na.rm = TRUE)) %>% 
+    mutate(prop = S_pop/sum(S_pop)) %>% filter(origin != "Natural spawner") %>% ungroup() %>% 
+    mutate(origin = droplevels(factor(origin, levels = c(pop_names$pop, "Big Creek Hatchery"))),
+           pop = droplevels(factor(pop, levels = pop_names$pop))) 
+  
+  windows(width = 5, height = 9)
+  dat %>% ggplot(aes(x = pop, y = prop)) + geom_col() +
+    labs(x = "", y = "Proportion of adults returning to location") + 
     facet_wrap(vars(origin), ncol = 1) + theme_bw(base_size = 14) +
     theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+          strip.text = element_text(margin = margin(b = 2, t = 2)),
           panel.grid = element_blank()) 
   
+  windows(width = 5, height = 9)
+  pairwise_data %>% rename(origin = pop1, pop = pop2) %>% 
+    full_join(rename(., pop = origin, origin = pop)) %>% 
+    right_join(dat, by = c("origin","pop")) %>%
+    ggplot(aes(x = dist, y = prop)) + geom_point(size = 2.5, pch = 16, alpha = 0.4) +
+    labs(x = "Distance from origin (km)", y = "Proportion of adults returning to location") + 
+    facet_wrap(vars(origin), ncol = 1) + theme_bw(base_size = 14) +
+    theme(strip.text = element_text(margin = margin(b = 2, t = 2)),
+          panel.grid = element_blank()) 
 }
