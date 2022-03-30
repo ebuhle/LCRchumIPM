@@ -391,7 +391,8 @@ if(EDA)
     summarize(count = sum(count), S_pop = sum(S_origin, na.rm = TRUE)) %>% 
     mutate(prop = S_pop/sum(S_pop)) %>% filter(origin != "Natural spawner") %>% ungroup() %>% 
     mutate(origin = droplevels(factor(origin, levels = c(pop_names$pop, "Big Creek Hatchery"))),
-           pop = droplevels(factor(pop, levels = pop_names$pop))) 
+           pop = droplevels(factor(pop, levels = pop_names$pop))) %>% 
+    complete(origin, pop, fill = list(count = 0, S_pop = 0, prop = 0))
   
   windows(width = 5, height = 9)
   dat %>% ggplot(aes(x = pop, y = prop)) + geom_col() +
