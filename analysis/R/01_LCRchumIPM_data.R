@@ -384,18 +384,20 @@ if(EDA)
     theme(panel.grid = element_blank())
   
   # Distribution of hatchery adults across recipient populations
-  dat <- bio_data %>% rename(pop = location) %>% 
-    group_by(pop, year, origin) %>% summarize(count = sum(count)) %>% 
-    left_join(spawner_data_agg, by = c("pop", "year")) %>% 
-    mutate(prop = count/sum(count), S_origin = S_obs*prop) %>% group_by(origin, pop) %>% 
-    summarize(count = sum(count), S_pop = sum(S_origin, na.rm = TRUE)) %>% 
-    mutate(prop = S_pop/sum(S_pop)) %>% filter(origin != "Natural spawner") %>% ungroup() %>% 
+  bdat <- bio_data %>% group_by(location, year, origin) %>% summarize(count = sum(count)) 
+  sdat <- spawner_data %>% group_by(location, year) %>% summarize(S_obs = sum(S_obs, na.rm = TRUE))
+  dat <- inner_join(bdat, sdat, by = c("location", "year")) %>% 
+    mutate(prop = count/sum(count), S_origin = S_obs*prop) %>% 
+    group_by(origin, location) %>% 
+    summarize(count = sum(count), S_location = sum(S_origin, na.rm = TRUE)) %>% 
+    mutate(prop = S_location/sum(S_location)) %>% 
+    filter(origin != "Natural spawner") %>% ungroup() %>% 
     mutate(origin = droplevels(factor(origin, levels = c(pop_names$pop, "Big Creek Hatchery"))),
-           pop = droplevels(factor(pop, levels = pop_names$pop))) %>% 
-    complete(origin, pop, fill = list(count = 0, S_pop = 0, prop = 0))
+           location = droplevels(factor(location, levels = pop_names$pop))) %>% 
+    complete(origin, location, fill = list(count = 0, S_location = 0, prop = 0))
   
   windows(width = 5, height = 9)
-  dat %>% ggplot(aes(x = pop, y = prop)) + geom_col() +
+  dat %>% ggplot(aes(x = location, y = prop)) + geom_col() +
     labs(x = "", y = "Proportion of adults returning to location") + 
     facet_wrap(vars(origin), ncol = 1) + theme_bw(base_size = 14) +
     theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
@@ -403,9 +405,9 @@ if(EDA)
           panel.grid = element_blank()) 
   
   windows(width = 5, height = 9)
-  pairwise_data %>% rename(origin = pop1, pop = pop2) %>% 
-    full_join(rename(., pop = origin, origin = pop)) %>% 
-    right_join(dat, by = c("origin","pop")) %>%
+  pairwise_data %>% rename(origin = pop1, location = pop2) %>% 
+    full_join(rename(., location = origin, origin = location)) %>% 
+    right_join(dat, by = c("origin","location")) %>%
     filter(origin != "Big Creek Hatchery") %>% 
     ggplot(aes(x = dist, y = prop)) + geom_point(size = 2.5, pch = 16, alpha = 0.4) +
     labs(x = "Distance from origin (km)", y = "Proportion of adults returning to location") + 
