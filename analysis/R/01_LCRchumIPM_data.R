@@ -395,6 +395,10 @@ if(EDA)
     mutate(origin = droplevels(factor(origin, levels = c(pop_names$pop, "Big Creek Hatchery"))),
            location = droplevels(factor(location, levels = pop_names$pop))) %>% 
     complete(origin, location, fill = list(count = 0, S_location = 0, prop = 0))
+  pdat <- pairwise_data %>% rename(origin = pop1, location = pop2) %>% 
+    full_join(rename(., location = origin, origin = location)) %>% 
+    right_join(dat, by = c("origin","location")) %>%
+    filter(origin != "Big Creek Hatchery")
   
   windows(width = 5, height = 9)
   dat %>% ggplot(aes(x = location, y = prop)) + geom_col() +
@@ -405,13 +409,34 @@ if(EDA)
           panel.grid = element_blank()) 
   
   windows(width = 5, height = 9)
-  pairwise_data %>% rename(origin = pop1, location = pop2) %>% 
-    full_join(rename(., location = origin, origin = location)) %>% 
-    right_join(dat, by = c("origin","location")) %>%
-    filter(origin != "Big Creek Hatchery") %>% 
-    ggplot(aes(x = dist, y = prop)) + geom_point(size = 2.5, pch = 16, alpha = 0.4) +
+  pdat %>% ggplot(aes(x = dist, y = prop)) + 
+    geom_point(size = 2.5, pch = 16, alpha = 0.4) +
     labs(x = "Distance from origin (km)", y = "Proportion of adults returning to location") + 
     facet_wrap(vars(origin), ncol = 1) + theme_bw(base_size = 14) +
+    theme(strip.text = element_text(margin = margin(b = 2, t = 2)),
+          panel.grid = element_blank()) 
+  
+  betadat <- pdat %>% mutate(prop = pmax(prop, 0.001))
+  betafit <- rstanarm::stan_betareg(prop ~ dist | dist, data = betadat,
+                                    link = "logit", link.phi = "log")
+  print(betafit, 2)
+  ndat <- data.frame(dist = 0:round(max(pdat$dist)))
+  epd <- posterior_epred(betafit, newdata = ndat) %>% 
+    colQuantiles(probs = c(0.025, 0.5, 0.975)) %>% as.data.frame
+  ppd <- posterior_predict(betafit, newdata = betadat) %>% 
+    colQuantiles(probs = c(0.025, 0.975)) %>% as.data.frame %>% 
+    rename(L = `2.5%`, U = `97.5%`) %>% cbind(dist = betadat$dist)
+  betapred <- cbind(ndat, epd)
+  
+  windows()
+  pdat %>% ggplot(aes(x = dist, y = prop)) + 
+    geom_line(aes(y = `50%`), data = betapred, col = "darkgray", size = 2) +
+    geom_ribbon(aes(y = L, ymin = L, ymax = U), data = ppd, col = "gray", alpha = 0.3) +
+    geom_ribbon(aes(y = `50%`, ymin = `2.5%`, ymax = `97.5%`), data = betapred,
+                col = "darkgray", alpha = 0.4) +
+    geom_point(size = 2.5, pch = 16, alpha = 0.4) +
+    labs(x = "Distance from origin (km)", y = "Proportion of adults returning to location") + 
+    theme_bw(base_size = 16) +
     theme(strip.text = element_text(margin = margin(b = 2, t = 2)),
           panel.grid = element_blank()) 
 }
