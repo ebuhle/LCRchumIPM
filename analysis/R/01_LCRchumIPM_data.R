@@ -416,9 +416,10 @@ if(EDA)
     theme(strip.text = element_text(margin = margin(b = 2, t = 2)),
           panel.grid = element_blank()) 
   
+  # Fit cheesy beta regression to pooled dispersal by distance data
+  library(rstanarm)
   betadat <- pdat %>% mutate(prop = pmax(prop, 0.001))
-  betafit <- rstanarm::stan_betareg(prop ~ dist | dist, data = betadat,
-                                    link = "logit", link.phi = "log")
+  betafit <- stan_betareg(prop ~ dist | dist, data = betadat, link = "logit", link.phi = "log")
   print(betafit, 2)
   ndat <- data.frame(dist = 0:round(max(pdat$dist)))
   epd <- posterior_epred(betafit, newdata = ndat) %>% 
