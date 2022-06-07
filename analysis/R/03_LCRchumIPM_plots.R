@@ -30,9 +30,9 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data)
   S <- colMedians(extract1(mod, "S"))
   SA_grid <- matrix(seq(0, quantile(S/A, 0.9, na.rm = TRUE), length = 100),
                     nrow = length(mu_alpha), ncol = 100, byrow = TRUE)
-  M_ESU <- SR(SR_fun, alpha = exp(mu_alpha), Rmax = exp(mu_Mmax)*1e3, S = SA_grid)
+  M_ESU <- SR(SR_fun, alpha = exp(mu_alpha), Rmax = exp(mu_Mmax), S = SA_grid)/1000 # mil/km
   M_pop <- sapply(1:ncol(Mmax), function(i) {
-    colMedians(SR(SR_fun, alpha = alpha[,i], Rmax = Mmax[,i]*1e3, S = SA_grid))
+    colMedians(SR(SR_fun, alpha = alpha[,i], Rmax = Mmax[,i], S = SA_grid))/1000 # mil/km
   })
   # smolt recruitment process errors
   y <- sort(unique(fish_data$year))
@@ -92,12 +92,12 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data)
   text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "C", cex = 1.5)
   
   # Posterior densities of log(Mmax)
-  dd_ESU <- density(mu_Mmax * log10(exp(1)))  # convert to base 10
-  dd_pop <- lapply(as.data.frame(log10(Mmax)), density)
+  dd_ESU <- density(mu_Mmax * log10(exp(1)) - 3)  # convert to base 10, units of mil/km 
+  dd_pop <- lapply(as.data.frame(log10(Mmax) - 3), density)
   
   plot(dd_ESU$x, dd_ESU$y, pch = "", lwd = 3, col = c1, las = 1, 
        xaxt = "n", yaxt = "n", yaxs = "i", cex.axis = 1.2, cex.lab = 1.5, 
-       xlab = bquote("Maximum smolts" ~ km^-1 ~ "(" * italic(M)[max] * ")"), ylab = "",
+       xlab = bquote("Maximum smolt density" ~ "(" * italic(M)[max] * ")"), ylab = "",
        xlim = range(dd_ESU$x[dd_ESU$y > 0.02], sapply(dd_pop, function(m) range(m$x[m$y > 0.02]))),
        ylim = range(dd_ESU$y, sapply(dd_pop, function(m) m$y))* 1.02, xpd = NA)
   polygon(dd_ESU, col = c1tt, border = NA)
@@ -108,14 +108,14 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data)
   text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "D", cex = 1.5)
   
   # Spawner-recruit function
-  plot(SA_grid[1,], colMedians(M_ESU)*1e-6, type = "l", lwd=3, col = c1, las = 1,
+  plot(SA_grid[1,], colMedians(M_ESU), type = "l", lwd=3, col = c1, las = 1,
        cex.axis = 1.2, cex.lab = 1.5, xaxs = "i", yaxs = "i",
-       ylim = range(M_pop*1e-6), xlab = bquote("Spawner density (" * km^-1 * ")"), 
+       ylim = range(M_pop), xlab = bquote("Spawner density (" * km^-1 * ")"), 
        ylab = bquote("Smolt density (" * 10^6 ~ km^-1 * ")"))
   for(i in 1:ncol(M_pop)) 
-    lines(SA_grid[1,], M_pop[,i]*1e-6, col = c1t)
+    lines(SA_grid[1,], M_pop[,i], col = c1t)
   polygon(c(SA_grid[1,], rev(SA_grid[1,])), 
-          c(colQuantiles(M_ESU, probs = 0.05), rev(colQuantiles(M_ESU, probs = 0.95)))*1e-6, 
+          c(colQuantiles(M_ESU, probs = 0.05), rev(colQuantiles(M_ESU, probs = 0.95))), 
           col = c1tt, border = NA)
   rug(S, col = c1t)
   text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "E", cex = 1.5)
@@ -291,7 +291,7 @@ LCRchumIPM_MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data)
     scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5) +
     scale_y_log10(labels = function(y) y*switch(life_stage, M = 1e-3, S = 1)) + 
     facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) +
-    theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank(),
+    theme(panel.grid.minor = element_blank(), 
           strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
 

@@ -37,61 +37,13 @@ if(file.exists(here("analysis","results","LCRchumIPM.RData")))
 # FIT RETROSPECTIVE MODELS
 #===========================================================================
 
-#--------------------------------------------------------------
-# Spawner-to-spawner IPM
-#--------------------------------------------------------------
-
-# Density-independent
-## @knitr fit_SS_exp
-SS_exp <- salmonIPM(fish_data = fish_data_SS, stan_model = "IPM_SS_pp", SR_fun = "exp",
-                    pars = c("B_rate","mu_Rmax","sigma_Rmax","Rmax"), include = FALSE, 
-                    log_lik = TRUE, chains = 3, iter = 1500, warmup = 500,
-                    control = list(adapt_delta = 0.99, max_treedepth = 13))
-
-## @knitr print_SS_exp
-print(SS_exp, prob = c(0.05,0.5,0.95),
-      pars = c("alpha","phi","p_HOS","q","gamma","p","S","R","LL"), 
-      include = FALSE, use_cache = FALSE)
-## @knitr
-
-# Beverton-Holt
-## @knitr fit_SS_BH
-SS_BH <- salmonIPM(fish_data = fish_data_SS, stan_model = "IPM_SS_pp", SR_fun = "BH",
-                   pars = "B_rate", include = FALSE, log_lik = TRUE, 
-                   chains = 3, iter = 1500, warmup = 500,
-                   control = list(adapt_delta = 0.99, max_treedepth = 13))
-
-## @knitr print_SS_BH
-print(SS_BH, prob = c(0.05,0.5,0.95),
-      pars = c("alpha","Rmax","phi","p_HOS","q","gamma","p","S","R","LL"), 
-      include = FALSE, use_cache = FALSE)
-## @knitr
-
-# Ricker
-## @knitr fit_SS_Ricker
-SS_Ricker <- salmonIPM(fish_data = fish_data_SS, stan_model = "IPM_SS_pp", SR_fun = "Ricker",
-                       pars = "B_rate", include = FALSE, log_lik = TRUE, 
-                       chains = 3, iter = 1500, warmup = 500,
-                       control = list(adapt_delta = 0.99, max_treedepth = 13))
-
-## @knitr print_SS_Ricker
-print(SS_Ricker, prob = c(0.05,0.5,0.95),
-      pars = c("alpha","Rmax","phi","p_HOS","q","gamma","p","S","R","LL"), 
-      include = FALSE, use_cache = FALSE)
-## @knitr
-
-
-#--------------------------------------------------------------
-# Lower Columbia chum spawner-smolt-spawner IPM
-#--------------------------------------------------------------
-
 # Density-independent
 ## @knitr fit_LCRchum_exp
 LCRchum_exp <- salmonIPM(fish_data = fish_data_SMS,  fecundity_data = fecundity_data,
                          ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "exp",
                          pars = c("mu_Emax","sigma_Emax","Emax"), 
                          include = FALSE, log_lik = TRUE, 
-                         chains = 3, iter = 1500, warmup = 500,
+                         chains = 4, iter = 1500, warmup = 500,
                          control = list(adapt_delta = 0.99, max_treedepth = 14))
 
 ## @knitr print_LCRchum_exp
@@ -105,7 +57,7 @@ print(LCRchum_exp, prob = c(0.05,0.5,0.95),
 ## @knitr fit_LCRchum_BH
 LCRchum_BH <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundity_data,
                         ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "BH",
-                        log_lik = TRUE, chains = 3, iter = 1500, warmup = 500,
+                        log_lik = TRUE, chains = 4, iter = 1500, warmup = 500,
                         control = list(adapt_delta = 0.99, max_treedepth = 14))
 
 ## @knitr print_LCRchum_BH
@@ -119,7 +71,7 @@ print(LCRchum_BH, prob = c(0.05,0.5,0.95),
 ## @knitr fit_LCRchum_Ricker
 LCRchum_Ricker <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundity_data,
                             ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
-                            log_lik = TRUE, chains = 3, iter = 1500, warmup = 500,
+                            log_lik = TRUE, chains = 4, iter = 1500, warmup = 500,
                             control = list(adapt_delta = 0.99, max_treedepth = 14))
 
 ## @knitr print_LCRchum_Ricker
@@ -167,10 +119,6 @@ loo_compare(LOO_LCRchum[c("BH","Ricker")])
 #===========================================================================
 # FIT PROSPECTIVE FORECASTING MODELS
 #===========================================================================
-
-#--------------------------------------------------------------
-# Lower Columbia chum spawner-smolt-spawner IPM
-#--------------------------------------------------------------
 
 # Ricker
 ## @knitr fit_LCRchum_Ricker_fore
@@ -245,8 +193,8 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-life_stage <- "M"   # "S" = spawners, "M" = smolts
-save_plot <- FALSE
+life_stage <- "S"   # "S" = spawners, "M" = smolts
+save_plot <- TRUE
 
 ## @knitr plot_spawner_smolt_ts
 gg <- LCRchumIPM_MS_timeseries(mod = get(mod_name), life_stage = life_stage, 
@@ -267,7 +215,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_spawner_age_ts
 gg <- LCRchumIPM_age_timeseries(mod = get(mod_name), fish_data = fish_data_SMS)
@@ -286,7 +234,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_sex_ratio_ts
 gg <- LCRchumIPM_sex_timeseries(mod = get(mod_name), fish_data = fish_data_SMS)
@@ -305,7 +253,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_p_HOS_ts
 gg <- LCRchumIPM_p_HOS_timeseries(mod = get(mod_name), fish_data = fish_data_SMS)

@@ -41,8 +41,8 @@ habitat_data <- read.csv(here("data","Data_Habitat_Spawning_Linear_2021-04-15.cs
   rename(year = Return.Yr., strata = Strata, pop = Location.Reach, mi = Habitat_Length_miles) %>% 
   complete(nesting(strata, pop), year = min(year):2021) %>% fill(mi) %>% 
   mutate(pop = gsub("Duncan Creek", "Duncan Channel", gsub("I205", "I-205", gsub("_", " ", pop))), 
-         km = mi*1.6) %>%  # convert to km
-  select(strata, pop, year, km) %>% arrange(strata, pop, year)
+         m = mi*1609) %>%  # convert to m
+  select(strata, pop, year, m) %>% arrange(strata, pop, year)
   
 # Spawner abundance data
 # Assumptions:
@@ -200,7 +200,7 @@ fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("strata","pop","ye
   left_join(green_female_data, by = c("pop","year")) %>% 
   rename_at(vars(contains("Age-")), list(~ paste0(sub("Age-","n_age",.), "_obs"))) %>% 
   select(-c(n_age2_obs, n_age6_obs)) %>% 
-  rename(A = km, n_H_obs = H, n_W_obs = W, n_M_obs = M, n_F_obs= `F`) %>% ## put w/ data sets
+  rename(A = m, n_H_obs = H, n_W_obs = W, n_M_obs = M, n_F_obs= `F`) %>% ## put w/ data sets
   mutate_at(vars(contains("n_")), ~ replace(., is.na(.), 0)) %>% 
   filter(!grepl("Hatchery|Duncan Creek", pop)) %>% 
   mutate(strata = factor(strata, levels = c("Gorge","Cascade","Coastal")),
