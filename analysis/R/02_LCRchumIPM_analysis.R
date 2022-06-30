@@ -124,7 +124,7 @@ loo_compare(LOO_LCRchum[c("BH","Ricker")])
 ## @knitr fit_LCRchum_Ricker_fore
 LCRchum_Ricker_fore <- salmonIPM(fish_data = fish_data_SMS_fore, fecundity_data = fecundity_data,
                                  ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
-                                 chains = 3, iter = 1500, warmup = 500,
+                                 chains = 4, iter = 1500, warmup = 500,
                                  control = list(adapt_delta = 0.99, max_treedepth = 14))
 
 ## @knitr
@@ -169,17 +169,18 @@ LCRchumIPM_multiplot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][
 if(save_plot) dev.off()
 
 #--------------------------------------------------------------------
-# Spawner-to-smolt S-R curve for each pop with data and states
+# Spawner-recruit curves for each pop with data and states
 #--------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-life_stage <- "R"   # "S" = spawners, "R" = adult recruits
+life_stage <- "M"   # "M" = smolts, "R" = adult recruits
 save_plot <- FALSE
 
 ## @knitr SR_plot
 gg <- LCRchumIPM_SR_plot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2],
                          life_stage = life_stage, fish_data = fish_data_SMS)
 ## @knitr
+
 if(save_plot) {
    ggsave(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
           width=11, height=7, units="in", dpi=300, type="cairo-png")

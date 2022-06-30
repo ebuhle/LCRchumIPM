@@ -3,7 +3,7 @@ title: 'Fitting Integrated Population Models to Lower Columbia River Chum Salmon
 author: 
   - name: Eric Buhle
     affiliation: 
-    - Biomark Applied Biological Services, Northwest Fisheries Science Center
+    - Mount Hood Environmental, Northwest Fisheries Science Center
   - name: Kale Bentley
     affiliation: Washington Department of Fish and Wildlife
   - name: Thomas Buehrens
@@ -314,7 +314,7 @@ $$
 \text{exp} \left[ - \left( \dfrac{|x - u|}{s} \right)^r \right]
 $$
 
-is used to regularize autocorrelation coefficients away from the computationally problematic boundaries 1 and -1. The Lewandowski, Kurowicka and Joe [@lewandowski_generating_2009] distribution with density $\text{LKJ}(\eta)$, is a distribution over correlation matrices; when $\eta = 1$ it is uniform. The prior mean and SD of log-mean smolt capacity, $m_{M_\text{max}}$ and $s_{M_\text{max}}$, are the sample 90th percentile and SD of observed log smolt density, respectively. While this data-aware prior technically uses the data twice, it is broad and weakly informative and merely serves to find a reasonable scale for overall population size, similar to [widely used Bayesian inference packages](https://cran.r-project.org/web/packages/rstanarm/vignettes/priors.html).
+is used to regularize autocorrelation coefficients away from the computationally problematic boundaries 1 and -1. The Lewandowski, Kurowicka and Joe [@lewandowski_generating_2009] distribution with density $\text{LKJ}(\eta)$, is a distribution over correlation matrices; when $\eta = 1$ it is uniform. The prior mean and SD of log-mean smolt capacity, $m_{M_\text{max}}$ and $s_{M_\text{max}}$, are the sample maximum and SD of observed log smolt density, respectively. While this data-aware prior technically uses the data twice, it is broad and weakly informative and merely serves to find a reasonable scale for overall population size, similar to [widely used Bayesian inference packages](https://cran.r-project.org/web/packages/rstanarm/vignettes/priors.html).
 
 $$
 \begin{aligned}
@@ -402,9 +402,21 @@ mod_name <- "LCRchum_Ricker"
 <<multiplot>>
 ```
 
-There is clear evidence of density-dependence, with more among-population heterogeneity in smolt capacity than in maximum egg-to-smolt survival, but most populations exhibit little if any overcompensation over the range of observed spawner densities (shown by the *x*-axis rug in E-F). Both freshwater productivity (total smolt process error, G) and SAR are strongly synchronous at the ESU scale. Freshwater productivity is relatively stable except for the sharp drop in 2019, the most recent year of available data. Smolt-to-adult survival, by contrast, shows strong and quasiperiodic fluctuations consistent with large-scale oceanographic or other environmental drivers. Because of this large and as-yet-unexplained process stochasticity, the uncertainty around the final 4 years of SAR estimates (corresponding to cohorts that have not yet fully returned as adults, and thus informed more by the process model than by data) is very wide.
+There is clear evidence of density-dependence, with more among-population heterogeneity in smolt capacity (millions of smolts per km of spawning habitat) than in maximum egg-to-smolt survival, but most populations exhibit little if any overcompensation over the range of observed spawner densities (shown by the *x*-axis rug in E-F). Both freshwater productivity (total smolt process error, G) and SAR are strongly synchronous at the ESU scale. Freshwater productivity is relatively stable except for the sharp drop in 2019. Smolt-to-adult survival, by contrast, shows strong and quasiperiodic fluctuations consistent with large-scale oceanographic or other environmental drivers. Because of this large and as-yet-unexplained process stochasticity, the uncertainty around the final 4 years of SAR estimates (corresponding to cohorts that have not yet fully returned as adults, and thus informed more by the process model than by data) is very wide.
 
-We now examine model fits to data components in more detail.
+## Spawner-Recruit Functions
+
+We can look more closely at freshwater productivity by plotting the spawner-recruit functions for each population along with the observations and states. Here the lines and dark inner shading indicate the posterior median and 90% credible interval of the fitted Ricker curve, and the light outer shading represents total (shared plus unique) process error. (Due to the high reported precision of the observations, observation error makes only a minor contribution to the posterior predictive distribution and is not shown.) The black points are the spawner and smolt data for the five populations with smolt traps. Note that the trap counts for Grays MS represent the sum of production in the mainstem and in the upstream Grays CJ and Grays WF populations, as discussed above, and thus the observations in that case are not directly comparable to the states and fitted values. Open gray points are state estimates, with error bars (in some cases truncated for clarity) indicating 90% credible intervals.
+
+```{r SR_plot_LCRchum_Ricker, echo = FALSE, warning=FALSE, message=FALSE, fig.width=11, fig.height=7, out.width="100%"}
+life_stage <- "M"
+<<SR_plot>>
+show(gg)
+```
+
+The data are sparse, but overall the Ricker appears to be an adequate fit. The states with noticeably higher uncertainty generally correspond to cases with missing spawner observations and/or missing observation error estimates, as we will see in the time series plots below.
+
+We now examine model fits to individual data components in more detail.
 
 ## Fecundity
 
@@ -417,7 +429,7 @@ mod_name <- "LCRchum_Ricker"
 
 ## Spawner Abundance
 
-The next plot shows observed (observation-model posterior medians; points) and estimated spawner abundance for each population. Filled points indicate observations with known error SD (90% intervals are sometimes too narrow to be visible), while the SD for open points is imputed. The solid gray line is the posterior median of the true state from the IPM. Posterior 90% credible intervals indicate process (dark shading) and observation (light shading) uncertainty, i.e. the posterior predictive distribution (PPD) of hypothetical replicate data under the model. Leading or trailing years without spawner abundance estimates are included if smolt abundance is available.
+The next plot shows observed (observation-model posterior medians; points) and estimated spawner abundance for each population. Filled points indicate observations whose error SD is known (90% intervals are sometimes too narrow to be visible), while the SD for open points is imputed. The solid gray line is the posterior median of the true state from the IPM. Posterior 90% credible intervals indicate process (dark shading) and observation (light shading) uncertainty, i.e. the posterior predictive distribution (PPD) of hypothetical replicate data under the model. Leading or trailing years without spawner abundance estimates are included if smolt abundance is available.
 
 ```{r plot_spawners_LCRchum_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
 life_stage <- "S"
@@ -463,7 +475,7 @@ show(gg)
 
 ## Spawner Rearing Type
 
-Proportion of hatchery-origin spawners was generally low, with some very small samples that cannot definitively rule out higher $p_\text{HOS}$. In terminal years when spawner data are not yet available but hatcheries are known to be operating in the population, the estimates revert back to the independent $U(0,1)$ prior. This is not a problem, but will change if we are able to expand the process model to include hatchery releases and returns, which would generate predictions of $p_{\text{HOS},jt}$.
+Proportion of hatchery-origin spawners was generally low, with some very small samples that cannot definitively rule out higher $p_\text{HOS}$. In terminal years when spawner data are not yet available but hatcheries are known to be operating in the population, the estimates revert back to the independent $U(0,1)$ prior. This is not a problem, but will change if we are able to expand the process model to include hatchery releases and returns, which would generate predictions of $p_{\text{HOS},jt}$ (see Next Steps).
 
 ```{r plot_p_HOS_ts_LCRchum_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
 <<plot_p_HOS_ts>>
@@ -475,7 +487,7 @@ show(gg)
 
 It is straightforward to use the IPM to forecast future population dynamics, given the observed historical data. We can simply pad `fish_data_SMS` with empty rows corresponding to future years in each population and re-fit the model. Estimated states will then include the future years, just as they would any past years with missing data. This seamless integration of retrospective fitting and forward projection is a major advantage of the IPM approach; there is no need to separately specify initial conditions or devise ad hoc methods for simulating parameter uncertainty or process noise.
 
-In this example, we forecast adult returns in 2021 given available data through 2020 (albeit not for all variables in all populations). Although the posterior samples include all states in the model -- for example, we could forecast smolt abundance or adult age structure -- we focus here on total wild-origin spawners of all ages.
+In this example, we forecast adult returns in `r max(fish_data_SMS_fore$year)` given the data available through `r max(fish_data_SMS$year)`, albeit not for all variables in all populations (in particular, as seen in the plot below, 2021 adults were not available at the time of writing). Although the posterior samples include all the states in the model -- for example, we could forecast smolt abundance or adult age structure -- we focus here on total wild-origin spawners of all ages.
 
 ```{r fit_LCRchum_Ricker_fore, echo=FALSE, eval = !exists("LCRchum_Ricker_fore")}
 ```
@@ -489,7 +501,7 @@ show(gg)
 
 This plot is identical to the retrospective fits to spawner abundance except for the added final year. The forecast intervals are much wider than the credible intervals around the retrospective estimates; this is expected in general, of course, but is especially pronounced because of the large process-error fluctuations in SAR. As this logit-AR(1) process is simulated forward in time, the marine survival rates and associated population dynamics will rapidly blow up, converging to a wide stationary distribution. Within a single chum generation, however, the forecast is constrained by observations of the abundance of parent cohorts and outmigrants as well as younger age-classes whose older siblings will return in 2021. Thus the IPM automatically incorporates the information used in "sibling regression" models [@peterman_model_1982], but without the restrictive assumption of constant within-cohort age structure.
 
-The table below gives a more detailed look at the projections (posterior medians and 90% forecast intervals) of wild spawner abundance in 2021. 
+The table below gives a more detailed look at the projections (posterior medians and 90% forecast intervals) of wild spawner abundance in `r max(fish_data_SMS_fore$year)`. 
 
 ```{r spawner_forecast_table, echo = FALSE}
 mod_name <- "LCRchum_Ricker_fore"
@@ -523,11 +535,44 @@ The LCR chum IPM remains under active development, with an ultimate goal of prov
 
 1. Habitat and environmental drivers. Incorporate covariates (e.g., freshwater habitat quality, oceanographic factors) into the IPM to estimate effects on stage-specific productivity, capacity, and/or survival. For example, strong leading indicators of SAR could reduce the unexplained process noise and thus help to constrain near-term forecasts.
 
-2. Hatchery operations. Expand the IPM to model hatchery fry/smolt releases and adult returns. This will allow jointly modeling wild and hatchery SAR, which may help to inform estimates of common trends and environmental covariate effects. A longer-term goal is to explicitly model hatchery operations, i.e., broodstock transfers into hatchery or quasi-hatchery populations and fry production.
+2. Hatchery operations. Expand the IPM to model hatchery fry / smolt releases and adult returns, replacing the current unstructured estimates of $p_\textrm{HOS}$ with a process-based description of naturally reproducing hatchery-origin spawners (HOR). This will allow jointly modeling wild and hatchery SAR, which may help to inform estimates of common trends and environmental covariate effects. A longer-term goal is to explicitly model hatchery operations, i.e., broodstock transfers into hatchery or quasi-hatchery populations and fry production.
 
-3. Straying and spatial connectivity. In tandem with modeling hatchery releases and returns, we plan to model dispersal among populations using a straying matrix parameterized by inter-population distance (i.e., a dispersal kernel), estimated using origin data from hatcheries and spawning channels. This could potentially affect inferences about metapopulation viability and allow scenario analyses related to recolonization. Explicitly accounting for translocated adults was a necessary first step toward this goal.
+3. Straying and spatial connectivity. In tandem with modeling hatchery releases and returns, we plan to model dispersal among populations using a straying matrix estimated using origin data from hatcheries and spawning channels. This could potentially affect inferences about metapopulation viability and allow scenario analyses related to recolonization.
 
-4. Scenario analyses. Use the parameterized IPM to evaluate life-cycle bottlenecks (sensitivity to specific vital rates) and to ask questions about monitoring design (e.g., data gaps and value of specific data types relative to their cost), prioritization of habitat restoration, effectiveness of supplementation, and potential rates of recolonization.
+4. Incorporate data from less-intensively monitored Lower Columbia chum populations not currently included in our data set, such as the Elochoman and Skamokawa. As the number of populations is relatively small for fitting a complex hierarchical life cycle model, any additional data could improve the estimates for the entire ESU and for individual populations by sharing information. 
 
+5. Scenario analyses. Use the parameterized IPM to evaluate life-cycle bottlenecks (sensitivity to specific vital rates) and to ask questions about monitoring design (e.g., data gaps and value of specific data types relative to their cost), prioritization of habitat restoration, effectiveness of supplementation, and potential rates of recolonization.
+
+## Hatchery Operations
+
+In FY2021 we focused on objectives (2) and (3) in the list above. We developed a model component describing the survival of hatchery chum from smolt release to adult return, with SAR drawn from the same hyperdistribution as the wild populations (see Model Structure: Smolt-to-Adult Survival), though potentially with a dummy covariate to allow differential marine survival by rearing type. Returning hatchery-origin adults are then distributed across natural populations using a dispersal matrix $\mathbf{p}_\textrm{origin}$, assumed to be time-invariant given the relatively sparse recovery data we have available. As a rough visualization of this straying matrix, the plot below shows estimates of the proportion of adults from each identifiable origin (hatchery or spawning channel) that return to each natural population. The bars within each source sum to 1. These crude estimates are based on expanding known-origin composition samples by the point estimates of observed spawners in each year and then summing across years; they give no indication of the observation error or sample size involved. The IPM is not fitted to these derived estimates, but rather the underlying raw origin-composition data is a multinomial likelihood component.
+
+```{r plot_hatchery_straying, echo = FALSE, warning=FALSE, message=FALSE, fig.width=5, fig.height=9}
+  # Distribution of hatchery adults across recipient populations
+  bdat <- bio_data %>% group_by(location, year, origin) %>% summarize(count = sum(count)) 
+  sdat <- spawner_data %>% group_by(location, year) %>% summarize(S_obs = sum(S_obs, na.rm = TRUE))
+  dat <- inner_join(bdat, sdat, by = c("location", "year")) %>% 
+    mutate(prop = count/sum(count), S_origin = S_obs*prop) %>% 
+    group_by(origin, location) %>% 
+    summarize(count = sum(count), S_location = sum(S_origin, na.rm = TRUE)) %>% 
+    mutate(prop = S_location/sum(S_location)) %>% 
+    filter(origin != "Natural spawner") %>% ungroup() %>% 
+    mutate(origin = droplevels(factor(origin, levels = c(pop_names$pop, "Big Creek Hatchery"))),
+           location = droplevels(factor(location, levels = pop_names$pop))) %>% 
+    complete(origin, location, fill = list(count = 0, S_location = 0, prop = 0))
+  pdat <- pairwise_data %>% rename(origin = pop1, location = pop2) %>% 
+    full_join(rename(., location = origin, origin = location)) %>% 
+    right_join(dat, by = c("origin","location")) %>%
+    filter(origin != "Big Creek Hatchery")
+  
+  dat %>% ggplot(aes(x = location, y = prop)) + geom_col() +
+    labs(x = "", y = "Proportion of adults returning to location") + 
+    facet_wrap(vars(origin), ncol = 1) + theme_bw(base_size = 14) +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+          strip.text = element_text(margin = margin(b = 2, t = 2)),
+          panel.grid = element_blank()) 
+```
+
+This hatchery smolt-to-adult survival and straying component has been implemented in the Stan code, but we have been unsuccessful so far in fitting the expanded model because initial parameter values lead to a negative infinite log-posterior. It appears that more work is needed to fine-tune the values used to initialize the HMC chains so that sampling can proceed. We anticipate that these challenges can be overcome, and the resulting model will provide estimates of hatchery SAR and spatial dispersal. It will also enable us to ask questions about the effects of alternative hatchery release levels on natural population trends and viability, and serve as the first step toward a process-based model of the full hatchery life cycle (broodstock to adult return).
 
 # References

@@ -43,7 +43,7 @@ habitat_data <- read.csv(here("data","Data_Habitat_Spawning_Linear_2021-04-15.cs
   mutate(pop = gsub("Duncan Creek", "Duncan Channel", gsub("I205", "I-205", gsub("_", " ", pop))), 
          m = mi*1609) %>%  # convert to m
   select(strata, pop, year, m) %>% arrange(strata, pop, year)
-  
+
 # Spawner abundance data
 # Assumptions:
 # (0) Fix coding error in data that assigns some Duncan Creek rows to Cascade stratum
@@ -238,26 +238,28 @@ fish_data_SMS <- fish_data_SMS %>%
   mutate(downstream_trap = replace(downstream_trap, pop %in% c("Grays WF","Grays CJ"),
                                    which(pop == "Grays MS")))
 
-# # pad data with future years to generate forecasts
-# # use 1-year time horizon
-# fish_data_SMS_fore <- fish_data_SMS %>% group_by(pop) %>% 
-#   slice(rep(n(), max(fish_data_SMS$year) + 1 - max(year))) %>% 
-#   summarize(year = (unique(year) + 1):(max(fish_data_SMS$year) + 1),
-#          S_obs = NA, tau_S_obs = NA, M_obs = NA, tau_M_obs = NA,
-#          downstream_trap = NA, 
-#          p_G_obs = 1, S_add_obs = 0, fit_p_HOS = 0, B_take_obs = 0, F_rate = 0) %>% 
-#   mutate_at(vars(starts_with("n_")), ~ 0) %>%
-#   full_join(fish_data_SMS) %>% arrange(pop, year) %>% 
-#   as.data.frame() %>% head(30)
-#   mutate(forecast = year > max(fish_data_SMS$year), downstream_trap = NA) %>% 
-#   select(strata:year, forecast, A:F_rate) %>% as.data.frame()
-# 
-# # fish_data_SMS_fore: 
-# # assign Grays_WF and Grays_CJ smolts to the downstream trap in Grays_MS
-# # (need to do this again b/c row indices have changed)
-# fish_data_SMS_fore <- fish_data_SMS_fore %>%
-#   mutate(downstream_trap = replace(downstream_trap, pop %in% c("Grays WF","Grays CJ"),
-#                                    which(pop == "Grays MS")))
+# pad data with future years to generate forecasts
+# use 1-year time horizon
+fish_data_SMS_fore <- fish_data_SMS %>% group_by(pop) %>%
+  slice(rep(n(), max(fish_data_SMS$year) + 1 - max(year))) %>%
+  summarize(year = (unique(year) + 1):(max(fish_data_SMS$year) + 1),
+            S_obs = NA, tau_S_obs = NA, M_obs = NA, tau_M_obs = NA, downstream_trap = NA, 
+            p_G_obs = 1, S_add_obs = 0, fit_p_HOS = 0, B_take_obs = 0, F_rate = 0) %>%
+  full_join(fish_data_SMS) %>% arrange(pop, year) %>%
+  mutate_at(vars(starts_with("n_")), ~ replace_na(., 0)) %>%
+  mutate(forecast = year > max(fish_data_SMS$year), downstream_trap = NA) %>% 
+  fill(A, .direction = "down") %>%
+  select(strata, pop, year, forecast, A, S_obs, tau_S_obs, M_obs, tau_M_obs,
+         downstream_trap, n_age3_obs:n_F_obs, p_G_obs, 
+         fit_p_HOS, B_take_obs, S_add_obs, F_rate) %>% 
+  as.data.frame()
+
+# fish_data_SMS_fore:
+# assign Grays_WF and Grays_CJ smolts to the downstream trap in Grays_MS
+# (need to do this again b/c row indices have changed)
+fish_data_SMS_fore <- fish_data_SMS_fore %>%
+  mutate(downstream_trap = replace(downstream_trap, pop %in% c("Grays WF","Grays CJ"),
+                                   which(pop == "Grays MS")))
 
 # Fecundity data
 # Note that L95% and U95% are reversed
