@@ -51,7 +51,7 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data)
   c1t <- transparent(c1, trans.val = 0.3)
   c1tt <- transparent(c1, trans.val = 0.5)
   ac <- viridis(length(ages), end = 0.8, direction = -1, alpha = 0.5) 
-
+  
   par(mfrow = c(2,4), mar = c(5.1,5.1,1,0.5), oma = c(0,0,0,1))
   
   # Posterior distributions of fecundity by age
@@ -117,7 +117,7 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data)
   polygon(c(SA_grid[1,], rev(SA_grid[1,])), 
           c(colQuantiles(M_ESU, probs = 0.05), rev(colQuantiles(M_ESU, probs = 0.95))), 
           col = c1tt, border = NA)
-  rug(S, col = c1t)
+  rug(S/A, col = c1t)
   text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "E", cex = 1.5)
   
   # Smolts-per-spawner function
@@ -131,7 +131,7 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data)
           c(colQuantiles(M_ESU, probs = 0.05)/SA_grid[1,], 
             rev(colQuantiles(M_ESU, probs = 0.95)/SA_grid[1,])), 
           col = c1tt, border = NA)
-  rug(S, col = c1t)
+  rug(S/A, col = c1t)
   text(par("usr")[2], par("usr")[4], adj = c(1.5,1.5), "F", cex = 1.5)
   
   # Smolt recruitment process errors
@@ -191,19 +191,22 @@ LCRchumIPM_SR_plot <- function(mod, SR_fun, life_stage, fish_data)
   states_obs <- run_recon(fish_data) %>% 
     mutate(N_obs = switch(life_stage, M = fish_data$M_obs, R = R_obs)) %>% 
     select(pop, year, A, S_obs, N_obs) %>% 
-    data.frame(alpha = draws$alpha, S = draws$S, N = draws$N)
+    data.frame(alpha = draws$alpha, S = draws$S, N = draws$N) %>% 
+    group_by(pop) %>% 
+    mutate(S_q2 = as.vector(quantile(S, qnt[2])), S_upper = pmin(S_q2, max(median(S))*1.1),
+           N_q2 = as.vector(quantile(N, qnt[2])), N_upper = pmin(N_q2, max(median(N)*1.1)))
   
   # spawner densities at which to evaluate S-R function
   S_grid <- states_obs %>% group_by(pop) %>% 
     summarize(A = mean(A), alpha = rvar_mean(alpha), 
-              S = seq(0, max(quantile(S, qnt[2]), S_obs, na.rm = TRUE)*1.05, length = n_grid))
+              S = seq(0, max(S_upper, S_obs, na.rm = TRUE), length = n_grid))
   
   # posteriors of S-R fit with total process and proc + obs error (PPD)
   ppd <- as.matrix(mod, c("Mmax", "sigma_year_M", "rho_M", "sigma_M", "tau_M", "M",
                           "mu_MS", "sigma_year_MS", "rho_MS", "sigma_MS", "tau_S")) %>% 
     as_draws_rvars() %>% 
     mutate_variables(A = as_rvar(S_grid$A), S = S_grid$S,
-                     alpha = S_grid$alpha, Mmax = rep(Mmax*1000, each = n_grid),
+                     alpha = S_grid$alpha, Mmax = rep(Mmax, each = n_grid),
                      M_hat = SR(SR_fun = SR_fun, alpha = alpha, Rmax = Mmax, S = S, A = A),
                      sd_year_M = sigma_year_M / sqrt(1 - rho_M^2),
                      sd_proc_M = sqrt(sd_year_M^2 + sigma_M^2),
@@ -220,30 +223,31 @@ LCRchumIPM_SR_plot <- function(mod, SR_fun, life_stage, fish_data)
   ppd <- S_grid %>% select(pop, S) %>% 
     data.frame(N_hat = switch(life_stage, M = ppd$M_hat, R = ppd$R_hat),
                N_proc = switch(life_stage, M = ppd$M_proc, R = ppd$R_proc),
-               N_ppd = switch(life_stage, M = ppd$M_ppd, R = ppd$R_ppd))
+               N_ppd = switch(life_stage, M = ppd$M_ppd, R = ppd$R_ppd)) 
   
   gg <- ppd %>% ggplot(aes(x = S, y = median(N_hat))) +
     geom_ribbon(aes(ymin = quantile(N_hat, qnt[1]), ymax = quantile(N_hat, qnt[2])), 
                 fill = "slategray4", alpha = 0.4) +
     geom_ribbon(aes(ymin = quantile(N_proc, qnt[1]), ymax = quantile(N_proc, qnt[2])),
                 fill = "slategray4", alpha = 0.3) +
-    geom_ribbon(aes(ymin = quantile(N_ppd, qnt[1]), ymax = quantile(N_ppd, qnt[2])),
-                fill = "slategray4", alpha = 0.2) +
+    # geom_ribbon(aes(ymin = quantile(N_ppd, qnt[1]), ymax = quantile(N_ppd, qnt[2])),
+    #             fill = "slategray4", alpha = 0.2) +
     geom_line(lwd = 1, col = "slategray4") +
-    geom_segment(aes(x = quantile(S, qnt[1]), xend = quantile(S, qnt[2]),
+    geom_segment(aes(x = quantile(S, qnt[1]), xend = S_upper,
                      y = median(N), yend = median(N)),
                  data = states_obs, col = "slategray4", alpha = 0.8) +
     geom_segment(aes(x = median(S), xend = median(S),
-                     y = quantile(N, qnt[1]), yend = quantile(N, qnt[2])),
+                     y = quantile(N, qnt[1]), yend = N_upper),
                  data = states_obs, col = "slategray4", alpha = 0.8) +
-    geom_segment(aes(x = S_obs, xend = median(S), y = N_obs, yend = median(N)),
-                 data = states_obs, col = "slategray4", alpha = 0.4) +
-    geom_point(aes(x = S_obs, y = N_obs), data = states_obs,
-               pch = 16, size = 2, alpha = 0.6) +
+    # geom_segment(aes(x = S_obs, xend = median(S), y = N_obs, yend = median(N)),
+    #              data = states_obs, col = "slategray4", alpha = 0.4) +
     geom_point(aes(x = median(S), y = median(N)), data = states_obs,
                pch = 21, size = 2, col = "slategray4", fill = "white") +
-    scale_x_continuous(labels = label_number(scale = 1e-3)) +
-    scale_y_continuous(labels = label_number(scale = switch(life_stage, M = 1e-6, R = 1e-3))) +
+    geom_point(aes(x = S_obs, y = N_obs), data = states_obs,
+               pch = 16, size = 2, alpha = 0.6) +
+    scale_x_continuous(labels = label_number(scale = 1e-3), expand = c(0,0)) +
+    scale_y_continuous(labels = label_number(scale = switch(life_stage, M = 1e-6, R = 1e-3)),
+                       expand = c(0,0)) +
     labs(x = "Spawners (thousands)", 
          y = switch(life_stage, M = "Smolts (millions)", R = "Recruits (thousands)")) +
     facet_wrap(vars(pop), ncol = 4, scales = "free") + theme_bw(base_size = 16) +
@@ -294,7 +298,7 @@ LCRchumIPM_MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data)
     theme(panel.grid.minor = element_blank(), 
           strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
-
+  
   return(gg)
 }
 

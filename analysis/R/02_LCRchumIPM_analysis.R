@@ -92,7 +92,7 @@ print(LCRchum_Ricker, prob = c(0.05,0.5,0.95),
 # and smolt and spawner observation error SDs
 ## @knitr loo_LCRchum
 LL_LCRchum <- lapply(list(exp = LCRchum_exp, BH = LCRchum_BH, Ricker = LCRchum_Ricker),
-                 loo::extract_log_lik, parameter_name = "LL", merge_chains = FALSE)
+                     loo::extract_log_lik, parameter_name = "LL", merge_chains = FALSE)
 
 # Relative ESS of posterior draws of observationwise likelihood 
 r_eff_LCRchum <- lapply(LL_LCRchum, function(x) relative_eff(exp(x)))
@@ -124,7 +124,7 @@ loo_compare(LOO_LCRchum[c("BH","Ricker")])
 ## @knitr fit_LCRchum_Ricker_fore
 LCRchum_Ricker_fore <- salmonIPM(fish_data = fish_data_SMS_fore, fecundity_data = fecundity_data,
                                  ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
-                                 chains = 3, iter = 1500, warmup = 500,
+                                 chains = 4, iter = 1500, warmup = 500,
                                  control = list(adapt_delta = 0.99, max_treedepth = 14))
 
 ## @knitr
@@ -158,8 +158,8 @@ mod_name <- "LCRchum_Ricker"
 save_plot <- TRUE
 
 if(save_plot) {
-   png(filename=here("analysis","results",paste0("multiplot_",mod_name,".png")), 
-       width=12, height=5.5, units="in", res=300, type="cairo-png")
+  png(filename=here("analysis","results",paste0("multiplot_",mod_name,".png")), 
+      width=12, height=5.5, units="in", res=300, type="cairo-png")
 } else dev.new(width = 12, height = 5.5)
 
 ## @knitr multiplot
@@ -169,23 +169,24 @@ LCRchumIPM_multiplot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][
 if(save_plot) dev.off()
 
 #--------------------------------------------------------------------
-# Spawner-to-smolt S-R curve for each pop with data and states
+# Spawner-recruit curves for each pop with data and states
 #--------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-life_stage <- "R"   # "S" = spawners, "R" = adult recruits
+life_stage <- "M"   # "M" = smolts, "R" = adult recruits
 save_plot <- FALSE
 
 ## @knitr SR_plot
 gg <- LCRchumIPM_SR_plot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2],
                          life_stage = life_stage, fish_data = fish_data_SMS)
 ## @knitr
+
 if(save_plot) {
-   ggsave(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
-          width=11, height=7, units="in", dpi=300, type="cairo-png")
+  ggsave(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
+         width=11, height=7, units="in", dpi=300, type="cairo-png")
 } else {
-   dev.new(width=11,height=7)
-   show(gg)
+  dev.new(width=11,height=7)
+  show(gg)
 }
 
 #--------------------------------------------------------------------------------
@@ -203,11 +204,11 @@ gg <- LCRchumIPM_MS_timeseries(mod = get(mod_name), life_stage = life_stage,
 ## @knitr
 
 if(save_plot) {
-   ggsave(filename=here("analysis","results",paste0(life_stage, "_fit_", mod_name, ".png")), 
-          width=11, height=7, units="in", dpi=300, type="cairo-png")
+  ggsave(filename=here("analysis","results",paste0(life_stage, "_fit_", mod_name, ".png")), 
+         width=11, height=7, units="in", dpi=300, type="cairo-png")
 } else {
-   dev.new(width=11,height=7)
-   show(gg)
+  dev.new(width=11,height=7)
+  show(gg)
 }
 
 #--------------------------------------------------------------------------------
@@ -222,11 +223,11 @@ gg <- LCRchumIPM_age_timeseries(mod = get(mod_name), fish_data = fish_data_SMS)
 ## @knitr
 
 if(save_plot) {
-   ggsave(filename=here("analysis","results",paste0("q_fit_", mod_name, ".png")), 
-          width=12, height=7, units="in", dpi=300, type="cairo-png")
+  ggsave(filename=here("analysis","results",paste0("q_fit_", mod_name, ".png")), 
+         width=12, height=7, units="in", dpi=300, type="cairo-png")
 } else {
-   dev.new(width=12,height=7)
-   show(gg)
+  dev.new(width=12,height=7)
+  show(gg)
 }
 
 #--------------------------------------------------------------------------------
@@ -241,11 +242,11 @@ gg <- LCRchumIPM_sex_timeseries(mod = get(mod_name), fish_data = fish_data_SMS)
 ## @knitr
 
 if(save_plot) {
-   ggsave(filename=here("analysis", "results", paste0("q_F_fit_", mod_name, ".png")),
-          width=11, height=7, units="in", dpi=300, type="cairo-png")
+  ggsave(filename=here("analysis", "results", paste0("q_F_fit_", mod_name, ".png")),
+         width=11, height=7, units="in", dpi=300, type="cairo-png")
 } else {
-   dev.new(width=11,height=7)
-   show(gg)
+  dev.new(width=11,height=7)
+  show(gg)
 }
 
 #--------------------------------------------------------------------------------
@@ -260,11 +261,11 @@ gg <- LCRchumIPM_p_HOS_timeseries(mod = get(mod_name), fish_data = fish_data_SMS
 ## @knitr
 
 if(save_plot) {
-   ggsave(filename=here("analysis","results",paste0("p_HOS_fit_", mod_name, ".png")), 
-          width=11, height=7, units="in", dpi=300, type="cairo-png")
+  ggsave(filename=here("analysis","results",paste0("p_HOS_fit_", mod_name, ".png")), 
+         width=11, height=7, units="in", dpi=300, type="cairo-png")
 } else {
-   dev.new(width=11, height=7)
-   show(gg)
+  dev.new(width=11, height=7)
+  show(gg)
 }
 
 #--------------------------------------------------------------------------------
@@ -275,8 +276,8 @@ mod_name <- "LCRchum_Ricker"
 save_plot <- TRUE
 
 if(save_plot) {
-   png(filename=here("analysis","results",paste0("fecundity_fit_", mod_name, ".png")), 
-       width=5, height=5, units="in", res=200, type="cairo-png")
+  png(filename=here("analysis","results",paste0("fecundity_fit_", mod_name, ".png")), 
+      width=5, height=5, units="in", res=200, type="cairo-png")
 } else dev.new(width=5,height=5)
 
 ## @knitr plot_fecundity_fit
@@ -294,8 +295,8 @@ mod_name <- "LCRchum_Ricker"
 save_plot <- TRUE
 
 if(save_plot) {
-   png(filename=here("analysis","results",paste0("tau_fit_", mod_name, ".png")), 
-       width=6, height=8, units="in", res=200, type="cairo-png")
+  png(filename=here("analysis","results",paste0("tau_fit_", mod_name, ".png")), 
+      width=6, height=8, units="in", res=200, type="cairo-png")
 } else dev.new(width=6,height=8)
 
 ## @knitr plot_obs_error_fit
