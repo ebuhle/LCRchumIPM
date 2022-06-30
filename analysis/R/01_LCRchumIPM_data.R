@@ -203,7 +203,7 @@ juv_data_incl <- juv_data %>%
 # Pad data as necessary so Grays_MS, Grays_WF, and Grays_CJ have the same set of years
 # (since their estimated smolts will be summed)  
 # Pad data as necessary so hatchery populations are represented in all years
-fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year")) %>% 
+fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year")) %>% 
   # full_join(bio_data_HW, by = c("pop","year")) %>% 
   full_join(bio_data_origin, by = c("pop","year")) %>% 
   full_join(bio_data_sex, by = c("pop","year")) %>% 
@@ -238,50 +238,47 @@ fish_data <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year")) %>%
          p_G_obs, fit_p_HOS, B_take_obs, S_add_obs, F_rate) %>% arrange(pop, year) 
 
 # # fill in fit_p_HOS
-# for(i in 1:nrow(fish_data)) {
-#   pop_i <- as.character(fish_data$pop[i])
+# for(i in 1:nrow(fish_data_all)) {
+#   pop_i <- as.character(fish_data_all$pop[i])
 #   start_year <- ifelse(pop_i %in% hatcheries$pop,
 #                        min(hatcheries$start_brood_year[hatcheries$pop == pop_i]) + 1,
 #                        NA)
-#   fish_data$fit_p_HOS[i] <- ifelse((!is.na(start_year) & fish_data$year[i] >= start_year) |
-#                                      fish_data$n_H_obs[i] > 0, 1, 0)
+#   fish_data_all$fit_p_HOS[i] <- ifelse((!is.na(start_year) & fish_data_all$year[i] >= start_year) |
+#                                      fish_data_all$n_H_obs[i] > 0, 1, 0)
 # }
 
-# subsets for models with specific stage structure
-# spawner-smolt-spawner: drop cases with initial NAs in both S_obs and M_obs
-#                        (except hatchery populations, which must be present in every year)
-fish_data_SMS <- fish_data %>% group_by(pop) %>% 
+# drop cases with initial NAs in both S_obs and M_obs
+# (except hatchery populations, which must be present in every year)
+fish_data <- fish_data_all %>% group_by(pop) %>% 
   filter(head_noNA(S_obs) | head_noNA(M_obs) | grepl("Hatchery", pop)) %>% 
   add_column(downstream_trap = NA, .after = "tau_M_obs")  %>% as.data.frame()
 
-# fish_data_SMS: 
 # assign Grays WF and Grays CJ smolts to the downstream trap in Grays MS
 # where they will be counted (or double-counted, in the case of Grays CJ),
 # assuming no mortality between the upstream tributary and the downstream trap
-fish_data_SMS <- fish_data_SMS %>%
+fish_data <- fish_data %>%
   mutate(downstream_trap = replace(downstream_trap, pop %in% c("Grays WF","Grays CJ"),
                                    which(pop == "Grays MS")))
 
 # pad data with future years to generate forecasts
 # use 1-year time horizon
-fish_data_SMS_fore <- fish_data_SMS %>% group_by(pop) %>%
-  slice(rep(n(), max(fish_data_SMS$year) + 1 - max(year))) %>%
-  summarize(year = (unique(year) + 1):(max(fish_data_SMS$year) + 1),
+fish_data_fore <- fish_data %>% group_by(pop) %>%
+  slice(rep(n(), max(fish_data$year) + 1 - max(year))) %>%
+  summarize(year = (unique(year) + 1):(max(fish_data$year) + 1),
             S_obs = NA, tau_S_obs = NA, M_obs = NA, tau_M_obs = NA, downstream_trap = NA, 
             p_G_obs = 1, S_add_obs = 0, fit_p_HOS = 0, B_take_obs = 0, F_rate = 0) %>%
-  full_join(fish_data_SMS) %>% arrange(pop, year) %>%
+  full_join(fish_data) %>% arrange(pop, year) %>%
   mutate_at(vars(starts_with("n_")), ~ replace_na(., 0)) %>%
-  mutate(forecast = year > max(fish_data_SMS$year), downstream_trap = NA) %>% 
+  mutate(forecast = year > max(fish_data$year), downstream_trap = NA) %>% 
   fill(A, .direction = "down") %>%
   select(strata, pop, year, forecast, A, S_obs, tau_S_obs, M_obs, tau_M_obs,
          downstream_trap, n_age3_obs:n_F_obs, p_G_obs, 
          fit_p_HOS, B_take_obs, S_add_obs, F_rate) %>% 
   as.data.frame()
 
-# fish_data_SMS_fore:
 # assign Grays_WF and Grays_CJ smolts to the downstream trap in Grays_MS
 # (need to do this again b/c row indices have changed)
-fish_data_SMS_fore <- fish_data_SMS_fore %>%
+fish_data_fore <- fish_data_fore %>%
   mutate(downstream_trap = replace(downstream_trap, pop %in% c("Grays WF","Grays CJ"),
                                    which(pop == "Grays MS")))
 
@@ -343,7 +340,7 @@ pairwise_data <- data.frame(pop1 = droplevels(factor(rownames(pairwise_dist)[ind
 # 
 # # Covariate data
 # env_data <- PDO_data %>% left_join(NPGO_data, by = "year") %>% 
-#   filter(year %in% fish_data_SMS$year) %>% arrange(year)
+#   filter(year %in% fish_data$year) %>% arrange(year)
 ## @knitr
 
 
@@ -403,7 +400,7 @@ if(EDA)
   
   # Smolts/spawner vs. spawners, grouped by population
   windows()
-  fish_data_SMS %>% group_by(pop) %>% mutate(M0_obs = lead(M_obs), MperS = M0_obs/S_obs) %>% 
+  fish_data %>% group_by(pop) %>% mutate(M0_obs = lead(M_obs), MperS = M0_obs/S_obs) %>% 
     ggplot(aes(x = S_obs, y = MperS)) + scale_x_log10() + scale_y_log10() +
     geom_point(size = 2) + labs(x = "spawners", y = "smolts / spawner") +
     facet_wrap(vars(pop), nrow = 3, ncol = 4) + theme_bw() +

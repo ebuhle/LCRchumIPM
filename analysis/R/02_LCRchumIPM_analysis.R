@@ -39,7 +39,7 @@ if(file.exists(here("analysis","results","LCRchumIPM.RData")))
 
 # Density-independent
 ## @knitr fit_LCRchum_exp
-LCRchum_exp <- salmonIPM(fish_data = fish_data_SMS,  fecundity_data = fecundity_data,
+LCRchum_exp <- salmonIPM(fish_data = fish_data,  fecundity_data = fecundity_data,
                          ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "exp",
                          pars = c("mu_Emax","sigma_Emax","Emax"), 
                          include = FALSE, log_lik = TRUE, 
@@ -55,7 +55,7 @@ print(LCRchum_exp, prob = c(0.05,0.5,0.95),
 
 # Beverton-Holt
 ## @knitr fit_LCRchum_BH
-LCRchum_BH <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundity_data,
+LCRchum_BH <- salmonIPM(fish_data = fish_data, fecundity_data = fecundity_data,
                         ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "BH",
                         log_lik = TRUE, chains = 4, iter = 1500, warmup = 500,
                         control = list(adapt_delta = 0.99, max_treedepth = 14))
@@ -69,7 +69,7 @@ print(LCRchum_BH, prob = c(0.05,0.5,0.95),
 
 # Ricker
 ## @knitr fit_LCRchum_Ricker
-LCRchum_Ricker <- salmonIPM(fish_data = fish_data_SMS, fecundity_data = fecundity_data,
+LCRchum_Ricker <- salmonIPM(fish_data = fish_data, fecundity_data = fecundity_data,
                             ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
                             log_lik = TRUE, chains = 4, iter = 1500, warmup = 500,
                             control = list(adapt_delta = 0.99, max_treedepth = 14))
@@ -164,7 +164,7 @@ if(save_plot) {
 
 ## @knitr multiplot
 LCRchumIPM_multiplot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2], 
-                     fish_data = fish_data_SMS)
+                     fish_data = fish_data)
 ## @knitr
 if(save_plot) dev.off()
 
@@ -178,7 +178,7 @@ save_plot <- FALSE
 
 ## @knitr SR_plot
 gg <- LCRchumIPM_SR_plot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2],
-                         life_stage = life_stage, fish_data = fish_data_SMS)
+                         life_stage = life_stage, fish_data = fish_data)
 ## @knitr
 
 if(save_plot) {
@@ -200,7 +200,7 @@ save_plot <- TRUE
 ## @knitr plot_spawner_smolt_ts
 gg <- LCRchumIPM_MS_timeseries(mod = get(mod_name), life_stage = life_stage, 
                                fish_data = switch(tail(unlist(strsplit(mod_name, "_")), 1),
-                                                  fore = fish_data_SMS_fore, fish_data_SMS))
+                                                  fore = fish_data_SMS_fore, fish_data))
 ## @knitr
 
 if(save_plot) {
@@ -219,7 +219,7 @@ mod_name <- "LCRchum_Ricker"
 save_plot <- TRUE
 
 ## @knitr plot_spawner_age_ts
-gg <- LCRchumIPM_age_timeseries(mod = get(mod_name), fish_data = fish_data_SMS)
+gg <- LCRchumIPM_age_timeseries(mod = get(mod_name), fish_data = fish_data)
 ## @knitr
 
 if(save_plot) {
@@ -238,7 +238,7 @@ mod_name <- "LCRchum_Ricker"
 save_plot <- TRUE
 
 ## @knitr plot_sex_ratio_ts
-gg <- LCRchumIPM_sex_timeseries(mod = get(mod_name), fish_data = fish_data_SMS)
+gg <- LCRchumIPM_sex_timeseries(mod = get(mod_name), fish_data = fish_data)
 ## @knitr
 
 if(save_plot) {
@@ -257,7 +257,7 @@ mod_name <- "LCRchum_Ricker"
 save_plot <- TRUE
 
 ## @knitr plot_p_HOS_ts
-gg <- LCRchumIPM_p_HOS_timeseries(mod = get(mod_name), fish_data = fish_data_SMS)
+gg <- LCRchumIPM_p_HOS_timeseries(mod = get(mod_name), fish_data = fish_data)
 ## @knitr
 
 if(save_plot) {
@@ -281,7 +281,7 @@ if(save_plot) {
 } else dev.new(width=5,height=5)
 
 ## @knitr plot_fecundity_fit
-LCRchumIPM_fecundity_plot(get(mod_name), fish_data = fish_data_SMS, fecundity_data = fecundity_data)
+LCRchumIPM_fecundity_plot(get(mod_name), fish_data = fish_data, fecundity_data = fecundity_data)
 ## @knitr
 
 if(save_plot) dev.off()
@@ -300,7 +300,7 @@ if(save_plot) {
 } else dev.new(width=6,height=8)
 
 ## @knitr plot_obs_error_fit
-LCRchumIPM_obs_error_plot(get(mod_name), fish_data = fish_data_SMS)
+LCRchumIPM_obs_error_plot(get(mod_name), fish_data = fish_data)
 ## @knitr
 
 if(save_plot) dev.off()
