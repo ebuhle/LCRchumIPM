@@ -271,7 +271,7 @@ fish_data_fore <- fish_data %>% group_by(pop) %>%
   mutate_at(vars(starts_with("n_")), ~ replace_na(., 0)) %>%
   mutate(forecast = year > max(fish_data$year), downstream_trap = NA) %>% 
   fill(A, .direction = "down") %>%
-  select(strata, pop, year, forecast, A, S_obs, tau_S_obs, M_obs, tau_M_obs,
+  select(pop, year, forecast, A, S_obs, tau_S_obs, M_obs, tau_M_obs,
          downstream_trap, n_age3_obs:n_F_obs, p_G_obs, 
          fit_p_HOS, B_take_obs, S_add_obs, F_rate) %>% 
   as.data.frame()
