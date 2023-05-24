@@ -12,22 +12,27 @@
 # Plot function
 LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data)
 {
+  # non-hatchery populations and cases
+  which_W_pop <- which(!grepl("Hatchery", levels(fish_data$pop)))
+  which_W_obs <- which(!grepl("Hatchery", fish_data$pop))
+  W_pop <- droplevels(fish_data$pop[which_W_obs])
+  W_year <- fish_data$year[which_W_obs]
   # fecundity
   mu_E <- extract1(mod, "mu_E")
   ages <- substring(names(select(fish_data, starts_with("n_age"))), 6, 6)
   delta_NG <- extract1(mod, "delta_NG")
   # egg deposition and egg-to-smolt survival
-  A <- fish_data$A
-  q <- extract1(mod, "q")
-  q_F <- extract1(mod, "q_F")
+  A <- fish_data$A[which_W_obs]
+  q <- extract1(mod, "q")[,which_W_obs,]
+  q_F <- extract1(mod, "q_F")[,which_W_obs]
   mu_psi <- extract1(mod, "mu_psi")
-  psi <- extract1(mod, "psi")
-  alpha <- apply(sweep(q, c(1,3), mu_E, "*"), 1:2, sum) * q_F * psi[,as.numeric(fish_data$pop)]
-  alpha <- t(as.matrix(aggregate(t(alpha), list(pop = fish_data$pop), median)[,-1]))
+  psi <- extract1(mod, "psi")[,which_W_pop]
+  alpha <- apply(sweep(q, c(1,3), mu_E, "*"), 1:2, sum) * q_F * psi[,as.numeric(W_pop)]
+  alpha <- t(as.matrix(aggregate(t(alpha), list(pop = W_pop), median)[,-1]))
   mu_alpha <- rowMeans(log(alpha))
   mu_Mmax <- as.vector(extract1(mod, "mu_Mmax"))
-  Mmax <- extract1(mod, "Mmax")
-  S <- colMedians(extract1(mod, "S"))
+  Mmax <- extract1(mod, "Mmax")[,which_W_pop]
+  S <- colMedians(extract1(mod, "S"))[which_W_obs]
   SA_grid <- matrix(seq(0, quantile(S/A, 0.9, na.rm = TRUE), length = 100),
                     nrow = length(mu_alpha), ncol = 100, byrow = TRUE)
   M_ESU <- SR(SR_fun, alpha = exp(mu_alpha), Rmax = exp(mu_Mmax), S = SA_grid)/1000 # mil/km
@@ -41,11 +46,12 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data)
   zeta_M <- stan_mean(mod, "zeta_M")
   epsilon_M <- outer(sigma_M, zeta_M, "*")
   error_M <- eta_year_M[,as.numeric(factor(fish_data$year))] + epsilon_M
+  error_M <- error_M[,which_W_obs]
   # SAR
   eta_year_MS <- extract1(mod, "eta_year_MS")
   mu_MS <- extract1(mod, "mu_MS")
   s_hat_MS <- plogis(sweep(eta_year_MS, 1, qlogis(mu_MS), "+"))
-  s_MS <- extract1(mod, "s_MS")
+  s_MS <- extract1(mod, "s_MS")[,which_W_obs]
   # colors
   c1 <- "slategray4"
   c1t <- transparent(c1, trans.val = 0.3)
@@ -145,8 +151,8 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data)
             rev(colQuantiles(eta_year_M, probs = 0.95))),
           col = c1tt, border = NA)
   lines(y, colMedians(eta_year_M), col = c1t, lwd = 3)
-  for(j in levels(fish_data$pop))
-    lines(fish_data$year[fish_data$pop == j], colMedians(error_M[,fish_data$pop == j]), col = c1t)
+  for(j in levels(W_pop))
+    lines(W_year[W_pop == j], colMedians(error_M[,W_pop == j]), col = c1t)
   axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
   rug(y[y %% 5 != 0], ticksize = -0.02)
   text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "G", cex = 1.5)
@@ -161,12 +167,52 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data)
             rev(colQuantiles(s_hat_MS, probs = 0.95)))*100,
           col = c1tt, border = NA)
   lines(y, colMedians(s_hat_MS)*100, col = c1t, lwd = 3)
-  for(j in levels(fish_data$pop))
-    lines(fish_data$year[fish_data$pop == j], colMedians(s_MS[,fish_data$pop == j])*100, col = c1t)
+  for(j in levels(W_pop))
+    lines(W_year[W_pop == j], colMedians(s_MS[,W_pop == j])*100, col = c1t)
   axis(side = 1, at = y[y %% 5 == 0], cex.axis = 1.2)
   rug(y[y %% 5 != 0], ticksize = -0.02)
   text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "H", cex = 1.5)
 }
+
+#--------------------------------------------------------------------------------
+# Time series of SAR for natural populations and hatcheries
+#--------------------------------------------------------------------------------
+
+LCRchumIPM_SAR_timeseries <- function(mod, fish_data)
+{
+  logit <- rfun(qlogis)
+  ilogit <- rfun(plogis)
+  
+  draws <- as.matrix(mod, c("s_MS","mu_MS","beta_MS","eta_year_MS")) %>% as_draws_rvars() %>% 
+    mutate_variables(s_hat_MS_N = ilogit(logit(mu_MS) + eta_year_MS),
+                     s_hat_MS_H = ilogit(logit(mu_MS) + eta_year_MS + beta_MS[1]))
+  
+  hyper <- data.frame(year = sort(unique(fish_data$year)), 
+                      s_hat_MS_N = draws$s_hat_MS_N, s_hat_MS_H = draws$s_hat_MS_H)
+  
+  gg <- fish_data %>% cbind(s_MS = draws$s_MS) %>% 
+    ggplot(aes(x = year, y = median(s_MS), group = pop, color = pop_type)) +
+    geom_line(size = 0.7) + 
+    geom_line(aes(x = year, y = median(s_hat_MS_N)), inherit.aes = FALSE,
+              data = hyper, size = 1.5, col = alpha("slategray4", 0.8)) +
+    geom_ribbon(aes(x = year, ymin = as.vector(quantile(s_hat_MS_N, 0.05)), 
+                    ymax = as.vector(quantile(s_hat_MS_N, 0.95))),
+                inherit.aes = FALSE, data = hyper, fill = alpha("slategray4", 0.3)) +
+    geom_line(aes(x = year, y = median(s_hat_MS_H)), inherit.aes = FALSE,
+              data = hyper, size = 1.5, col = alpha("salmon", 0.8)) +
+    geom_ribbon(aes(x = year, ymin = as.vector(quantile(s_hat_MS_H, 0.05)), 
+                    ymax = as.vector(quantile(s_hat_MS_H, 0.95))),
+                inherit.aes = FALSE, data = hyper, fill = alpha("salmon", 0.3)) +
+    scale_y_continuous(labels = function(x) x*100) +
+    scale_color_discrete(type = c(natural = alpha("slategray4", 0.5), 
+                                  hatchery = alpha("salmon", 0.6))) +
+    labs(x = "Year", y = "SAR (%)", color = "Origin") +
+    theme_bw(base_size = 16) +
+    theme(panel.grid.minor = element_blank(), legend.position = c(0.86, 0.91))
+  
+  return(gg)
+}
+
 
 #--------------------------------------------------------------------------------
 # Spawner-to-smolt S-R plot with fit, states, and observations for each pop
@@ -270,7 +316,7 @@ LCRchumIPM_MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data)
   tau <- extract1(mod, switch(life_cycle, SS = "tau", LCRchum = paste0("tau_", life_stage)))
   if(life_cycle == "LCRchum" & life_stage == "M")
     N[,na.omit(fish_data$downstream_trap)] <- N[,na.omit(fish_data$downstream_trap)] + 
-    N[,which(!is.na(fish_data$downstream_trap))]
+                                              N[,which(!is.na(fish_data$downstream_trap))]
   N_ppd <- N * rlnorm(length(N), 0, tau)
   year <- fish_data$year
   
@@ -285,6 +331,7 @@ LCRchumIPM_MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data)
            N_ppd_L = colQuantiles(N_ppd, probs = 0.05),
            N_ppd_U = colQuantiles(N_ppd, probs = 0.95),
            pch = ifelse(is.na(tau_obs), 1, 16)) %>% 
+    filter(!grepl("Hatchery", pop)) %>% 
     ggplot(aes(x = year, y = N_obs)) +
     geom_ribbon(aes(ymin = N_L, ymax = N_U), fill = "slategray4", alpha = 0.5) +
     geom_ribbon(aes(ymin = N_ppd_L, ymax = N_ppd_U), fill = "slategray4", alpha = 0.3) +
@@ -321,6 +368,7 @@ LCRchumIPM_age_timeseries <- function(mod, fish_data)
     cbind(array(aperm(sapply(1:3, function(k) colQuantiles(q[,,k], probs = c(0.05, 0.5, 0.95)), 
                              simplify = "array"), c(3,1,2)), dim = c(nrow(.), 3), 
                 dimnames = list(NULL, paste0("q_age_", c("L","m","U"))))) %>%
+    filter(!grepl("Hatchery", pop)) %>% 
     ggplot(aes(x = year, group = age, color = age, fill = age)) +
     geom_line(aes(y = q_age_m), lwd = 1, alpha = 0.8) +
     geom_ribbon(aes(ymin = q_age_L, ymax = q_age_U), color = NA, alpha = 0.3) +
@@ -345,16 +393,18 @@ LCRchumIPM_age_timeseries <- function(mod, fish_data)
 
 LCRchumIPM_sex_timeseries <- function(mod, fish_data)
 {
-  q_F <- extract1(mod, "q_F")
+  q_F <- as_draws_rvars(as.matrix(mod, "q_F"))
   year <- fish_data$year
   
-  gg <- cbind(fish_data, colQuantiles(q_F, probs = c(0.05, 0.5, 0.95))) %>%
+  gg <- cbind(fish_data, q_F = q_F) %>%
     mutate(n_MF_obs = n_M_obs + n_F_obs) %>% 
     cbind(., with(., binconf(x = n_F_obs, n = n_MF_obs))) %>%
+    filter(!grepl("Hatchery", pop)) %>% 
     ggplot(aes(x = year, y = PointEst, ymin = Lower, ymax = Upper)) + 
     geom_abline(intercept = 0.5, slope = 0, color = "gray") + 
-    geom_ribbon(aes(ymin = `5%`, ymax = `95%`), fill = "slategray4", alpha = 0.5) +
-    geom_line(aes(y = `50%`), col = "slategray4", lwd = 1) +
+    geom_ribbon(aes(ymin = t(quantile(q_F, 0.05)), ymax = t(quantile(q_F, 0.95))), 
+                fill = "slategray4", alpha = 0.5) +
+    geom_line(aes(y = median(q_F)), col = "slategray4", lwd = 1) +
     geom_point(pch = 16, size = 2.5) + geom_errorbar(width = 0) +
     scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5) +
     labs(x = "Year", y = "Proportion female") +
@@ -372,19 +422,17 @@ LCRchumIPM_sex_timeseries <- function(mod, fish_data)
 
 LCRchumIPM_p_HOS_timeseries <- function(mod, fish_data)
 {
-  p_HOS <- extract1(mod, "p_HOS")
+  p_HOS <- as_draws_rvars(as.matrix(mod, "p_HOS"))
   year <- fish_data$year
   
-  gg <- fish_data %>% 
-    mutate(zeros = 0, fit_p_HOS = as.logical(fit_p_HOS),
-           p_HOS_obs = binconf(n_H_obs, n_H_obs + n_W_obs, alpha = 0.1)) %>% 
+  gg <- fish_data %>% cbind(p_HOS = p_HOS) %>% 
+    mutate(p_HOS_obs = binconf(n_H_obs, n_H_obs + n_W_obs, alpha = 0.1)) %>% 
     do.call(data.frame, .) %>% # unpack col with nested data frame
-    mutate(p_HOS_L = replace(zeros, fit_p_HOS, colQuantiles(p_HOS, probs = 0.05)),
-           p_HOS_m = replace(zeros, fit_p_HOS, colMedians(p_HOS)),
-           p_HOS_U = replace(zeros, fit_p_HOS, colQuantiles(p_HOS, probs = 0.95))) %>% 
+    filter(!grepl("Hatchery", pop)) %>% 
     ggplot(aes(x = year)) +
-    geom_ribbon(aes(ymin = p_HOS_L, ymax = p_HOS_U), fill = "slategray4", alpha = 0.5) +
-    geom_line(aes(y = p_HOS_m), col = "slategray4", lwd = 1) +
+    geom_ribbon(aes(ymin = t(quantile(p_HOS, 0.05)), ymax = t(quantile(p_HOS, 0.95))), 
+                fill = "slategray4", alpha = 0.5) +
+    geom_line(aes(y = median(p_HOS)), col = "slategray4", lwd = 1) +
     geom_point(aes(y = p_HOS_obs.PointEst), pch = 16, size = 2.5) +
     geom_errorbar(aes(ymin = p_HOS_obs.Lower, ymax = p_HOS_obs.Upper), width = 0) +
     scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5) +
@@ -392,6 +440,29 @@ LCRchumIPM_p_HOS_timeseries <- function(mod, fish_data)
     facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) +
     theme(panel.grid.major.y = element_blank(), panel.grid.minor = element_blank(),
           strip.background = element_rect(fill = NA),
+          strip.text = element_text(margin = margin(b = 3, t = 3)))
+  
+  return(gg)
+}
+
+#--------------------------------------------------------------------------------
+# Straying matrix: probability of straying from each origin to each population
+#--------------------------------------------------------------------------------
+
+LCRchumIPM_p_origin <- function(mod, fish_data)
+{
+  p_origin <- as_draws_rvars(as.array(mod, "p_origin"))
+  
+  gg <- data.frame(p_origin = p_origin) %>% 
+    setNames(unique(fish_data$pop[fish_data$pop_type == "natural"])) %>% 
+    cbind(origin = unique(fish_data$pop[fish_data$pop_type == "hatchery"])) %>% 
+    pivot_longer(cols = -origin, names_to = "pop", values_to = "p_origin") %>% 
+    mutate(pop = factor(pop, levels = levels(fish_data$pop))) %>% 
+    ggplot(aes(xdist = p_origin, y = pop)) +
+    ggdist::stat_eye(.width = c(0.5, 0.9)) + 
+    scale_y_discrete(limits = rev) + labs(x = "Straying rate", y = "") + 
+    facet_wrap(vars(origin)) + theme_bw(base_size = 16) +
+    theme(panel.grid.minor = element_blank(), strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
   
   return(gg)

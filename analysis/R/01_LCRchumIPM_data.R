@@ -233,19 +233,22 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
     rename_with(., .cols = contains("Hatchery"), 
                 .fn = ~ paste0("n_origin", match(.x, lev), "_obs"))
   }) %>% 
-  mutate_at(vars(contains("n_")), ~ replace(., is.na(.), 0)) %>% 
+  mutate_at(vars(contains("n_")), ~ replace(., is.na(.), 0)) %>%
+  mutate(n_W_obs = n_origin0_obs, 
+         n_H_obs = rowSums(across(contains("origin"))) - n_origin0_obs,
+         .before = n_origin0_obs) %>% 
   select(pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_F_obs, 
          p_G_obs, fit_p_HOS, B_take_obs, S_add_obs, F_rate) %>% arrange(pop, year) 
 
-# # fill in fit_p_HOS
-# for(i in 1:nrow(fish_data_all)) {
-#   pop_i <- as.character(fish_data_all$pop[i])
-#   start_year <- ifelse(pop_i %in% hatcheries$pop,
-#                        min(hatcheries$start_brood_year[hatcheries$pop == pop_i]) + 1,
-#                        NA)
-#   fish_data_all$fit_p_HOS[i] <- ifelse((!is.na(start_year) & fish_data_all$year[i] >= start_year) |
-#                                      fish_data_all$n_H_obs[i] > 0, 1, 0)
-# }
+# fill in fit_p_HOS
+for(i in 1:nrow(fish_data_all)) {
+  pop_i <- as.character(fish_data_all$pop[i])
+  start_year <- ifelse(pop_i %in% hatcheries$pop,
+                       min(hatcheries$start_brood_year[hatcheries$pop == pop_i]) + 1,
+                       NA)
+  fish_data_all$fit_p_HOS[i] <- ifelse((!is.na(start_year) & fish_data_all$year[i] >= start_year) |
+                                         fish_data_all$n_H_obs[i] > 0, 1, 0)
+}
 
 # drop cases with initial NAs in both S_obs and M_obs
 # (except hatchery populations, which must be present in every year)
@@ -258,7 +261,10 @@ fish_data <- fish_data_all %>% group_by(pop) %>%
 # assuming no mortality between the upstream tributary and the downstream trap
 fish_data <- fish_data %>%
   mutate(downstream_trap = replace(downstream_trap, pop %in% c("Grays WF","Grays CJ"),
-                                   which(pop == "Grays MS")))
+                                   which(pop == "Grays MS"))) %>% 
+  mutate(pop_type = factor(ifelse(grepl("Hatchery", pop), "hatchery", "natural"), 
+                           levels = c("natural","hatchery")),
+         .after = pop)
 
 # pad data with future years to generate forecasts
 # use 1-year time horizon
@@ -270,8 +276,8 @@ fish_data_fore <- fish_data %>% group_by(pop) %>%
   full_join(fish_data) %>% arrange(pop, year) %>%
   mutate_at(vars(starts_with("n_")), ~ replace_na(., 0)) %>%
   mutate(forecast = year > max(fish_data$year), downstream_trap = NA) %>% 
-  fill(A, .direction = "down") %>%
-  select(pop, year, forecast, A, S_obs, tau_S_obs, M_obs, tau_M_obs,
+  fill(A, pop_type, .direction = "down") %>%
+  select(pop, pop_type, year, forecast, A, S_obs, tau_S_obs, M_obs, tau_M_obs,
          downstream_trap, n_age3_obs:n_F_obs, p_G_obs, 
          fit_p_HOS, B_take_obs, S_add_obs, F_rate) %>% 
   as.data.frame()
