@@ -4,8 +4,9 @@
 
 ## @knitr getting_started
 options(device = ifelse(.Platform$OS.type == "windows", "windows", "quartz"))
-options(mc.cores = parallel::detectCores(logical = FALSE) - 1)
+options(mc.cores = parallel::detectCores(logical = FALSE))
 
+library(ragg)
 library(Hmisc)
 library(dplyr)
 library(tidyr)
@@ -161,8 +162,8 @@ mod_name <- "LCRchum_Ricker"
 save_plot <- TRUE
 
 if(save_plot) {
-  png(filename=here("analysis","results",paste0("multiplot_",mod_name,".png")), 
-      width=12, height=5.5, units="in", res=300, type="cairo-png")
+  agg_png(filename=here("analysis","results",paste0("multiplot_",mod_name,".png")), 
+          width=12, height=5.5, units="in", res=300)
 } else dev.new(width = 12, height = 5.5)
 
 ## @knitr multiplot
@@ -184,7 +185,7 @@ gg <- LCRchumIPM_SAR_timeseries(mod = get(mod_name), fish_data = fish_data)
 
 if(save_plot) {
   ggsave(filename=here("analysis","results",paste0("SAR_fit_", mod_name, ".png")), 
-         width=7, height=7, units="in", dpi=300, type="cairo-png")
+         width=7, height=7, units="in", dpi=300)
 } else {
   dev.new(width=7,height=7)
   show(gg)
@@ -205,7 +206,7 @@ if(save_plot) {
 # 
 # if(save_plot) {
 #   ggsave(filename=here("analysis","results",paste0("SR_",mod_name,".png")),
-#          width=11, height=7, units="in", dpi=300, type="cairo-png")
+#          width=11, height=7, units="in", dpi=300)
 # } else {
 #   dev.new(width=11,height=7)
 #   show(gg)
@@ -227,7 +228,7 @@ gg <- LCRchumIPM_MS_timeseries(mod = get(mod_name), life_stage = life_stage,
 
 if(save_plot) {
   ggsave(filename=here("analysis","results",paste0(life_stage, "_fit_", mod_name, ".png")), 
-         width=11, height=7, units="in", dpi=300, type="cairo-png")
+         width=11, height=7, units="in", dpi=300)
 } else {
   dev.new(width=11,height=7)
   show(gg)
@@ -246,7 +247,7 @@ gg <- LCRchumIPM_age_timeseries(mod = get(mod_name), fish_data = fish_data)
 
 if(save_plot) {
   ggsave(filename=here("analysis","results",paste0("q_fit_", mod_name, ".png")), 
-         width=12, height=7, units="in", dpi=300, type="cairo-png")
+         width=12, height=7, units="in", dpi=300)
 } else {
   dev.new(width=12,height=7)
   show(gg)
@@ -265,7 +266,7 @@ gg <- LCRchumIPM_sex_timeseries(mod = get(mod_name), fish_data = fish_data)
 
 if(save_plot) {
   ggsave(filename=here("analysis", "results", paste0("q_F_fit_", mod_name, ".png")),
-         width=11, height=7, units="in", dpi=300, type="cairo-png")
+         width=11, height=7, units="in", dpi=300)
 } else {
   dev.new(width=11,height=7)
   show(gg)
@@ -284,7 +285,7 @@ gg <- LCRchumIPM_p_HOS_timeseries(mod = get(mod_name), fish_data = fish_data)
 
 if(save_plot) {
   ggsave(filename=here("analysis","results",paste0("p_HOS_fit_", mod_name, ".png")), 
-         width=11, height=7, units="in", dpi=300, type="cairo-png")
+         width=11, height=7, units="in", dpi=300)
 } else {
   dev.new(width=11, height=7)
   show(gg)
@@ -303,7 +304,7 @@ gg <- LCRchumIPM_p_origin(mod = get(mod_name), fish_data = fish_data)
 
 if(save_plot) {
   ggsave(filename=here("analysis","results",paste0("p_origin_", mod_name, ".png")), 
-         width=11, height=7, units="in", dpi=300, type="cairo-png")
+         width=11, height=7, units="in", dpi=300)
 } else {
   dev.new(width=11, height=7)
   show(gg)
@@ -317,8 +318,8 @@ mod_name <- "LCRchum_Ricker"
 save_plot <- TRUE
 
 if(save_plot) {
-  png(filename=here("analysis","results",paste0("fecundity_fit_", mod_name, ".png")), 
-      width=5, height=5, units="in", res=200, type="cairo-png")
+  agg_png(filename=here("analysis","results",paste0("fecundity_fit_", mod_name, ".png")), 
+      width=5, height=5, units="in", res=200)
 } else dev.new(width=5,height=5)
 
 ## @knitr plot_fecundity_fit
@@ -336,8 +337,8 @@ mod_name <- "LCRchum_Ricker"
 save_plot <- TRUE
 
 if(save_plot) {
-  png(filename=here("analysis","results",paste0("tau_fit_", mod_name, ".png")), 
-      width=6, height=8, units="in", res=200, type="cairo-png")
+  agg_png(filename=here("analysis","results",paste0("tau_fit_", mod_name, ".png")), 
+          width=6, height=8, units="in", res=200)
 } else dev.new(width=6,height=8)
 
 ## @knitr plot_obs_error_fit

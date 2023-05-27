@@ -270,7 +270,7 @@ fish_data <- fish_data %>%
 # use 1-year time horizon
 fish_data_fore <- fish_data %>% group_by(pop) %>%
   slice(rep(n(), max(fish_data$year) + 1 - max(year))) %>%
-  summarize(year = (unique(year) + 1):(max(fish_data$year) + 1),
+  reframe(year = (unique(year) + 1):(max(fish_data$year) + 1),
             S_obs = NA, tau_S_obs = NA, M_obs = NA, tau_M_obs = NA, downstream_trap = NA, 
             p_G_obs = 1, S_add_obs = 0, fit_p_HOS = 0, B_take_obs = 0, F_rate = 0) %>%
   full_join(fish_data) %>% arrange(pop, year) %>%

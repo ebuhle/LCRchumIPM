@@ -459,7 +459,7 @@ LCRchumIPM_p_origin <- function(mod, fish_data)
     pivot_longer(cols = -origin, names_to = "pop", values_to = "p_origin") %>% 
     mutate(pop = factor(pop, levels = levels(fish_data$pop))) %>% 
     ggplot(aes(xdist = p_origin, y = pop)) +
-    ggdist::stat_eye(.width = c(0.5, 0.9)) + 
+    ggdist::stat_eye(.width = c(0.5, 0.9), normalize = "groups") + 
     scale_y_discrete(limits = rev) + labs(x = "Straying rate", y = "") + 
     facet_wrap(vars(origin)) + theme_bw(base_size = 16) +
     theme(panel.grid.minor = element_blank(), strip.background = element_rect(fill = NA),
