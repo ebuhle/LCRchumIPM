@@ -130,7 +130,8 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data)
   plot(SA_grid[1,], colMedians(M_ESU)/SA_grid[1,], type = "l", lwd=3, col = c1, las = 1,
        cex.axis = 1.2, cex.lab = 1.5, xaxs = "i", yaxs = "i", 
        ylim = range(sweep(M_pop[-1,], 1, SA_grid[1,-1], "/")), 
-       xlab = bquote("Spawner density (" * km^-1 * ")"), ylab = "Smolts per spawner")
+       xlab = bquote("Spawner density (" * km^-1 * ")"), 
+       ylab = bquote("Smolts per spawner (" * 10^6 * ")"))
   for(i in 1:ncol(M_pop)) 
     lines(SA_grid[1,], M_pop[,i]/SA_grid[1,], col = c1t)
   polygon(c(SA_grid[1,], rev(SA_grid[1,])), 

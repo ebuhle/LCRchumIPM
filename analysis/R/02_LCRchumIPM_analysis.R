@@ -75,8 +75,8 @@ LCRchum_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
                             par_models = list(s_MS ~ pop_type), center = FALSE, scale = FALSE,
                             ages = list(M = 1), 
                             fish_data = fish_data, fecundity_data = fecundity_data,
-                            log_lik = TRUE, chains = 4, iter = 1500, warmup = 500,
-                            control = list(adapt_delta = 0.99, max_treedepth = 14))
+                            log_lik = TRUE, chains = 4, iter = 2000, warmup = 1000,
+                            control = list(adapt_delta = 0.95, max_treedepth = 14))
 
 ## @knitr print_LCRchum_Ricker
 print(LCRchum_Ricker, prob = c(0.05,0.5,0.95),
