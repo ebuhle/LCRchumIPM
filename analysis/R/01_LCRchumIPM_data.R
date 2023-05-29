@@ -195,6 +195,31 @@ juv_data_incl <- juv_data %>%
 #   filter(!(location %in% c("Duncan North","Duncan South")) & !grepl("Hatchery", origin)) %>%
 #   rename(pop = location) %>% as.data.frame()
 
+# Pairwise distance data
+# convert ft to km
+# add missing populations: 
+#  Duncan Channel, Duncan Hatchery (same location as Duncan Creek)
+#  Grays Hatchery (same location as Grays MS)
+# extract lower triangle to a tidy data frame
+pairwise_dist <- read.csv(here("data","Chum_Pairwise_Points_2021_Mat_Final.csv"), 
+                          header = TRUE, row.names = 1) * 0.0003048
+rownames(pairwise_dist) <- pop_names$pop[match(rownames(pairwise_dist), pop_names$pairwise_dist_name)]
+colnames(pairwise_dist) <- rownames(pairwise_dist)
+newcols <- pairwise_dist[,c("Duncan Creek", "Duncan Creek", "Grays MS")]
+colnames(newcols) <- c("Duncan Channel", "Duncan Hatchery", "Grays Hatchery")
+pairwise_dist <- cbind(pairwise_dist, newcols)
+newrows <- pairwise_dist[c("Duncan Creek", "Duncan Creek", "Grays MS"),]
+rownames(newrows) <- c("Duncan Channel", "Duncan Hatchery", "Grays Hatchery")
+pairwise_dist <- rbind(pairwise_dist, newrows)
+indx <- which(lower.tri(pairwise_dist, diag = FALSE), arr.ind = TRUE)
+pairwise_data <- data.frame(pop1 = droplevels(factor(rownames(pairwise_dist)[indx[,2]],
+                                                     levels = pop_names$pop)),
+                            pop2 = droplevels(factor(rownames(pairwise_dist)[indx[,1]],
+                                                     levels = pop_names$pop)),
+                            dist = pairwise_dist[indx])
+dist_mouth_data <- pairwise_data %>% filter(pop1 == "Columbia Mouth") %>% select(-pop1) %>% 
+  rename(pop = pop2, dist_mouth = dist) %>% mutate(dist_mouth_std = scale(dist_mouth))
+
 # Fish data formatted for salmonIPM
 # Drop age-2 and age-6 samples (each is < 0.1% of aged spawners)
 # Drop Duncan Creek
@@ -214,6 +239,7 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
             by = c("pop","year")) %>% 
   left_join(habitat_data, by = c("pop","year")) %>% 
   left_join(green_female_data, by = c("pop","year")) %>% 
+  left_join(dist_mouth_data, by = "pop") %>% 
   rename_at(vars(contains("Age-")), list(~ paste0(sub("Age-","n_age",.), "_obs"))) %>% 
   select(-c(n_age2_obs, n_age6_obs)) %>% 
   # filter(!grepl("Hatchery|Duncan Creek", pop)) %>% 
@@ -238,7 +264,8 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
          n_H_obs = rowSums(across(contains("origin"))) - n_origin0_obs,
          .before = n_origin0_obs) %>% 
   select(pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_F_obs, 
-         p_G_obs, fit_p_HOS, B_take_obs, S_add_obs, F_rate) %>% arrange(pop, year) 
+         p_G_obs, fit_p_HOS, B_take_obs, S_add_obs, F_rate, dist_mouth, dist_mouth_std) %>% 
+  arrange(pop, year) 
 
 # fill in fit_p_HOS
 for(i in 1:nrow(fish_data_all)) {
@@ -304,29 +331,6 @@ fecundity_data <- fecundity %>%
   filter(age_E %in% 3:5 & !is.na(E_obs) & !is.na(reproductive_effort) & reproductive_effort > 16) %>% 
   mutate(strata = recode(stock, Grays = "Coastal", `I-205` = "Cascade", `Lower Gorge` = "Gorge")) %>% 
   select(strata, year, ID, age_E, E_obs) %>% arrange(strata, year, age_E) 
-
-# Pairwise distance data
-# convert ft to km
-# add missing populations: 
-#  Duncan Channel, Duncan Hatchery (same location as Duncan Creek)
-#  Grays Hatchery (same location as Grays MS)
-# extract lower triangle to a tidy data frame
-pairwise_dist <- read.csv(here("data","Chum_Pairwise_Points_2021_Mat_Final.csv"), 
-                          header = TRUE, row.names = 1) * 0.0003048
-rownames(pairwise_dist) <- pop_names$pop[match(rownames(pairwise_dist), pop_names$pairwise_dist_name)]
-colnames(pairwise_dist) <- rownames(pairwise_dist)
-newcols <- pairwise_dist[,c("Duncan Creek", "Duncan Creek", "Grays MS")]
-colnames(newcols) <- c("Duncan Channel", "Duncan Hatchery", "Grays Hatchery")
-pairwise_dist <- cbind(pairwise_dist, newcols)
-newrows <- pairwise_dist[c("Duncan Creek", "Duncan Creek", "Grays MS"),]
-rownames(newrows) <- c("Duncan Channel", "Duncan Hatchery", "Grays Hatchery")
-pairwise_dist <- rbind(pairwise_dist, newrows)
-indx <- which(lower.tri(pairwise_dist, diag = FALSE), arr.ind = TRUE)
-pairwise_data <- data.frame(pop1 = droplevels(factor(rownames(pairwise_dist)[indx[,2]],
-                                                     levels = pop_names$pop)),
-                            pop2 = droplevels(factor(rownames(pairwise_dist)[indx[,1]],
-                                                     levels = pop_names$pop)),
-                            dist = pairwise_dist[indx])
 
 # # Environmental covariates
 # # PDO

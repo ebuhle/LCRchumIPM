@@ -214,7 +214,6 @@ LCRchumIPM_SAR_timeseries <- function(mod, fish_data)
   return(gg)
 }
 
-
 #--------------------------------------------------------------------------------
 # Spawner-to-smolt S-R plot with fit, states, and observations for each pop
 #--------------------------------------------------------------------------------

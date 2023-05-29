@@ -72,8 +72,8 @@ if(file.exists(here("analysis","results","LCRchumIPM.RData")))
 # Ricker
 ## @knitr fit_LCRchum_Ricker
 LCRchum_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", 
-                            par_models = list(s_MS ~ pop_type), center = FALSE, scale = FALSE,
-                            ages = list(M = 1), 
+                            par_models = list(s_MS ~ pop_type + dist_mouth_std), 
+                            center = FALSE, scale = FALSE, ages = list(M = 1), 
                             fish_data = fish_data, fecundity_data = fecundity_data,
                             log_lik = TRUE, chains = 4, iter = 2000, warmup = 1000,
                             control = list(adapt_delta = 0.95, max_treedepth = 14))
@@ -159,7 +159,7 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 #--------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 if(save_plot) {
   agg_png(filename=here("analysis","results",paste0("multiplot_",mod_name,".png")), 
@@ -177,7 +177,7 @@ if(save_plot) dev.off()
 #--------------------------------------------------------------------------------
 
 mod_name <- "LCRchum_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 ## @knitr plot_SAR_ts
 gg <- LCRchumIPM_SAR_timeseries(mod = get(mod_name), fish_data = fish_data)
