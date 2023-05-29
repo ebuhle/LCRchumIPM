@@ -239,7 +239,6 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
             by = c("pop","year")) %>% 
   left_join(habitat_data, by = c("pop","year")) %>% 
   left_join(green_female_data, by = c("pop","year")) %>% 
-  left_join(dist_mouth_data, by = "pop") %>% 
   rename_at(vars(contains("Age-")), list(~ paste0(sub("Age-","n_age",.), "_obs"))) %>% 
   select(-c(n_age2_obs, n_age6_obs)) %>% 
   # filter(!grepl("Hatchery|Duncan Creek", pop)) %>% 
@@ -264,7 +263,7 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
          n_H_obs = rowSums(across(contains("origin"))) - n_origin0_obs,
          .before = n_origin0_obs) %>% 
   select(pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_F_obs, 
-         p_G_obs, fit_p_HOS, B_take_obs, S_add_obs, F_rate, dist_mouth, dist_mouth_std) %>% 
+         p_G_obs, fit_p_HOS, B_take_obs, S_add_obs, F_rate) %>% 
   arrange(pop, year) 
 
 # fill in fit_p_HOS

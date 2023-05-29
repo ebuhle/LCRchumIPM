@@ -72,7 +72,7 @@ if(file.exists(here("analysis","results","LCRchumIPM.RData")))
 # Ricker
 ## @knitr fit_LCRchum_Ricker
 LCRchum_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", 
-                            par_models = list(s_MS ~ pop_type + dist_mouth_std), 
+                            par_models = list(s_MS ~ pop_type), 
                             center = FALSE, scale = FALSE, ages = list(M = 1), 
                             fish_data = fish_data, fecundity_data = fecundity_data,
                             log_lik = TRUE, chains = 4, iter = 2000, warmup = 1000,
