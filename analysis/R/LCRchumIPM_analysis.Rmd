@@ -360,7 +360,7 @@ Finally, lognormal priors on initial smolt abundance (in year 1 of each populati
 User inputs needed to fit the LCR chum IPM include, first, a data frame containing observations and associated information organized by population and year. We can look at the subset of rows of `fish_data_SMS` for the Crazy Johnson Creek population (coded `Grays CJ`) to see what column names and formats **salmonIPM** expects:
 
 ```{r print_fish_data_SMS, echo=FALSE}
-fish_data_SMS %>% select(-strata) %>% filter(pop %in% c("Grays CJ")) %>%
+fish_data_SMS %>% filter(pop %in% c("Grays CJ")) %>%
   kable(digits = replace(rep(0, ncol(.)), c(3,5,7), c(1,2,2))) %>% 
   column_spec(column = 1, width_min = "80px") %>%
   kable_styling(bootstrap_options = c("striped","hover","condensed")) %>% 
