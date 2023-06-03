@@ -193,14 +193,14 @@ LCRchumIPM_SAR_timeseries <- function(mod, fish_data)
   
   gg <- fish_data %>% cbind(s_MS = draws$s_MS) %>% 
     ggplot(aes(x = year, y = median(s_MS), group = pop, color = pop_type)) +
-    geom_line(size = 0.7) + 
+    geom_line(linewidth = 0.7) + 
     geom_line(aes(x = year, y = median(s_hat_MS_N)), inherit.aes = FALSE,
-              data = hyper, size = 1.5, col = alpha("slategray4", 0.8)) +
+              data = hyper, linewidth = 1.5, col = alpha("slategray4", 0.8)) +
     geom_ribbon(aes(x = year, ymin = as.vector(quantile(s_hat_MS_N, 0.05)), 
                     ymax = as.vector(quantile(s_hat_MS_N, 0.95))),
                 inherit.aes = FALSE, data = hyper, fill = alpha("slategray4", 0.3)) +
     geom_line(aes(x = year, y = median(s_hat_MS_H)), inherit.aes = FALSE,
-              data = hyper, size = 1.5, col = alpha("salmon", 0.8)) +
+              data = hyper, linewidth = 1.5, col = alpha("salmon", 0.8)) +
     geom_ribbon(aes(x = year, ymin = as.vector(quantile(s_hat_MS_H, 0.05)), 
                     ymax = as.vector(quantile(s_hat_MS_H, 0.95))),
                 inherit.aes = FALSE, data = hyper, fill = alpha("salmon", 0.3)) +
