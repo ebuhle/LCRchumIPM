@@ -308,6 +308,7 @@ fish_data_fore <- fish_data %>% group_by(pop) %>%
          fit_p_HOS, B_take_obs, S_add_obs, F_rate) %>% 
   as.data.frame()
 
+
 # assign Grays_WF and Grays_CJ smolts to the downstream trap in Grays_MS
 # (need to do this again b/c row indices have changed)
 fish_data_fore <- fish_data_fore %>%
