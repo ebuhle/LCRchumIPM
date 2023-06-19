@@ -773,14 +773,19 @@ LCRchumIPM_Precovery_plot <- function(modH0, modHmax, fish_data_foreH0, fish_dat
     mutate(SAR = factor(SAR, levels = c("all","low","med","high"))) %>%
     left_join(recovery_targets) %>% 
     group_by(scenario, recovery_pop, SAR) %>% 
-    summarize(recovered = rvar_any(S > target[1]))
+    summarize(recovered = rvar_any(S > target[1])) %>% 
+    ungroup() %>% 
+    mutate(Precovery = binconf(sum(recovered), ndraws(recovered), alpha = 0.1)) %>% 
+    do.call(data.frame, .) # unpack col with nested data frame
   
   cols <- c(all = "slategray4", low = "firebrick1", med = "gold", high = "darkgreen")
   
   gg <- dat %>% 
-    ggplot(aes(x = scenario, y = Pr(recovered), fill = SAR)) +
-    geom_col(position = "dodge", alpha = 0.5) +
-    scale_fill_manual(values = cols) +
+    ggplot(aes(x = scenario, y = Precovery.PointEst, color = SAR, fill = SAR)) +
+    geom_col(position = "dodge", color = NA, alpha = 0.5) +
+    geom_pointrange(aes(ymin = Precovery.Lower, ymax = Precovery.Upper), linewidth = 1, 
+                    position = position_dodge(width = 0.9)) +
+    scale_color_manual(values = cols) + scale_fill_manual(values = cols) +
     labs(x = "Hatchery scenario", y = "Probability of recovery") +
     facet_wrap(vars(recovery_pop), ncol = 3) + 
     theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), 
@@ -830,14 +835,19 @@ LCRchumIPM_PQE_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_fore
     pivot_longer(cols = contains("S_"), names_to = "SAR", names_prefix = "S_", values_to = "S") %>%
     mutate(SAR = factor(SAR, levels = c("all","low","med","high"))) %>%
     group_by(scenario, recovery_pop, SAR) %>% 
-    summarize(quasi_extinct = rvar_any(S < QET))
+    summarize(quasi_extinct = rvar_any(S < QET)) %>% 
+    ungroup() %>% 
+    mutate(PQE = binconf(sum(quasi_extinct), ndraws(quasi_extinct), alpha = 0.1)) %>% 
+    do.call(data.frame, .) # unpack col with nested data frame
   
   cols <- c(all = "slategray4", low = "firebrick1", med = "gold", high = "darkgreen")
   
   gg <- dat %>% 
-    ggplot(aes(x = scenario, y = Pr(quasi_extinct), fill = SAR)) +
-    geom_col(position = "dodge", alpha = 0.5) +
-    scale_fill_manual(values = cols) +
+    ggplot(aes(x = scenario, y = PQE.PointEst, color = SAR, fill = SAR)) +
+    geom_col(position = "dodge", color = NA, alpha = 0.5) +
+    geom_pointrange(aes(ymin = PQE.Lower, ymax = PQE.Upper), linewidth = 1, 
+                  position = position_dodge(width = 0.9)) +
+    scale_color_manual(values = cols) + scale_fill_manual(values = cols) +
     labs(x = "Hatchery scenario", y = "Probability of quasi-extinction") +
     facet_wrap(vars(recovery_pop), ncol = 3) + 
     theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), 
