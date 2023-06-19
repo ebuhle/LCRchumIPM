@@ -20,7 +20,11 @@ library(here)
 ## @knitr data
 # Population names
 pop_names <- read.csv(here("data","pop_names.csv"), header = TRUE, stringsAsFactors = FALSE) %>% 
-  arrange(east_to_west)
+  arrange(east_to_west) %>% 
+  mutate(recovery_pop = factor(recovery_pop, levels = unique(recovery_pop)))
+
+# Recovery targets
+recovery_targets <- read.csv(here("data","recovery_targets.csv"), header = TRUE, stringsAsFactors = FALSE)
 
 # List of "bad" or questionable observations
 bad_data <- read.csv(here("data","Data_Chum_estimates_to_censor_2021-04-16.csv"), 
@@ -293,27 +297,40 @@ fish_data <- fish_data %>%
          .after = pop)
 
 # pad data with future years to generate forecasts
-# use 1-year time horizon
+N_year_fore <- 20
 fish_data_fore <- fish_data %>% group_by(pop) %>%
-  slice(rep(n(), max(fish_data$year) + 1 - max(year))) %>%
-  reframe(year = (unique(year) + 1):(max(fish_data$year) + 1),
-            S_obs = NA, tau_S_obs = NA, M_obs = NA, tau_M_obs = NA, downstream_trap = NA, 
-            p_G_obs = 1, S_add_obs = 0, fit_p_HOS = 0, B_take_obs = 0, F_rate = 0) %>%
-  full_join(fish_data) %>% arrange(pop, year) %>%
+  slice(rep(n(), max(fish_data$year) + N_year_fore - max(year))) %>%
+  reframe(year = (unique(year) + 1):(max(fish_data$year) + N_year_fore), forecast = TRUE,
+          S_obs = NA, tau_S_obs = NA, M_obs = NA, tau_M_obs = NA, downstream_trap = NA, 
+          p_G_obs = 1, S_add_obs = 0, fit_p_HOS = 0, B_take_obs = NA, F_rate = 0) %>%
+  full_join(mutate(fish_data, forecast = FALSE, downstream_trap = NA)) %>% 
   mutate_at(vars(starts_with("n_")), ~ replace_na(., 0)) %>%
-  mutate(forecast = year > max(fish_data$year), downstream_trap = NA) %>% 
-  fill(A, pop_type, .direction = "down") %>%
+  arrange(pop, year) %>% fill(A, pop_type, .direction = "down") %>%
   select(pop, pop_type, year, forecast, A, S_obs, tau_S_obs, M_obs, tau_M_obs,
          downstream_trap, n_age3_obs:n_F_obs, p_G_obs, 
          fit_p_HOS, B_take_obs, S_add_obs, F_rate) %>% 
   as.data.frame()
-
 
 # assign Grays_WF and Grays_CJ smolts to the downstream trap in Grays_MS
 # (need to do this again b/c row indices have changed)
 fish_data_fore <- fish_data_fore %>%
   mutate(downstream_trap = replace(downstream_trap, pop %in% c("Grays WF","Grays CJ"),
                                    which(pop == "Grays MS")))
+
+# forecast scenario 1:
+# no broodstock removals or hatchery smolt releases
+fish_data_foreH0 <- fish_data_fore %>% group_by(pop) %>% 
+  mutate(B_take_obs = replace(B_take_obs, forecast, 0),
+         M_obs = replace(M_obs, pop_type == "hatchery" & forecast, 0)) %>% 
+  ungroup() %>% as.data.frame()
+
+# forecast scenario 2:
+# broodstock removals and hatchery smolt releases at maximum observed
+fish_data_foreHmax <- fish_data_fore %>% group_by(pop) %>% 
+  mutate(B_take_obs = replace(B_take_obs, forecast, max(B_take_obs, na.rm = TRUE)),
+         M_obs = replace(M_obs, pop_type == "hatchery" & forecast, 
+                         ifelse(all(is.na(M_obs)), NA, max(M_obs, na.rm = TRUE)))) %>% 
+  ungroup() %>% as.data.frame()
 
 # Fecundity data
 # Note that L95% and U95% are reversed

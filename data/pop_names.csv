@@ -1,37 +1,37 @@
-pairwise_dist_name,pop,east_to_west
-Upper Gorge,Upper Gorge,1
-White Salmon,White Salmon,2
-Hamilton_Channel,Hamilton Channel,3
-Hamilton_Creek,Hamilton Creek,4
-Ives,Ives,5
-Hardy_Creek,Hardy Creek,6
-Duncan_Creek,Duncan Creek,7
-NA,Duncan Channel,7
-NA,Duncan Hatchery,7
-Horsetail,Horsetail,8
-St_Cloud,St Cloud,9
-Multnomah,Multnomah,10
-Washougal,Washougal,11
-I-205 (Cascade_MS),I-205,12
-Salmon,Salmon,13
-NF Lewis (below Merwin),NF Lewis,14
-EF Lewis,EF Lewis,15
-Lewis_Hatchery_release,Lewis Hatchery,16
-Kalama,Kalama,17
-Coweeman,Coweeman,18
-SF Toutle,SF Toutle,19
-NF Toutle,NF Toutle,20
-Lower Cowlitz,Lower Cowlitz,21
-Germany,Germany,22
-Abernathy,Abernathy,23
-Mill,Mill,24
-Elochoman,Elochoman,25
-Skamokawa,Skamokawa,26
-Skamokawa_Hatchery_release,Skamokawa Hatchery,27
-Grays_CJ,Grays CJ,28
-Grays_MS,Grays MS,29
-NA,Grays Hatchery,29
-Grays_WF,Grays WF,30
-Petersen_RSI,Petersen RSI,31
-Chinook,Chinook,32
-Mouth of Columbia River,Columbia Mouth,33
+pop,recovery_pop,east_to_west,pairwise_dist_name
+Upper Gorge,Upper Gorge,1,Upper Gorge
+White Salmon,Lower Gorge,2,White Salmon
+Hamilton Channel,Lower Gorge,3,Hamilton_Channel
+Hamilton Creek,Lower Gorge,4,Hamilton_Creek
+Ives,Lower Gorge,5,Ives
+Hardy Creek,Lower Gorge,6,Hardy_Creek
+Duncan Creek,Lower Gorge,7,Duncan_Creek
+Duncan Channel,Lower Gorge,7,NA
+Duncan Hatchery,Lower Gorge,7,NA
+Horsetail,Lower Gorge,8,Horsetail
+St Cloud,Lower Gorge,9,St_Cloud
+Multnomah,Lower Gorge,10,Multnomah
+Washougal,I-205 / Washougal,11,Washougal
+I-205,I-205 / Washougal,12,I-205 (Cascade_MS)
+Salmon,Salmon,13,Salmon
+NF Lewis,Lewis,14,NF Lewis (below Merwin)
+EF Lewis,Lewis,15,EF Lewis
+Lewis Hatchery,Lewis,16,Lewis_Hatchery_release
+Kalama,Kalama,17,Kalama
+Coweeman,Cowlitz,18,Coweeman
+SF Toutle,Cowlitz,19,SF Toutle
+NF Toutle,Cowlitz,20,NF Toutle
+Lower Cowlitz,Cowlitz,21,Lower Cowlitz
+Germany,Mill / Abernathy / Germany,22,Germany
+Abernathy,Mill / Abernathy / Germany,23,Abernathy
+Mill,Mill / Abernathy / Germany,24,Mill
+Elochoman,Elochoman / Skamokawa,25,Elochoman
+Skamokawa,Elochoman / Skamokawa,26,Skamokawa
+Skamokawa Hatchery,Elochoman / Skamokawa,27,Skamokawa_Hatchery_release
+Grays CJ,Grays / Chinook,28,Grays_CJ
+Grays MS,Grays / Chinook,29,Grays_MS
+Grays Hatchery,Grays / Chinook,29,NA
+Grays WF,Grays / Chinook,30,Grays_WF
+Petersen RSI,NA,31,Petersen_RSI
+Chinook,Grays / Chinook,32,Chinook
+Columbia Mouth,NA,33,Mouth of Columbia River

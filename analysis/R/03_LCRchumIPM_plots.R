@@ -208,7 +208,6 @@ LCRchumIPM_SAR_timeseries <- function(mod, fish_data)
     scale_color_discrete(type = c(natural = alpha("slategray4", 0.5), 
                                   hatchery = alpha("salmon", 0.6))) +
     labs(x = "Year", y = "SAR (%)", color = "Origin") +
-    theme_bw(base_size = 16) +
     theme(panel.grid.minor = element_blank(), legend.position = c(0.86, 0.91))
   
   return(gg)
@@ -316,7 +315,7 @@ LCRchumIPM_MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data)
   tau <- extract1(mod, switch(life_cycle, SS = "tau", LCRchum = paste0("tau_", life_stage)))
   if(life_cycle == "LCRchum" & life_stage == "M")
     N[,na.omit(fish_data$downstream_trap)] <- N[,na.omit(fish_data$downstream_trap)] + 
-                                              N[,which(!is.na(fish_data$downstream_trap))]
+    N[,which(!is.na(fish_data$downstream_trap))]
   N_ppd <- N * rlnorm(length(N), 0, tau)
   year <- fish_data$year
   
@@ -341,7 +340,7 @@ LCRchumIPM_MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data)
     labs(x = "Year", y = switch(life_stage, M = "Smolts (thousands)", S = "Spawners")) + 
     scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5) +
     scale_y_log10(labels = function(y) y*switch(life_stage, M = 1e-3, S = 1)) + 
-    facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) +
+    facet_wrap(vars(pop), ncol = 4) + 
     theme(panel.grid.minor = element_blank(), 
           strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
@@ -378,7 +377,7 @@ LCRchumIPM_age_timeseries <- function(mod, fish_data)
     scale_fill_manual(values = viridis(3, end = 0.8, direction = -1)) +
     scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5) +
     labs(x = "Year", y = "Proportion at age") + 
-    facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) + 
+    facet_wrap(vars(pop), ncol = 4) + 
     theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_blank(), 
           strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)), 
@@ -408,7 +407,7 @@ LCRchumIPM_sex_timeseries <- function(mod, fish_data)
     geom_point(pch = 16, size = 2.5) + geom_errorbar(width = 0) +
     scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5) +
     labs(x = "Year", y = "Proportion female") +
-    facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) +
+    facet_wrap(vars(pop), ncol = 4) + 
     theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_blank(), 
           strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
@@ -437,7 +436,7 @@ LCRchumIPM_p_HOS_timeseries <- function(mod, fish_data)
     geom_errorbar(aes(ymin = p_HOS_obs.Lower, ymax = p_HOS_obs.Upper), width = 0) +
     scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5) +
     labs(x = "Year", y = bquote(italic(p)[HOS])) +
-    facet_wrap(vars(pop), ncol = 4) + theme_bw(base_size = 16) +
+    facet_wrap(vars(pop), ncol = 4) + 
     theme(panel.grid.major.y = element_blank(), panel.grid.minor = element_blank(),
           strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
@@ -449,7 +448,7 @@ LCRchumIPM_p_HOS_timeseries <- function(mod, fish_data)
 # Straying matrix: probability of straying from each origin to each population
 #--------------------------------------------------------------------------------
 
-LCRchumIPM_p_origin <- function(mod, fish_data)
+LCRchumIPM_p_origin_plot <- function(mod, fish_data)
 {
   p_origin <- as_draws_rvars(as.array(mod, "p_origin"))
   
@@ -459,10 +458,10 @@ LCRchumIPM_p_origin <- function(mod, fish_data)
     pivot_longer(cols = -origin, names_to = "pop", values_to = "p_origin") %>% 
     mutate(pop = factor(pop, levels = levels(fish_data$pop))) %>% 
     ggplot(aes(xdist = p_origin, y = pop)) +
-    ggdist::stat_eye(.width = c(0.5, 0.9), normalize = "groups", 
-                     color = "slategray4", fill = alpha("slategray4", 0.5)) + 
+    stat_eye(.width = c(0.5, 0.9), normalize = "groups", 
+             color = "slategray4", fill = alpha("slategray4", 0.5)) + 
     scale_y_discrete(limits = rev) + labs(x = "Straying rate", y = "") + 
-    facet_wrap(vars(origin)) + theme_bw(base_size = 16) +
+    facet_wrap(vars(origin)) + 
     theme(panel.grid.minor = element_blank(), strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
   
@@ -506,7 +505,6 @@ LCRchumIPM_fecundity_plot <- function(mod, fish_data, fecundity_data)
   }
   title(xlab = "Fecundity", ylab = "Probability density", cex.lab = 1.9, line = 0, outer = TRUE)
 }
-
 
 #--------------------------------------------------------------------------------
 # Observed and fitted distributions of "known" smolt and spawner 
@@ -554,3 +552,298 @@ LCRchumIPM_obs_error_plot <- function(mod, fish_data)
           col = c1t, border = NA)
   lines(tau_S_seq, colMedians(tau_S_fit), col = c1, lwd = 3)
 }
+
+#--------------------------------------------------------------------------------
+# Distributions of forecast spawner abundance under alternative scenarios
+#--------------------------------------------------------------------------------
+
+LCRchumIPM_S_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, pop_names) 
+{
+  year <- as.numeric(factor(fish_data_foreH0$year))
+  
+  drawsH0 <- as_draws_rvars(as.matrix(modH0, c("eta_year_MS","S"))) %>% 
+    mutate_variables(eta_year_MS = eta_year_MS[year]) %>% 
+    subset_draws(iter = sample(ndraws(.), 3000))
+  drawsHmax <- as_draws_rvars(as.matrix(modHmax,  c("eta_year_MS","S"))) %>% 
+    mutate_variables(eta_year_MS = eta_year_MS[year]) %>% 
+    subset_draws(iter = sample(ndraws(.), 3000))
+  
+  datH0 <- fish_data_foreH0 %>% mutate(scenario = "No")
+  datHmax <- fish_data_foreHmax %>% mutate(scenario = "Yes")
+  dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
+    mutate(eta_year_MS = c(drawsH0$eta_year_MS, drawsHmax$eta_year_MS), 
+           S = c(drawsH0$S, drawsHmax$S)) %>% 
+    filter(pop_type == "natural" & forecast) %>% 
+    # left_join(pop_names) %>%
+    # mutate(pop = recovery_pop) %>% # comment out to use model pops instead of recovery pops #
+    select(scenario, pop, year, eta_year_MS, S) %>% 
+    group_by(scenario, pop, year) %>% 
+    summarize(eta_year_MS = unique(eta_year_MS), S = rvar_sum(S)) %>% 
+    mutate(eta_mean_MS = rvar_mean(eta_year_MS), .after = eta_year_MS) %>% 
+    ungroup() %>%
+    mutate(q1_MS = as.vector(quantile(eta_mean_MS, 1/3)),
+           q2_MS = as.vector(quantile(eta_mean_MS, 2/3)),
+           .after = eta_mean_MS) %>%
+    mutate(S_low = subset_draws(S, iter = which(draws_of(eta_mean_MS[1]) < q1_MS[1])),
+           S_med = subset_draws(S, iter = which(draws_of(eta_mean_MS[1]) >= q1_MS[1] &
+                                                  draws_of(eta_mean_MS[1] < q2_MS[1]))),
+           S_high = subset_draws(S, iter = which(draws_of(eta_mean_MS[1] >= q2_MS[1]))),
+           S = subset_draws(S, iter = 1:1000)) %>%
+    rename(S_all = S) %>% 
+    pivot_longer(cols = contains("S_"), names_to = "SAR", names_prefix = "S_", values_to = "S") %>%
+    mutate(SAR = factor(SAR, levels = c("all","low","med","high"))) %>%
+    group_by(scenario, pop, SAR) %>% summarize(S_gmean = exp(rvar_mean(log(S))))
+  
+  cols <- c(all = "slategray4", low = "firebrick1", med = "gold", high = "darkgreen")
+  
+  gg <- dat %>% 
+    ggplot(aes(x = scenario, ydist = S_gmean, color = SAR, fill = SAR)) +
+    stat_eye(.width = c(0.5, 0.9), normalize = "groups", position = "dodge",
+             point_size = 2, slab_alpha = 0.5, slab_color = NA) +
+    scale_y_log10(labels = function(y) y) + 
+    coord_cartesian(ylim = range(quantile(dat$S_gmean, c(0.05, 0.95)))) +
+    scale_color_manual(values = cols) + scale_fill_manual(values = cols) +
+    labs(x = "Hatchery scenario", y = "Geometric mean spawners") +
+    facet_wrap(vars(pop), ncol = 3) + 
+    theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), 
+          strip.background = element_rect(fill = NA),
+          strip.text = element_text(margin = margin(b = 3, t = 3)))
+  
+  return(gg)
+}
+
+#------------------------------------------------------------------------------------------
+# Distributions of forecast final : initial spawner abundance under alternative scenarios
+#------------------------------------------------------------------------------------------
+
+LCRchumIPM_StS0_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, pop_names) 
+{
+  year <- as.numeric(factor(fish_data_foreH0$year))
+  
+  drawsH0 <- as_draws_rvars(as.matrix(modH0, c("eta_year_MS","S"))) %>% 
+    mutate_variables(eta_year_MS = eta_year_MS[year]) %>% 
+    subset_draws(iter = sample(ndraws(.), 3000))
+  drawsHmax <- as_draws_rvars(as.matrix(modHmax,  c("eta_year_MS","S"))) %>% 
+    mutate_variables(eta_year_MS = eta_year_MS[year]) %>% 
+    subset_draws(iter = sample(ndraws(.), 3000))
+  
+  datH0 <- fish_data_foreH0 %>% mutate(scenario = "No")
+  datHmax <- fish_data_foreHmax %>% mutate(scenario = "Yes")
+  dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
+    mutate(eta_year_MS = c(drawsH0$eta_year_MS, drawsHmax$eta_year_MS), 
+           S = c(drawsH0$S, drawsHmax$S)) %>% 
+    filter(pop_type == "natural") %>% 
+    left_join(pop_names) %>% 
+    mutate(pop = recovery_pop) %>% # comment out to use model pops instead of recovery pops #
+    select(scenario, pop, year, forecast, eta_year_MS, S) %>% 
+    group_by(scenario, pop, year) %>% 
+    summarize(forecast = all(forecast), eta_year_MS = unique(eta_year_MS), S = rvar_sum(S)) %>% 
+    mutate(eta_mean_MS = rvar_mean(eta_year_MS), .after = eta_year_MS) %>% 
+    ungroup() %>%
+    mutate(q1_MS = as.vector(quantile(eta_mean_MS, 1/3)),
+           q2_MS = as.vector(quantile(eta_mean_MS, 2/3)),
+           .after = eta_mean_MS) %>%
+    mutate(S_low = subset_draws(S, iter = which(draws_of(eta_mean_MS[1]) < q1_MS[1])),
+           S_med = subset_draws(S, iter = which(draws_of(eta_mean_MS[1]) >= q1_MS[1] &
+                                                  draws_of(eta_mean_MS[1] < q2_MS[1]))),
+           S_high = subset_draws(S, iter = which(draws_of(eta_mean_MS[1] >= q2_MS[1]))),
+           S = subset_draws(S, iter = 1:1000)) %>%
+    rename(S_all = S) %>% 
+    pivot_longer(cols = contains("S_"), names_to = "SAR", names_prefix = "S_", values_to = "S") %>%
+    mutate(SAR = factor(SAR, levels = c("all","low","med","high"))) %>%
+    group_by(scenario, pop, SAR) %>%
+    summarize(StS0 = tail(S,1) / tail(S[!forecast], 1))
+  
+  cols <- c(all = "slategray4", low = "firebrick1", med = "gold", high = "darkgreen")
+  
+  gg <- dat %>% 
+    ggplot(aes(x = scenario, ydist = StS0, color = SAR, fill = SAR)) +
+    geom_hline(yintercept = 1) +
+    stat_eye(.width = c(0.5, 0.9), normalize = "groups", position = "dodge",
+             point_size = 2, slab_alpha = 0.5, slab_color = NA) +
+    scale_y_log10(breaks = 10^seq(-4, 4, by = 2), labels = function(y) y) + 
+    coord_cartesian(ylim = range(quantile(dat$StS0, c(0.02, 0.98)))) +
+    scale_color_manual(values = cols) + scale_fill_manual(values = cols) +
+    labs(x = "Hatchery scenario", y = "Final / current spawners") +
+    facet_wrap(vars(pop), ncol = 4) + 
+    theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), 
+          strip.background = element_rect(fill = NA),
+          strip.text = element_text(margin = margin(b = 3, t = 3)))
+  
+  return(gg)
+}
+
+#--------------------------------------------------------------------------------
+# Distributions of forecast p_HOS under alternative scenarios
+#--------------------------------------------------------------------------------
+
+LCRchumIPM_p_HOS_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, pop_names) 
+{
+  year <- as.numeric(factor(fish_data_foreH0$year))
+  
+  drawsH0 <- as_draws_rvars(as.matrix(modH0, c("eta_year_MS","S","p_HOS"))) %>% 
+    mutate_variables(eta_year_MS = eta_year_MS[year], S_H = S*p_HOS) %>% 
+    subset_draws(iter = sample(ndraws(.), 3000))
+  drawsHmax <- as_draws_rvars(as.matrix(modHmax,  c("eta_year_MS","S","p_HOS"))) %>% 
+    mutate_variables(eta_year_MS = eta_year_MS[year], S_H = S*p_HOS) %>% 
+    subset_draws(iter = sample(ndraws(.), 3000))
+  
+  datH0 <- fish_data_foreH0 %>% mutate(scenario = "No")
+  datHmax <- fish_data_foreHmax %>% mutate(scenario = "Yes")
+  dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
+    mutate(eta_year_MS = c(drawsH0$eta_year_MS, drawsHmax$eta_year_MS), 
+           S = c(drawsH0$S, drawsHmax$S), S_H = c(drawsH0$S_H, drawsHmax$S_H)) %>% 
+    filter(pop_type == "natural" & forecast) %>% 
+    # left_join(pop_names) %>%
+    # mutate(pop = recovery_pop) %>% # comment out to use model pops instead of recovery pops #
+    select(scenario, pop, year, eta_year_MS, S, S_H) %>% 
+    group_by(scenario, pop, year) %>% 
+    summarize(eta_year_MS = unique(eta_year_MS), 
+              p_HOS = rvar_sum(S_H)/rvar_sum(S)) %>% 
+    mutate(eta_mean_MS = rvar_mean(eta_year_MS), .after = eta_year_MS) %>% 
+    ungroup() %>%
+    mutate(q1_MS = as.vector(quantile(eta_mean_MS, 1/3)),
+           q2_MS = as.vector(quantile(eta_mean_MS, 2/3)),
+           .after = eta_mean_MS) %>%
+    mutate(p_HOS_low = subset_draws(p_HOS, iter = which(draws_of(eta_mean_MS[1]) < q1_MS[1])),
+           p_HOS_med = subset_draws(p_HOS, iter = which(draws_of(eta_mean_MS[1]) >= q1_MS[1] &
+                                                          draws_of(eta_mean_MS[1] < q2_MS[1]))),
+           p_HOS_high = subset_draws(p_HOS, iter = which(draws_of(eta_mean_MS[1] >= q2_MS[1]))),
+           p_HOS = subset_draws(p_HOS, iter = 1:1000)) %>%
+    rename(p_HOS_all = p_HOS) %>% 
+    pivot_longer(cols = contains("p_HOS_"), names_to = "SAR", names_prefix = "p_HOS_", 
+                 values_to = "p_HOS") %>%
+    mutate(SAR = factor(SAR, levels = c("all","low","med","high"))) %>%
+    group_by(scenario, pop, SAR) %>% summarize(p_HOS_mean = rvar_mean(p_HOS))
+  
+  cols <- c(all = "slategray4", low = "firebrick1", med = "gold", high = "darkgreen")
+  
+  gg <- dat %>% 
+    ggplot(aes(x = scenario, ydist = p_HOS_mean, color = SAR, fill = SAR)) +
+    stat_eye(.width = c(0.5, 0.9), normalize = "groups", position = "dodge",
+             point_size = 2, slab_alpha = 0.5, slab_color = NA) +
+    ylim(c(0,1)) + scale_color_manual(values = cols) + scale_fill_manual(values = cols) +
+    labs(x = "Hatchery scenario", y = bquote("Mean" ~ italic(p)[HOS])) +
+    facet_wrap(vars(pop), ncol = 3) + 
+    theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), 
+          strip.background = element_rect(fill = NA),
+          strip.text = element_text(margin = margin(b = 3, t = 3)))
+  
+  return(gg)
+}
+
+#--------------------------------------------------------------------------------
+# Probability of recovery under alternative scenarios
+#--------------------------------------------------------------------------------
+
+LCRchumIPM_Precovery_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, 
+                                      pop_names, recovery_targets) 
+{
+  year <- as.numeric(factor(fish_data_foreH0$year))
+  
+  drawsH0 <- as_draws_rvars(as.matrix(modH0, c("eta_year_MS","S"))) %>% 
+    mutate_variables(eta_year_MS = eta_year_MS[year]) %>% 
+    subset_draws(iter = sample(ndraws(.), 3000))
+  drawsHmax <- as_draws_rvars(as.matrix(modHmax,  c("eta_year_MS","S"))) %>% 
+    mutate_variables(eta_year_MS = eta_year_MS[year]) %>% 
+    subset_draws(iter = sample(ndraws(.), 3000))
+  
+  datH0 <- fish_data_foreH0 %>% mutate(scenario = "No")
+  datHmax <- fish_data_foreHmax %>% mutate(scenario = "Yes")
+  dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
+    mutate(eta_year_MS = c(drawsH0$eta_year_MS, drawsHmax$eta_year_MS), 
+           S = c(drawsH0$S, drawsHmax$S)) %>% 
+    filter(pop_type == "natural" & forecast) %>% 
+    left_join(pop_names) %>% 
+    select(scenario, recovery_pop, year, eta_year_MS, S) %>% 
+    group_by(scenario, recovery_pop, year) %>% 
+    summarize(eta_year_MS = unique(eta_year_MS), S = rvar_sum(S)) %>% 
+    mutate(eta_mean_MS = rvar_mean(eta_year_MS), .after = eta_year_MS) %>% 
+    ungroup() %>%
+    mutate(q1_MS = as.vector(quantile(eta_mean_MS, 1/3)),
+           q2_MS = as.vector(quantile(eta_mean_MS, 2/3)),
+           .after = eta_mean_MS) %>%
+    mutate(S_low = subset_draws(S, iter = which(draws_of(eta_mean_MS[1]) < q1_MS[1])),
+           S_med = subset_draws(S, iter = which(draws_of(eta_mean_MS[1]) >= q1_MS[1] &
+                                                  draws_of(eta_mean_MS[1] < q2_MS[1]))),
+           S_high = subset_draws(S, iter = which(draws_of(eta_mean_MS[1] >= q2_MS[1]))),
+           S = subset_draws(S, iter = 1:1000)) %>%
+    rename(S_all = S) %>% 
+    pivot_longer(cols = contains("S_"), names_to = "SAR", names_prefix = "S_", values_to = "S") %>%
+    mutate(SAR = factor(SAR, levels = c("all","low","med","high"))) %>%
+    left_join(recovery_targets) %>% 
+    group_by(scenario, recovery_pop, SAR) %>% 
+    summarize(recovered = rvar_any(S > target[1]))
+  
+  cols <- c(all = "slategray4", low = "firebrick1", med = "gold", high = "darkgreen")
+  
+  gg <- dat %>% 
+    ggplot(aes(x = scenario, y = Pr(recovered), fill = SAR)) +
+    geom_col(position = "dodge", alpha = 0.5) +
+    scale_fill_manual(values = cols) +
+    labs(x = "Hatchery scenario", y = "Probability of recovery") +
+    facet_wrap(vars(recovery_pop), ncol = 3) + 
+    theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), 
+          strip.background = element_rect(fill = NA),
+          strip.text = element_text(margin = margin(b = 3, t = 3)))
+  
+  return(gg)
+}
+
+#--------------------------------------------------------------------------------
+# Probability of quasi-extinction under alternative scenarios
+#--------------------------------------------------------------------------------
+
+LCRchumIPM_PQE_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, 
+                                pop_names, QET) 
+{
+  year <- as.numeric(factor(fish_data_foreH0$year))
+  
+  drawsH0 <- as_draws_rvars(as.matrix(modH0, c("eta_year_MS","S"))) %>% 
+    mutate_variables(eta_year_MS = eta_year_MS[year]) %>% 
+    subset_draws(iter = sample(ndraws(.), 3000))
+  drawsHmax <- as_draws_rvars(as.matrix(modHmax,  c("eta_year_MS","S"))) %>% 
+    mutate_variables(eta_year_MS = eta_year_MS[year]) %>% 
+    subset_draws(iter = sample(ndraws(.), 3000))
+  
+  datH0 <- fish_data_foreH0 %>% mutate(scenario = "No")
+  datHmax <- fish_data_foreHmax %>% mutate(scenario = "Yes")
+  dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
+    mutate(eta_year_MS = c(drawsH0$eta_year_MS, drawsHmax$eta_year_MS), 
+           S = c(drawsH0$S, drawsHmax$S)) %>% 
+    filter(pop_type == "natural" & forecast) %>% 
+    left_join(pop_names) %>% 
+    select(scenario, recovery_pop, year, eta_year_MS, S) %>% 
+    group_by(scenario, recovery_pop, year) %>% 
+    summarize(eta_year_MS = unique(eta_year_MS), S = rvar_sum(S)) %>% 
+    mutate(eta_mean_MS = rvar_mean(eta_year_MS), .after = eta_year_MS) %>% 
+    ungroup() %>%
+    mutate(q1_MS = as.vector(quantile(eta_mean_MS, 1/3)),
+           q2_MS = as.vector(quantile(eta_mean_MS, 2/3)),
+           .after = eta_mean_MS) %>%
+    mutate(S_low = subset_draws(S, iter = which(draws_of(eta_mean_MS[1]) < q1_MS[1])),
+           S_med = subset_draws(S, iter = which(draws_of(eta_mean_MS[1]) >= q1_MS[1] &
+                                                  draws_of(eta_mean_MS[1] < q2_MS[1]))),
+           S_high = subset_draws(S, iter = which(draws_of(eta_mean_MS[1] >= q2_MS[1]))),
+           S = subset_draws(S, iter = 1:1000)) %>%
+    rename(S_all = S) %>% 
+    pivot_longer(cols = contains("S_"), names_to = "SAR", names_prefix = "S_", values_to = "S") %>%
+    mutate(SAR = factor(SAR, levels = c("all","low","med","high"))) %>%
+    group_by(scenario, recovery_pop, SAR) %>% 
+    summarize(quasi_extinct = rvar_any(S < QET))
+  
+  cols <- c(all = "slategray4", low = "firebrick1", med = "gold", high = "darkgreen")
+  
+  gg <- dat %>% 
+    ggplot(aes(x = scenario, y = Pr(quasi_extinct), fill = SAR)) +
+    geom_col(position = "dodge", alpha = 0.5) +
+    scale_fill_manual(values = cols) +
+    labs(x = "Hatchery scenario", y = "Probability of quasi-extinction") +
+    facet_wrap(vars(recovery_pop), ncol = 3) + 
+    theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), 
+          strip.background = element_rect(fill = NA),
+          strip.text = element_text(margin = margin(b = 3, t = 3)))
+  
+  return(gg)
+}
+
