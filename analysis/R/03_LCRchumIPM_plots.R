@@ -574,13 +574,11 @@ LCRchumIPM_S_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_f
     mutate(eta_year_MS = c(drawsH0$eta_year_MS, drawsHmax$eta_year_MS), 
            S = c(drawsH0$S, drawsHmax$S)) %>% 
     filter(pop_type == "natural" & forecast) %>% 
-    # left_join(pop_names) %>%
-    # mutate(pop = recovery_pop) %>% # comment out to use model pops instead of recovery pops #
+    left_join(pop_names) %>% mutate(pop = recovery_pop) %>% # comment out to use model pops instead of recovery pops #
     select(scenario, pop, year, eta_year_MS, S) %>% 
     group_by(scenario, pop, year) %>% 
     summarize(eta_year_MS = unique(eta_year_MS), S = rvar_sum(S)) %>% 
     mutate(eta_mean_MS = rvar_mean(eta_year_MS), .after = eta_year_MS) %>% 
-    ungroup() %>%
     mutate(q1_MS = as.vector(quantile(eta_mean_MS, 1/3)),
            q2_MS = as.vector(quantile(eta_mean_MS, 2/3)),
            .after = eta_mean_MS) %>%
@@ -633,13 +631,11 @@ LCRchumIPM_StS0_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_dat
     mutate(eta_year_MS = c(drawsH0$eta_year_MS, drawsHmax$eta_year_MS), 
            S = c(drawsH0$S, drawsHmax$S)) %>% 
     filter(pop_type == "natural") %>% 
-    left_join(pop_names) %>% 
-    mutate(pop = recovery_pop) %>% # comment out to use model pops instead of recovery pops #
+    left_join(pop_names) %>% mutate(pop = recovery_pop) %>% # comment out to use model pops instead of recovery pops #
     select(scenario, pop, year, forecast, eta_year_MS, S) %>% 
     group_by(scenario, pop, year) %>% 
     summarize(forecast = all(forecast), eta_year_MS = unique(eta_year_MS), S = rvar_sum(S)) %>% 
     mutate(eta_mean_MS = rvar_mean(eta_year_MS), .after = eta_year_MS) %>% 
-    ungroup() %>%
     mutate(q1_MS = as.vector(quantile(eta_mean_MS, 1/3)),
            q2_MS = as.vector(quantile(eta_mean_MS, 2/3)),
            .after = eta_mean_MS) %>%
@@ -694,14 +690,12 @@ LCRchumIPM_p_HOS_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_da
     mutate(eta_year_MS = c(drawsH0$eta_year_MS, drawsHmax$eta_year_MS), 
            S = c(drawsH0$S, drawsHmax$S), S_H = c(drawsH0$S_H, drawsHmax$S_H)) %>% 
     filter(pop_type == "natural" & forecast) %>% 
-    # left_join(pop_names) %>%
-    # mutate(pop = recovery_pop) %>% # comment out to use model pops instead of recovery pops #
+    # left_join(pop_names) %>% mutate(pop = recovery_pop) %>% # comment out to use model pops instead of recovery pops #
     select(scenario, pop, year, eta_year_MS, S, S_H) %>% 
     group_by(scenario, pop, year) %>% 
     summarize(eta_year_MS = unique(eta_year_MS), 
               p_HOS = rvar_sum(S_H)/rvar_sum(S)) %>% 
     mutate(eta_mean_MS = rvar_mean(eta_year_MS), .after = eta_year_MS) %>% 
-    ungroup() %>%
     mutate(q1_MS = as.vector(quantile(eta_mean_MS, 1/3)),
            q2_MS = as.vector(quantile(eta_mean_MS, 2/3)),
            .after = eta_mean_MS) %>%
@@ -759,7 +753,6 @@ LCRchumIPM_Precovery_plot <- function(modH0, modHmax, fish_data_foreH0, fish_dat
     group_by(scenario, recovery_pop, year) %>% 
     summarize(eta_year_MS = unique(eta_year_MS), S = rvar_sum(S)) %>% 
     mutate(eta_mean_MS = rvar_mean(eta_year_MS), .after = eta_year_MS) %>% 
-    ungroup() %>%
     mutate(q1_MS = as.vector(quantile(eta_mean_MS, 1/3)),
            q2_MS = as.vector(quantile(eta_mean_MS, 2/3)),
            .after = eta_mean_MS) %>%
@@ -822,7 +815,6 @@ LCRchumIPM_PQE_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_fore
     group_by(scenario, recovery_pop, year) %>% 
     summarize(eta_year_MS = unique(eta_year_MS), S = rvar_sum(S)) %>% 
     mutate(eta_mean_MS = rvar_mean(eta_year_MS), .after = eta_year_MS) %>% 
-    ungroup() %>%
     mutate(q1_MS = as.vector(quantile(eta_mean_MS, 1/3)),
            q2_MS = as.vector(quantile(eta_mean_MS, 2/3)),
            .after = eta_mean_MS) %>%

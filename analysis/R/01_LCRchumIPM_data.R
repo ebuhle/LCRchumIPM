@@ -98,7 +98,8 @@ spawner_data_agg <- spawner_data %>% group_by(strata, disposition, year) %>%
   left_join(broodstock_data, by = c("strata","pop","year")) %>% 
   left_join(translocation_data, by = c("strata","pop","year")) %>% 
   mutate(B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0),
-         S_add_obs = replace(S_add_obs, is.na(S_add_obs), 0)) %>% as.data.frame()
+         S_add_obs = replace(S_add_obs, is.na(S_add_obs), 0)) %>% 
+  as.data.frame()
 
 # Spawner age-, sex-, and origin-frequency (aka BioData)
 # Assumptions:
@@ -302,7 +303,7 @@ fish_data_fore <- fish_data %>% group_by(pop) %>%
   slice(rep(n(), max(fish_data$year) + N_year_fore - max(year))) %>%
   reframe(year = (unique(year) + 1):(max(fish_data$year) + N_year_fore), forecast = TRUE,
           S_obs = NA, tau_S_obs = NA, M_obs = NA, tau_M_obs = NA, downstream_trap = NA, 
-          p_G_obs = 1, S_add_obs = 0, fit_p_HOS = 0, B_take_obs = NA, F_rate = 0) %>%
+          p_G_obs = 1, S_add_obs = 0, fit_p_HOS = 0, B_take_obs = 0, F_rate = 0) %>%
   full_join(mutate(fish_data, forecast = FALSE, downstream_trap = NA)) %>% 
   mutate_at(vars(starts_with("n_")), ~ replace_na(., 0)) %>%
   arrange(pop, year) %>% fill(A, pop_type, .direction = "down") %>%
@@ -320,17 +321,17 @@ fish_data_fore <- fish_data_fore %>%
 # forecast scenario 1:
 # no broodstock removals or hatchery smolt releases
 fish_data_foreH0 <- fish_data_fore %>% group_by(pop) %>% 
-  mutate(B_take_obs = replace(B_take_obs, forecast, 0),
-         M_obs = replace(M_obs, pop_type == "hatchery" & forecast, 0)) %>% 
+  mutate(M_obs = replace(M_obs, pop_type == "hatchery" & forecast, 0)) %>% 
   ungroup() %>% as.data.frame()
 
 # forecast scenario 2:
-# broodstock removals and hatchery smolt releases at maximum observed
+# broodstock removal rates and hatchery smolt releases at maximum observed
 fish_data_foreHmax <- fish_data_fore %>% group_by(pop) %>% 
-  mutate(B_take_obs = replace(B_take_obs, forecast, max(B_take_obs, na.rm = TRUE)),
+  mutate(B_rate_obs = B_take_obs / (S_obs + B_take_obs), .after = B_take_obs) %>% 
+  mutate(F_rate = replace(F_rate, forecast, max(B_rate_obs, na.rm = TRUE)),
          M_obs = replace(M_obs, pop_type == "hatchery" & forecast, 
                          ifelse(all(is.na(M_obs)), NA, max(M_obs, na.rm = TRUE)))) %>% 
-  ungroup() %>% as.data.frame()
+  ungroup() %>% select(-B_rate_obs) %>% as.data.frame()
 
 # Fecundity data
 # Note that L95% and U95% are reversed
