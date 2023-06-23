@@ -40,48 +40,48 @@ if(file.exists(here("analysis","results","LCRchumIPM.RData")))
 #===========================================================================
 
 # # Density-independent
-# ## @knitr fit_LCRchum_exp
-# LCRchum_exp <- salmonIPM(fish_data = fish_data,  fecundity_data = fecundity_data,
-#                          ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "exp",
-#                          pars = c("mu_Emax","sigma_Emax","Emax"), 
-#                          include = FALSE, log_lik = TRUE, 
-#                          chains = 4, iter = 1500, warmup = 500,
-#                          control = list(adapt_delta = 0.99, max_treedepth = 14))
+# ## @knitr fit_exp
+# fit_exp <- salmonIPM(fish_data = fish_data,  fecundity_data = fecundity_data,
+#                      ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "exp",
+#                      pars = c("mu_Emax","sigma_Emax","Emax"),
+#                      include = FALSE, log_lik = TRUE,
+#                      chains = 4, iter = 1500, warmup = 500,
+#                      control = list(adapt_delta = 0.99, max_treedepth = 14))
 # 
-# ## @knitr print_LCRchum_exp
-# print(LCRchum_exp, prob = c(0.05,0.5,0.95),
+# ## @knitr print_fit_exp
+# print(fit_exp, prob = c(0.05,0.5,0.95),
 #       pars = c("eta_pop_EM","eta_year_EM","eta_year_MS","eta_pop_p","p",
-#                "tau_M","tau_S","p_HOS","B_rate","E","S","M","s_EM","s_MS","q","LL"), 
+#                "tau_M","tau_S","p_HOS","B_rate","E","S","M","s_EM","s_MS","q","LL"),
 #       include = FALSE, use_cache = FALSE)
 # ## @knitr
 
 # Beverton-Holt
-## @knitr fit_LCRchum_BH
-LCRchum_BH <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "BH", 
-                        par_models = list(s_MS ~ pop_type), 
-                        center = FALSE, scale = FALSE, ages = list(M = 1), 
-                        fish_data = fish_data, fecundity_data = fecundity_data,
-                        log_lik = TRUE, chains = 4, iter = 2000, warmup = 1000,
-                        control = list(adapt_delta = 0.95, max_treedepth = 14))
+## @knitr fit_BH
+fit_BH <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "BH", 
+                    par_models = list(s_MS ~ pop_type), 
+                    center = FALSE, scale = FALSE, ages = list(M = 1), 
+                    fish_data = fish_data, fecundity_data = fecundity_data,
+                    log_lik = TRUE, chains = 4, iter = 2000, warmup = 1000,
+                    control = list(adapt_delta = 0.95, max_treedepth = 14))
 
-## @knitr print_LCRchum_BH
-print(LCRchum_BH, prob = c(0.05,0.5,0.95),
+## @knitr print_fit_BH
+print(fit_BH, prob = c(0.05,0.5,0.95),
       pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p","p_F",
                "tau_M","tau_S","B_rate","E_hat","M","S","s_MS","q","q_F","q_origin","p_HOS","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
 # Ricker
-## @knitr fit_LCRchum_Ricker
-LCRchum_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", 
-                            par_models = list(s_MS ~ pop_type), 
-                            center = FALSE, scale = FALSE, ages = list(M = 1), 
-                            fish_data = fish_data, fecundity_data = fecundity_data,
-                            log_lik = TRUE, chains = 4, iter = 2000, warmup = 1000,
-                            control = list(adapt_delta = 0.95, max_treedepth = 14))
+## @knitr fit_Ricker
+fit_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", 
+                        par_models = list(s_MS ~ pop_type), 
+                        center = FALSE, scale = FALSE, ages = list(M = 1), 
+                        fish_data = fish_data, fecundity_data = fecundity_data,
+                        log_lik = TRUE, chains = 4, iter = 2000, warmup = 1000,
+                        control = list(adapt_delta = 0.95, max_treedepth = 14))
 
-## @knitr print_LCRchum_Ricker
-print(LCRchum_Ricker, prob = c(0.05,0.5,0.95),
+## @knitr print_fit_Ricker
+print(fit_Ricker, prob = c(0.05,0.5,0.95),
       pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p","p_F",
                "tau_M","tau_S","B_rate","E_hat","M","S","s_MS","q","q_F","q_origin","p_HOS","LL"), 
       include = FALSE, use_cache = FALSE)
@@ -96,29 +96,29 @@ print(LCRchum_Ricker, prob = c(0.05,0.5,0.95),
 # Here an observation is a row of fish_data, and the total likelihood includes 
 # components for smolt abundance, spawner abundance, age-frequency, H/W-frequency,
 # and smolt and spawner observation error SDs
-## @knitr loo_LCRchum
-LL_LCRchum <- lapply(list(exp = LCRchum_exp, BH = LCRchum_BH, Ricker = LCRchum_Ricker),
-                     loo::extract_log_lik, parameter_name = "LL", merge_chains = FALSE)
+## @knitr loo
+LL <- lapply(list(exp = fit_exp, BH = fit_BH, Ricker = fit_Ricker),
+             loo::extract_log_lik, parameter_name = "LL", merge_chains = FALSE)
 
 # Relative ESS of posterior draws of observationwise likelihood 
-r_eff_LCRchum <- lapply(LL_LCRchum, function(x) relative_eff(exp(x)))
+r_eff <- lapply(LL_LCRchum, function(x) relative_eff(exp(x)))
 
 # PSIS-LOO
-LOO_LCRchum <- lapply(1:length(LL_LCRchum), 
-                      function(i) loo(LL_LCRchum[[i]], r_eff = r_eff_LCRchum[[i]]))
-names(LOO_LCRchum) <- names(LL_LCRchum)
+LOO <- lapply(1:length(LL), 
+              function(i) loo(LL[[i]], r_eff = r_eff[[i]]))
+names(LOO) <- names(LL)
 
 ## Compare all three models
-loo_compare(LOO_LCRchum)
+loo_compare(LOO)
 
 ## Exponential vs. Ricker
-loo_compare(LOO_LCRchum[c("exp","Ricker")])
+loo_compare(LOO[c("exp","Ricker")])
 
 ## Exponential vs. Beverton-Holt
-loo_compare(LOO_LCRchum[c("exp","BH")])
+loo_compare(LOO[c("exp","BH")])
 
 ## Beverton-Holt vs. Ricker
-loo_compare(LOO_LCRchum[c("BH","Ricker")])
+loo_compare(LOO[c("BH","Ricker")])
 ## @knitr
 
 
@@ -126,74 +126,73 @@ loo_compare(LOO_LCRchum[c("BH","Ricker")])
 # FIT PROSPECTIVE FORECASTING MODELS
 #===========================================================================
 
-# Beverton_Holt
+# # Beverton_Holt
+# # no broodstock removals or hatchery smolt releases
+# # @knitr foreH0_BH
+# foreH0_BH <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "BH", 
+#                        par_models = list(s_MS ~ pop_type), 
+#                        center = FALSE, scale = FALSE, ages = list(M = 1), 
+#                        fish_data = fish_data_foreH0, 
+#                        fecundity_data = fecundity_data,
+#                        chains = 4, iter = 2000, warmup = 1000,
+#                        control = list(adapt_delta = 0.95, max_treedepth = 14))
+# 
+# ## @knitr print_foreH0_BH
+# print(foreH0_BH, prob = c(0.05,0.5,0.95),
+#       pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p","p_F",
+#                "tau_M","tau_S","B_rate","E_hat","M","S","s_MS","q","q_F","q_origin","p_HOS","LL"), 
+#       include = FALSE, use_cache = FALSE)
+# ## @knitr
+# 
+# # Beverton_Holt
+# # broodstock removal rates and hatchery smolt releases at maximum observed
+# # @knitr foreHmax_BH
+# foreHmax_BH <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "BH", 
+#                          par_models = list(s_MS ~ pop_type), 
+#                          center = FALSE, scale = FALSE, ages = list(M = 1), 
+#                          fish_data = fish_data_foreHmax, 
+#                          fecundity_data = fecundity_data,
+#                          chains = 4, iter = 2000, warmup = 1000,
+#                          control = list(adapt_delta = 0.95, max_treedepth = 14))
+# 
+# ## @knitr print_foreHmax_BH
+# print(foreHmax_BH, prob = c(0.05,0.5,0.95),
+#       pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p","p_F",
+#                "tau_M","tau_S","B_rate","E_hat","M","S","s_MS","q","q_F","q_origin","p_HOS","LL"), 
+#       include = FALSE, use_cache = FALSE)
+# ## @knitr
+
+# Ricker
 # no broodstock removals or hatchery smolt releases
-# @knitr fit_LCRchum_BH_foreH0
-LCRchum_BH_foreH0 <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "BH", 
-                               par_models = list(s_MS ~ pop_type), 
-                               center = FALSE, scale = FALSE, ages = list(M = 1), 
-                               fish_data = fish_data_foreH0, 
-                               fecundity_data = fecundity_data,
-                               chains = 4, iter = 2000, warmup = 1000,
-                               control = list(adapt_delta = 0.95, max_treedepth = 14))
+# @knitr fit_foreH0_Ricker
+foreH0_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", 
+                           par_models = list(s_MS ~ pop_type), 
+                           center = FALSE, scale = FALSE, ages = list(M = 1), 
+                           fish_data = fish_data_foreH0, 
+                           fecundity_data = fecundity_data,
+                           chains = 4, iter = 2000, warmup = 1000,
+                           control = list(adapt_delta = 0.95, max_treedepth = 14))
 
-## @knitr print_LCRchum_BH_foreH0
-print(LCRchum_BH_foreH0, prob = c(0.05,0.5,0.95),
+## @knitr print_foreH0_Ricker
+print(foreH0_Ricker, prob = c(0.05,0.5,0.95),
       pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p","p_F",
-               "tau_M","tau_S","B_rate","E_hat","M","S","s_MS","q","q_F","q_origin","p_HOS"), 
-      include = FALSE, use_cache = FALSE)
-## @knitr
-
-# Beverton_Holt
-# broodstock removal rates and hatchery smolt releases at maximum observed
-# @knitr fit_LCRchum_BH_foreHmax
-LCRchum_BH_foreHmax <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "BH", 
-                                 par_models = list(s_MS ~ pop_type), 
-                                 center = FALSE, scale = FALSE, ages = list(M = 1), 
-                                 fish_data = fish_data_foreHmax, 
-                                 fecundity_data = fecundity_data,
-                                 chains = 4, iter = 2000, warmup = 1000,
-                                 control = list(adapt_delta = 0.95, max_treedepth = 14))
-
-## @knitr print_LCRchum_BH_foreH0
-print(LCRchum_BH_foreHmax, prob = c(0.05,0.5,0.95),
-      pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p","p_F",
-               "tau_M","tau_S","B_rate","E_hat","M","S","s_MS","q","q_F","q_origin","p_HOS"), 
+               "tau_M","tau_S","B_rate","E_hat","M","S","s_MS","q","q_F","q_origin","p_HOS","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
 # Ricker
-# no broodstock removals or hatchery smolt releases
-# @knitr fit_LCRchum_Ricker_foreH0
-LCRchum_Ricker_foreH0 <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", 
-                                   par_models = list(s_MS ~ pop_type), 
-                                   center = FALSE, scale = FALSE, ages = list(M = 1), 
-                                   fish_data = fish_data_foreH0, 
-                                   fecundity_data = fecundity_data,
-                                   chains = 4, iter = 2000, warmup = 1000,
-                                   control = list(adapt_delta = 0.95, max_treedepth = 14))
-
-## @knitr print_LCRchum_Ricker_foreH0
-print(LCRchum_Ricker_foreH0, prob = c(0.05,0.5,0.95),
-      pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p","p_F",
-               "tau_M","tau_S","B_rate","E_hat","M","S","s_MS","q","q_F","q_origin","p_HOS"), 
-      include = FALSE, use_cache = FALSE)
-## @knitr
-
-# Ricker
 # broodstock removal rates and hatchery smolt releases at maximum observed
-## @knitr fit_LCRchum_Ricker_foreHmax
-LCRchum_Ricker_foreHmax <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", 
-                                     par_models = list(s_MS ~ pop_type), 
-                                     center = FALSE, scale = FALSE, ages = list(M = 1), 
-                                     fish_data = fish_data_foreHmax, 
-                                     fecundity_data = fecundity_data,
-                                     pars = c(stan_pars("IPM_LCRchum_pp"), "B_rate_all"),
-                                     chains = 4, iter = 2000, warmup = 1000,
-                                     control = list(adapt_delta = 0.95, max_treedepth = 14))
+## @knitr fit_foreHmax_Ricker
+foreHmax_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", 
+                             par_models = list(s_MS ~ pop_type), 
+                             center = FALSE, scale = FALSE, ages = list(M = 1), 
+                             fish_data = fish_data_foreHmax, 
+                             fecundity_data = fecundity_data,
+                             chains = 4, iter = 2000, warmup = 1000,
+                             control = list(adapt_delta = 0.95, max_treedepth = 14))
 
-## @knitr print_LCRchum_Ricker_foreH0
-print(LCRchum_Ricker_foreHmax, prob = c(0.05,0.5,0.95),
+## @knitr print_foreHmax_Ricker
+print(foreHmax_Ricker, prob = c(0.05,0.5,0.95),
       pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p","p_F",
                "tau_M","tau_S","B_rate_all","E_hat","M","S","s_MS","q","q_F","q_origin","p_HOS"), 
       include = FALSE, use_cache = FALSE)
@@ -219,7 +218,7 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 # Time series of smolt productivity process errors and SAR
 #--------------------------------------------------------------------
 
-mod_name <- "LCRchum_Ricker"
+mod_name <- "fit_Ricker"
 save_plot <- FALSE
 
 if(save_plot) {
@@ -238,7 +237,7 @@ if(save_plot) dev.off()
 # Time series of SAR for natural populations and hatcheries
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_Ricker"
+mod_name <- "fit_Ricker"
 save_plot <- FALSE
 
 ## @knitr plot_SAR_ts
@@ -258,7 +257,7 @@ if(save_plot) {
 # # Spawner-recruit curves for each pop with data and states
 # #--------------------------------------------------------------------
 # 
-# mod_name <- "LCRchum_Ricker"
+# mod_name <- "fit_Ricker"
 # life_stage <- "M"   # "M" = smolts, "R" = adult recruits
 # save_plot <- FALSE
 # 
@@ -280,7 +279,7 @@ if(save_plot) {
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_Ricker"
+mod_name <- "fit_Ricker"
 life_stage <- "S"   # "S" = spawners, "M" = smolts
 save_plot <- FALSE
 
@@ -306,7 +305,7 @@ if(save_plot) {
 # Time series of observed and fitted spawner age structure for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_Ricker"
+mod_name <- "fit_Ricker"
 save_plot <- TRUE
 
 ## @knitr plot_spawner_age_ts
@@ -326,7 +325,7 @@ if(save_plot) {
 # Time series of observed and fitted sex ratio for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_Ricker"
+mod_name <- "fit_Ricker"
 save_plot <- TRUE
 
 ## @knitr plot_sex_ratio_ts
@@ -346,7 +345,7 @@ if(save_plot) {
 # Time series of observed and fitted p_HOS for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_Ricker"
+mod_name <- "fit_Ricker"
 save_plot <- FALSE
 
 ## @knitr plot_p_HOS_ts
@@ -366,7 +365,7 @@ if(save_plot) {
 # Straying matrix: probability of straying from each origin to each population
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_Ricker"
+mod_name <- "fit_Ricker"
 save_plot <- FALSE
 
 ## @knitr plot_p_origin
@@ -386,7 +385,7 @@ if(save_plot) {
 # Distributions of observed and fitted fecundity by age
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_Ricker"
+mod_name <- "fit_Ricker"
 save_plot <- TRUE
 
 if(save_plot) {
@@ -406,7 +405,7 @@ if(save_plot) dev.off()
 # observation error SDs
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_Ricker"
+mod_name <- "fit_Ricker"
 save_plot <- TRUE
 
 if(save_plot) {
@@ -425,8 +424,8 @@ if(save_plot) dev.off()
 # Distributions of forecast spawner abundance under alternative scenarios
 #--------------------------------------------------------------------------------
 
-modH0_name <- "LCRchum_Ricker_foreH0"
-modHmax_name <- "LCRchum_Ricker_foreHmax"
+modH0_name <- "foreH0_Ricker"
+modHmax_name <- "foreHmax_Ricker"
 save_plot <- FALSE
 
 ## @knitr plot_S_fore
@@ -449,8 +448,8 @@ if(save_plot) {
 # Distributions of forecast final : initial spawner abundance under alternative scenarios
 #------------------------------------------------------------------------------------------
 
-modH0_name <- "LCRchum_Ricker_foreH0"
-modHmax_name <- "LCRchum_Ricker_foreHmax"
+modH0_name <- "foreH0_Ricker"
+modHmax_name <- "foreHmax_Ricker"
 save_plot <- FALSE
 
 ## @knitr plot_StS0_fore
@@ -473,8 +472,8 @@ if(save_plot) {
 # Distributions of forecast p_HOS under alternative scenarios
 #--------------------------------------------------------------------------------
 
-modH0_name <- "LCRchum_Ricker_foreH0"
-modHmax_name <- "LCRchum_Ricker_foreHmax"
+modH0_name <- "foreH0_Ricker"
+modHmax_name <- "foreHmax_Ricker"
 save_plot <- TRUE
 
 ## @knitr plot_p_HOS_fore
@@ -497,8 +496,8 @@ if(save_plot) {
 # Probability of recovery under alternative scenarios
 #--------------------------------------------------------------------------------
 
-modH0_name <- "LCRchum_Ricker_foreH0"
-modHmax_name <- "LCRchum_Ricker_foreHmax"
+modH0_name <- "foreH0_Ricker"
+modHmax_name <- "foreHmax_Ricker"
 save_plot <- TRUE
 
 ## @knitr plot_Precovery_fore
@@ -521,8 +520,8 @@ if(save_plot) {
 # Probability of quasi-extinction under alternative scenarios
 #--------------------------------------------------------------------------------
 
-modH0_name <- "LCRchum_Ricker_foreH0"
-modHmax_name <- "LCRchum_Ricker_foreHmax"
+modH0_name <- "foreH0_Ricker"
+modHmax_name <- "foreHmax_Ricker"
 save_plot <- TRUE
 
 ## @knitr plot_PQE_fore
@@ -550,18 +549,16 @@ if(save_plot) {
 # Summary of 1-year-ahead forecasts by pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "LCRchum_Ricker_fore"
+mod_name <- "foreH0_Ricker"
 life_stage <- "S"   # "S" = spawners, "M" = smolts
 
 ## @knitr forecast_df
 life_cycle <- unlist(strsplit(mod_name, "_"))[1]
-dat <- switch(life_cycle, SS = fish_data_SS_fore, SMS = fish_data_SMS_fore,
-              LCRchum = fish_data_SMS_fore)
-y <- dat$year
-y1 <- min(dat$year[dat$forecast])
-pop <- c(as.character(dat$pop[dat$year==y1]), "Total")
+y <- fish_data_SMS_fore$year
+y1 <- min(fish_data_SMS_fore$year[fish_data_SMS_fore$forecast])
+pop <- c(as.character(fish_data_SMS_fore$pop[fish_data_SMS_fore$year==y1]), "Total")
 N_IPM <- do.call(extract1, list(as.name(mod_name), life_stage))
-N1_IPM <- cbind(N_IPM[,dat$year==y1], rowSums(N_IPM[,dat$year==y1]))
+N1_IPM <- cbind(N_IPM[,fish_data_SMS_fore$year==y1], rowSums(N_IPM[,fish_data_SMS_fore$year==y1]))
 N1_IPM_median <- round(colMedians(N1_IPM), 0)
 N1_IPM_lo <- round(colQuantiles(N1_IPM, probs = 0.05), 0)
 N1_IPM_up <- round(colQuantiles(N1_IPM, probs = 0.95), 0)
@@ -570,7 +567,7 @@ forecast_df <- data.frame(Population = pop,
                           Estimate = paste0(N1_IPM_median, " (", N1_IPM_lo, ", ",
                                             N1_IPM_up, ")"))
 
-rm("mod_name","life_stage","life_cycle","dat","y","y1","pop","N_IPM","N1_IPM",
+rm("mod_name","life_stage","life_cycle","fish_data_SMS_fore","y","y1","pop","N_IPM","N1_IPM",
    "N1_IPM_median","N1_IPM_lo","N1_IPM_up")
 ## @knitr
 
