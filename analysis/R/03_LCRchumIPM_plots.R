@@ -610,7 +610,7 @@ SAR_fore_plot <- function(mod, fish_data_fore, example_pop)
   # S time series for example_pop
   par(mar = c(3, 5, 1, 0.1))
   with(dat, {
-    plot(year, log10(S_obs), type = "n", ylim = log10(range(range(rdraws$S))),
+    plot(year, log10(S_obs), type = "n", ylim = c(0, log10(max(range(rdraws$S)))),
          xaxs = "i", yaxt = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
          xlab = "", ylab = "Spawners")
     mtext("Outmigration year", side = 1, outer = TRUE, cex = par("cex")*1.5)
