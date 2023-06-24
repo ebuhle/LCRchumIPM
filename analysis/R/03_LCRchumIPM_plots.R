@@ -613,7 +613,7 @@ SAR_fore_plot <- function(mod, fish_data_fore, example_pop)
     plot(year, log10(S_obs), type = "n", ylim = c(0, log10(max(range(rdraws$S)))),
          xaxs = "i", yaxt = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
          xlab = "", ylab = "Spawners")
-    mtext("Outmigration year", side = 1, outer = TRUE, cex = par("cex")*1.5)
+    mtext("Year", side = 1, outer = TRUE, cex = par("cex")*1.5)
     tck <- maglab(10^par("usr")[3:4], log = TRUE)
     axis(2, at = log10(tck$labat), labels = tck$exp, las = 1, cex.axis = 1.2)
     rug(year[year %% 10 != 0], ticksize = -0.01)
