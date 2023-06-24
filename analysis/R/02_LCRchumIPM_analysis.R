@@ -425,7 +425,7 @@ if(save_plot) dev.off()
 #--------------------------------------------------------------------------------
 
 mod_name <- "foreH0_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 if(save_plot) {
   agg_png(filename = here("analysis","results",
@@ -434,10 +434,11 @@ if(save_plot) {
 } else dev.new(width=7,height=7)
 
 ## @knitr plot_SAR_fore
-gg <- SAR_fore_plot(mod = get(mod_name), fish_data_fore = fish_data_fore, 
-                    example_pop = "Hamilton Channel")
+SAR_fore_plot(mod = get(mod_name), fish_data_fore = fish_data_fore, example_pop = "Hardy Creek")
 
 ## @knitr
+
+if(save_plot) dev.off()
 
 #--------------------------------------------------------------------------------
 # Distributions of forecast spawner abundance under alternative scenarios
@@ -445,7 +446,7 @@ gg <- SAR_fore_plot(mod = get(mod_name), fish_data_fore = fish_data_fore,
 
 modH0_name <- "foreH0_Ricker"
 modHmax_name <- "foreHmax_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_S_fore
 gg <- S_fore_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
@@ -472,15 +473,15 @@ modHmax_name <- "foreHmax_Ricker"
 save_plot <- FALSE
 
 ## @knitr plot_StS0_fore
-gg <- StS0_fore_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
-                     fish_data_foreH0 = fish_data_foreH0, 
+gg <- StS0_fore_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name),
+                     fish_data_foreH0 = fish_data_foreH0,
                      fish_data_foreHmax = fish_data_foreHmax,
                      pop_names = pop_names)
 ## @knitr
 
 if(save_plot) {
   ggsave(filename = here("analysis","results",
-                         paste0("StS0_fore_", strsplit(modH0_name, "_")[[1]][2], ".png")), 
+                         paste0("StS0_fore_", strsplit(modH0_name, "_")[[1]][2], ".png")),
          width=11, height=7, units="in", dpi=300)
 } else {
   dev.new(width=11, height=7)
@@ -493,7 +494,7 @@ if(save_plot) {
 
 modH0_name <- "foreH0_Ricker"
 modHmax_name <- "foreHmax_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_p_HOS_fore
 gg <- p_HOS_fore_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
@@ -517,7 +518,7 @@ if(save_plot) {
 
 modH0_name <- "foreH0_Ricker"
 modHmax_name <- "foreHmax_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_Precovery_fore
 gg <- Precovery_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
@@ -541,7 +542,7 @@ if(save_plot) {
 
 modH0_name <- "foreH0_Ricker"
 modHmax_name <- "foreHmax_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_PQE_fore
 gg <- PQE_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
