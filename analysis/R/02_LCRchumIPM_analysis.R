@@ -421,6 +421,25 @@ obs_error_plot(get(mod_name), fish_data = fish_data)
 if(save_plot) dev.off()
 
 #--------------------------------------------------------------------------------
+# Conditioning forecast trajectories on time-averaged SAR anomalies
+#--------------------------------------------------------------------------------
+
+mod_name <- "foreH0_Ricker"
+save_plot <- FALSE
+
+if(save_plot) {
+  agg_png(filename = here("analysis","results",
+                          paste0("SAR_fore_", strsplit(mod_name, "_")[[1]][2], ".png")), 
+          width=7, height=7, units="in", res=300)
+} else dev.new(width=7,height=7)
+
+## @knitr plot_SAR_fore
+gg <- SAR_fore_plot(mod = get(mod_name), fish_data_fore = fish_data_fore, 
+                    example_pop = "Hamilton Channel")
+
+## @knitr
+
+#--------------------------------------------------------------------------------
 # Distributions of forecast spawner abundance under alternative scenarios
 #--------------------------------------------------------------------------------
 
