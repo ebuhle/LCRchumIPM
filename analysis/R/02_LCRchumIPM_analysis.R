@@ -228,8 +228,8 @@ if(save_plot) {
 } else dev.new(width = 12, height = 5.5)
 
 ## @knitr multiplot
-LCRchumIPM_multiplot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2], 
-                     fish_data = fish_data)
+multiplot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2], 
+          fish_data = fish_data)
 ## @knitr
 if(save_plot) dev.off()
 
@@ -241,7 +241,7 @@ mod_name <- "fit_Ricker"
 save_plot <- FALSE
 
 ## @knitr plot_SAR_ts
-gg <- LCRchumIPM_SAR_timeseries(mod = get(mod_name), fish_data = fish_data)
+gg <- SAR_timeseries(mod = get(mod_name), fish_data = fish_data)
 ## @knitr
 
 if(save_plot) {
@@ -262,7 +262,7 @@ if(save_plot) {
 # save_plot <- FALSE
 # 
 # ## @knitr SR_plot
-# gg <- LCRchumIPM_SR_plot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2],
+# gg <- SR_plot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2],
 #                          life_stage = life_stage, fish_data = fish_data)
 # ## @knitr
 # 
@@ -284,11 +284,11 @@ life_stage <- "S"   # "S" = spawners, "M" = smolts
 save_plot <- FALSE
 
 ## @knitr plot_spawner_smolt_ts
-gg <- LCRchumIPM_MS_timeseries(mod = get(mod_name), life_stage = life_stage, 
-                               fish_data = switch(tail(unlist(strsplit(mod_name, "_")), 1),
-                                                  foreH0 = fish_data_foreH0, 
-                                                  foreHmax = fish_data_foreHmax,
-                                                  fish_data))
+gg <- MS_timeseries(mod = get(mod_name), life_stage = life_stage, 
+                    fish_data = switch(tail(unlist(strsplit(mod_name, "_")), 1),
+                                       foreH0 = fish_data_foreH0, 
+                                       foreHmax = fish_data_foreHmax,
+                                       fish_data))
 ## @knitr
 
 if(save_plot) {
@@ -309,7 +309,7 @@ mod_name <- "fit_Ricker"
 save_plot <- TRUE
 
 ## @knitr plot_spawner_age_ts
-gg <- LCRchumIPM_age_timeseries(mod = get(mod_name), fish_data = fish_data)
+gg <- age_timeseries(mod = get(mod_name), fish_data = fish_data)
 ## @knitr
 
 if(save_plot) {
@@ -329,7 +329,7 @@ mod_name <- "fit_Ricker"
 save_plot <- TRUE
 
 ## @knitr plot_sex_ratio_ts
-gg <- LCRchumIPM_sex_timeseries(mod = get(mod_name), fish_data = fish_data)
+gg <- sex_timeseries(mod = get(mod_name), fish_data = fish_data)
 ## @knitr
 
 if(save_plot) {
@@ -349,7 +349,7 @@ mod_name <- "fit_Ricker"
 save_plot <- FALSE
 
 ## @knitr plot_p_HOS_ts
-gg <- LCRchumIPM_p_HOS_timeseries(mod = get(mod_name), fish_data = fish_data_foreHmax)
+gg <- p_HOS_timeseries(mod = get(mod_name), fish_data = fish_data_foreHmax)
 ## @knitr
 
 if(save_plot) {
@@ -369,7 +369,7 @@ mod_name <- "fit_Ricker"
 save_plot <- FALSE
 
 ## @knitr plot_p_origin
-gg <- LCRchumIPM_p_origin_plot(mod = get(mod_name), fish_data = fish_data)
+gg <- p_origin_plot(mod = get(mod_name), fish_data = fish_data)
 ## @knitr
 
 if(save_plot) {
@@ -395,7 +395,7 @@ if(save_plot) {
 } else dev.new(width=5,height=5)
 
 ## @knitr plot_fecundity_fit
-LCRchumIPM_fecundity_plot(get(mod_name), fish_data = fish_data, fecundity_data = fecundity_data)
+fecundity_plot(get(mod_name), fish_data = fish_data, fecundity_data = fecundity_data)
 ## @knitr
 
 if(save_plot) dev.off()
@@ -415,7 +415,7 @@ if(save_plot) {
 } else dev.new(width=6,height=8)
 
 ## @knitr plot_obs_error_fit
-LCRchumIPM_obs_error_plot(get(mod_name), fish_data = fish_data)
+obs_error_plot(get(mod_name), fish_data = fish_data)
 ## @knitr
 
 if(save_plot) dev.off()
@@ -429,10 +429,10 @@ modHmax_name <- "foreHmax_Ricker"
 save_plot <- FALSE
 
 ## @knitr plot_S_fore
-gg <- LCRchumIPM_S_fore_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
-                             fish_data_foreH0 = fish_data_foreH0, 
-                             fish_data_foreHmax = fish_data_foreHmax,
-                             pop_names = pop_names)
+gg <- S_fore_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
+                  fish_data_foreH0 = fish_data_foreH0, 
+                  fish_data_foreHmax = fish_data_foreHmax,
+                  pop_names = pop_names)
 ## @knitr
 
 if(save_plot) {
@@ -453,10 +453,10 @@ modHmax_name <- "foreHmax_Ricker"
 save_plot <- FALSE
 
 ## @knitr plot_StS0_fore
-gg <- LCRchumIPM_StS0_fore_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
-                                fish_data_foreH0 = fish_data_foreH0, 
-                                fish_data_foreHmax = fish_data_foreHmax,
-                                pop_names = pop_names)
+gg <- StS0_fore_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
+                     fish_data_foreH0 = fish_data_foreH0, 
+                     fish_data_foreHmax = fish_data_foreHmax,
+                     pop_names = pop_names)
 ## @knitr
 
 if(save_plot) {
@@ -474,13 +474,13 @@ if(save_plot) {
 
 modH0_name <- "foreH0_Ricker"
 modHmax_name <- "foreHmax_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 ## @knitr plot_p_HOS_fore
-gg <- LCRchumIPM_p_HOS_fore_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
-                                 fish_data_foreH0 = fish_data_foreH0, 
-                                 fish_data_foreHmax = fish_data_foreHmax,
-                                 pop_names = pop_names)
+gg <- p_HOS_fore_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
+                      fish_data_foreH0 = fish_data_foreH0, 
+                      fish_data_foreHmax = fish_data_foreHmax,
+                      pop_names = pop_names)
 ## @knitr
 
 if(save_plot) {
@@ -498,13 +498,13 @@ if(save_plot) {
 
 modH0_name <- "foreH0_Ricker"
 modHmax_name <- "foreHmax_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 ## @knitr plot_Precovery_fore
-gg <- LCRchumIPM_Precovery_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
-                                fish_data_foreH0 = fish_data_foreH0, 
-                                fish_data_foreHmax = fish_data_foreHmax,
-                                pop_names = pop_names, recovery_targets = recovery_targets)
+gg <- Precovery_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
+                     fish_data_foreH0 = fish_data_foreH0, 
+                     fish_data_foreHmax = fish_data_foreHmax,
+                     pop_names = pop_names, recovery_targets = recovery_targets)
 ## @knitr
 
 if(save_plot) {
@@ -522,13 +522,13 @@ if(save_plot) {
 
 modH0_name <- "foreH0_Ricker"
 modHmax_name <- "foreHmax_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 ## @knitr plot_PQE_fore
-gg <- LCRchumIPM_PQE_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
-                          fish_data_foreH0 = fish_data_foreH0, 
-                          fish_data_foreHmax = fish_data_foreHmax,
-                          pop_names = pop_names, QET = 50)
+gg <- PQE_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
+               fish_data_foreH0 = fish_data_foreH0, 
+               fish_data_foreHmax = fish_data_foreHmax,
+               pop_names = pop_names, QET = 50)
 ## @knitr
 
 if(save_plot) {

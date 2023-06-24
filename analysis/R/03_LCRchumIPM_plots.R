@@ -10,7 +10,7 @@
 #--------------------------------------------------------------------
 
 # Plot function
-LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data)
+multiplot <- function(mod, SR_fun, fish_data)
 {
   # non-hatchery populations and cases
   which_W_pop <- which(!grepl("Hatchery", levels(fish_data$pop)))
@@ -179,7 +179,7 @@ LCRchumIPM_multiplot <- function(mod, SR_fun, fish_data)
 # Time series of SAR for natural populations and hatcheries
 #--------------------------------------------------------------------------------
 
-LCRchumIPM_SAR_timeseries <- function(mod, fish_data)
+SAR_timeseries <- function(mod, fish_data)
 {
   logit <- rfun(qlogis)
   ilogit <- rfun(plogis)
@@ -217,7 +217,7 @@ LCRchumIPM_SAR_timeseries <- function(mod, fish_data)
 # Spawner-to-smolt S-R plot with fit, states, and observations for each pop
 #--------------------------------------------------------------------------------
 
-LCRchumIPM_SR_plot <- function(mod, SR_fun, life_stage, fish_data)
+SR_plot <- function(mod, SR_fun, life_stage, fish_data)
 {
   n_grid <- 100
   cl <- 0.8
@@ -308,7 +308,7 @@ LCRchumIPM_SR_plot <- function(mod, SR_fun, life_stage, fish_data)
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
 
-LCRchumIPM_MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data)
+MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data)
 {
   life_cycle <- strsplit(mod@model_name, "_")[[1]][2]
   N <- extract1(mod, life_stage)
@@ -352,7 +352,7 @@ LCRchumIPM_MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data)
 # Time series of observed and fitted spawner age structure for each pop
 #--------------------------------------------------------------------------------
 
-LCRchumIPM_age_timeseries <- function(mod, fish_data)
+age_timeseries <- function(mod, fish_data)
 {
   q <- extract1(mod, "q")
   year <- fish_data$year
@@ -390,7 +390,7 @@ LCRchumIPM_age_timeseries <- function(mod, fish_data)
 # Time series of observed and fitted sex ratio for each pop
 #--------------------------------------------------------------------------------
 
-LCRchumIPM_sex_timeseries <- function(mod, fish_data)
+sex_timeseries <- function(mod, fish_data)
 {
   q_F <- as_draws_rvars(as.matrix(mod, "q_F"))
   year <- fish_data$year
@@ -419,7 +419,7 @@ LCRchumIPM_sex_timeseries <- function(mod, fish_data)
 # Time series of observed and fitted p_HOS for each pop
 #--------------------------------------------------------------------------------
 
-LCRchumIPM_p_HOS_timeseries <- function(mod, fish_data)
+p_HOS_timeseries <- function(mod, fish_data)
 {
   p_HOS <- as_draws_rvars(as.matrix(mod, "p_HOS"))
   year <- fish_data$year
@@ -448,7 +448,7 @@ LCRchumIPM_p_HOS_timeseries <- function(mod, fish_data)
 # Straying matrix: probability of straying from each origin to each population
 #--------------------------------------------------------------------------------
 
-LCRchumIPM_p_origin_plot <- function(mod, fish_data)
+p_origin_plot <- function(mod, fish_data)
 {
   p_origin <- as_draws_rvars(as.array(mod, "p_origin"))
   
@@ -472,7 +472,7 @@ LCRchumIPM_p_origin_plot <- function(mod, fish_data)
 # Distributions of observed and fitted fecundity by age
 #--------------------------------------------------------------------------------
 
-LCRchumIPM_fecundity_plot <- function(mod, fish_data, fecundity_data)
+fecundity_plot <- function(mod, fish_data, fecundity_data)
 {
   ages <- substring(names(select(fish_data, starts_with("n_age"))), 6, 6)
   E_obs <- fecundity_data$E_obs
@@ -511,7 +511,7 @@ LCRchumIPM_fecundity_plot <- function(mod, fish_data, fecundity_data)
 # observation error SDs
 #--------------------------------------------------------------------------------
 
-LCRchumIPM_obs_error_plot <- function(mod, fish_data)
+obs_error_plot <- function(mod, fish_data)
 {
   tau_M_obs <- fish_data$tau_M_obs
   tau_M_seq <- seq(min(tau_M_obs, na.rm = TRUE), max(tau_M_obs, na.rm = TRUE), length = 500)
@@ -554,19 +554,29 @@ LCRchumIPM_obs_error_plot <- function(mod, fish_data)
 }
 
 #--------------------------------------------------------------------------------
+# Conditioning forecast trajectories on time-averaged SAR anomalies
+#--------------------------------------------------------------------------------
+
+SAR_fore_plot <- function(modH0, modHmax, fish_data)
+{
+  
+}
+
+#--------------------------------------------------------------------------------
 # Distributions of forecast spawner abundance under alternative scenarios
 #--------------------------------------------------------------------------------
 
-LCRchumIPM_S_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, pop_names) 
+S_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, pop_names) 
 {
   year <- as.numeric(factor(fish_data_foreH0$year))
+  n_draws <- (sum(modH0@sim$n_save - modH0@sim$warmup) %/% 3) * 3
   
   drawsH0 <- as_draws_rvars(as.matrix(modH0, c("eta_year_MS","S"))) %>% 
     mutate_variables(eta_year_MS = eta_year_MS[year]) %>% 
-    subset_draws(iter = sample(ndraws(.), 3000))
+    subset_draws(iter = sample(ndraws(.), n_draws))
   drawsHmax <- as_draws_rvars(as.matrix(modHmax,  c("eta_year_MS","S"))) %>% 
     mutate_variables(eta_year_MS = eta_year_MS[year]) %>% 
-    subset_draws(iter = sample(ndraws(.), 3000))
+    subset_draws(iter = sample(ndraws(.), n_draws))
   
   datH0 <- fish_data_foreH0 %>% mutate(scenario = "No")
   datHmax <- fish_data_foreHmax %>% mutate(scenario = "Yes")
@@ -586,7 +596,7 @@ LCRchumIPM_S_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_f
            S_med = subset_draws(S, iter = which(draws_of(eta_mean_MS[1]) >= q1_MS[1] &
                                                   draws_of(eta_mean_MS[1] < q2_MS[1]))),
            S_high = subset_draws(S, iter = which(draws_of(eta_mean_MS[1] >= q2_MS[1]))),
-           S = subset_draws(S, iter = 1:1000)) %>%
+           S = subset_draws(S, iter = 1:(n_draws/3))) %>%
     rename(S_all = S) %>% 
     pivot_longer(cols = contains("S_"), names_to = "SAR", names_prefix = "S_", values_to = "S") %>%
     mutate(SAR = factor(SAR, levels = c("all","low","med","high"))) %>%
@@ -614,16 +624,17 @@ LCRchumIPM_S_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_f
 # Distributions of forecast final : initial spawner abundance under alternative scenarios
 #------------------------------------------------------------------------------------------
 
-LCRchumIPM_StS0_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, pop_names) 
+StS0_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, pop_names) 
 {
   year <- as.numeric(factor(fish_data_foreH0$year))
+  n_draws <- (sum(modH0@sim$n_save - modH0@sim$warmup) %/% 3) * 3
   
   drawsH0 <- as_draws_rvars(as.matrix(modH0, c("eta_year_MS","S"))) %>% 
     mutate_variables(eta_year_MS = eta_year_MS[year]) %>% 
-    subset_draws(iter = sample(ndraws(.), 3000))
+    subset_draws(iter = sample(ndraws(.), n_draws))
   drawsHmax <- as_draws_rvars(as.matrix(modHmax,  c("eta_year_MS","S"))) %>% 
     mutate_variables(eta_year_MS = eta_year_MS[year]) %>% 
-    subset_draws(iter = sample(ndraws(.), 3000))
+    subset_draws(iter = sample(ndraws(.), n_draws))
   
   datH0 <- fish_data_foreH0 %>% mutate(scenario = "No")
   datHmax <- fish_data_foreHmax %>% mutate(scenario = "Yes")
@@ -643,7 +654,7 @@ LCRchumIPM_StS0_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_dat
            S_med = subset_draws(S, iter = which(draws_of(eta_mean_MS[1]) >= q1_MS[1] &
                                                   draws_of(eta_mean_MS[1] < q2_MS[1]))),
            S_high = subset_draws(S, iter = which(draws_of(eta_mean_MS[1] >= q2_MS[1]))),
-           S = subset_draws(S, iter = 1:1000)) %>%
+           S = subset_draws(S, iter = 1:(n_draws/3))) %>%
     rename(S_all = S) %>% 
     pivot_longer(cols = contains("S_"), names_to = "SAR", names_prefix = "S_", values_to = "S") %>%
     mutate(SAR = factor(SAR, levels = c("all","low","med","high"))) %>%
@@ -673,16 +684,17 @@ LCRchumIPM_StS0_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_dat
 # Distributions of forecast p_HOS under alternative scenarios
 #--------------------------------------------------------------------------------
 
-LCRchumIPM_p_HOS_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, pop_names) 
+p_HOS_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, pop_names) 
 {
   year <- as.numeric(factor(fish_data_foreH0$year))
+  n_draws <- (sum(modH0@sim$n_save - modH0@sim$warmup) %/% 3) * 3
   
   drawsH0 <- as_draws_rvars(as.matrix(modH0, c("eta_year_MS","S","p_HOS"))) %>% 
     mutate_variables(eta_year_MS = eta_year_MS[year], S_H = S*p_HOS) %>% 
-    subset_draws(iter = sample(ndraws(.), 3000))
+    subset_draws(iter = sample(ndraws(.), n_draws))
   drawsHmax <- as_draws_rvars(as.matrix(modHmax,  c("eta_year_MS","S","p_HOS"))) %>% 
     mutate_variables(eta_year_MS = eta_year_MS[year], S_H = S*p_HOS) %>% 
-    subset_draws(iter = sample(ndraws(.), 3000))
+    subset_draws(iter = sample(ndraws(.), n_draws))
   
   datH0 <- fish_data_foreH0 %>% mutate(scenario = "No")
   datHmax <- fish_data_foreHmax %>% mutate(scenario = "Yes")
@@ -690,7 +702,7 @@ LCRchumIPM_p_HOS_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_da
     mutate(eta_year_MS = c(drawsH0$eta_year_MS, drawsHmax$eta_year_MS), 
            S = c(drawsH0$S, drawsHmax$S), S_H = c(drawsH0$S_H, drawsHmax$S_H)) %>% 
     filter(pop_type == "natural" & forecast) %>% 
-    # left_join(pop_names) %>% mutate(pop = recovery_pop) %>% # comment out to use model pops instead of recovery pops #
+    left_join(pop_names) %>% mutate(pop = recovery_pop) %>% # comment out to use model pops instead of recovery pops #
     select(scenario, pop, year, eta_year_MS, S, S_H) %>% 
     group_by(scenario, pop, year) %>% 
     summarize(eta_year_MS = unique(eta_year_MS), 
@@ -703,7 +715,7 @@ LCRchumIPM_p_HOS_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_da
            p_HOS_med = subset_draws(p_HOS, iter = which(draws_of(eta_mean_MS[1]) >= q1_MS[1] &
                                                           draws_of(eta_mean_MS[1] < q2_MS[1]))),
            p_HOS_high = subset_draws(p_HOS, iter = which(draws_of(eta_mean_MS[1] >= q2_MS[1]))),
-           p_HOS = subset_draws(p_HOS, iter = 1:1000)) %>%
+           p_HOS = subset_draws(p_HOS, iter = 1:(n_draws/3))) %>%
     rename(p_HOS_all = p_HOS) %>% 
     pivot_longer(cols = contains("p_HOS_"), names_to = "SAR", names_prefix = "p_HOS_", 
                  values_to = "p_HOS") %>%
@@ -730,20 +742,22 @@ LCRchumIPM_p_HOS_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_da
 # Probability of recovery under alternative scenarios
 #--------------------------------------------------------------------------------
 
-LCRchumIPM_Precovery_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, 
+Precovery_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, 
                                       pop_names, recovery_targets) 
 {
   year <- as.numeric(factor(fish_data_foreH0$year))
+  n_draws <- (sum(modH0@sim$n_save - modH0@sim$warmup) %/% 3) * 3
   
   drawsH0 <- as_draws_rvars(as.matrix(modH0, c("eta_year_MS","S"))) %>% 
     mutate_variables(eta_year_MS = eta_year_MS[year]) %>% 
-    subset_draws(iter = sample(ndraws(.), 3000))
+    subset_draws(iter = sample(ndraws(.), n_draws))
   drawsHmax <- as_draws_rvars(as.matrix(modHmax,  c("eta_year_MS","S"))) %>% 
     mutate_variables(eta_year_MS = eta_year_MS[year]) %>% 
-    subset_draws(iter = sample(ndraws(.), 3000))
+    subset_draws(iter = sample(ndraws(.), n_draws))
   
   datH0 <- fish_data_foreH0 %>% mutate(scenario = "No")
   datHmax <- fish_data_foreHmax %>% mutate(scenario = "Yes")
+  
   dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
     mutate(eta_year_MS = c(drawsH0$eta_year_MS, drawsHmax$eta_year_MS), 
            S = c(drawsH0$S, drawsHmax$S)) %>% 
@@ -760,13 +774,17 @@ LCRchumIPM_Precovery_plot <- function(modH0, modHmax, fish_data_foreH0, fish_dat
            S_med = subset_draws(S, iter = which(draws_of(eta_mean_MS[1]) >= q1_MS[1] &
                                                   draws_of(eta_mean_MS[1] < q2_MS[1]))),
            S_high = subset_draws(S, iter = which(draws_of(eta_mean_MS[1] >= q2_MS[1]))),
-           S = subset_draws(S, iter = 1:1000)) %>%
+           S = subset_draws(S, iter = 1:(n_draws/3))) %>%
     rename(S_all = S) %>% 
     pivot_longer(cols = contains("S_"), names_to = "SAR", names_prefix = "S_", values_to = "S") %>%
     mutate(SAR = factor(SAR, levels = c("all","low","med","high"))) %>%
     left_join(recovery_targets) %>% 
     group_by(scenario, recovery_pop, SAR) %>% 
-    summarize(recovered = rvar_any(S > target[1])) %>% 
+    mutate(S_gmean4 = c(rep(as_rvar(NA), 3), 
+                        rvar_apply(array(4:n()), .margin = 1, 
+                                   .f = function(i) rvar_mean(S[(i-3):i]))),
+           .after = S) %>% 
+    summarize(recovered = rvar_any(S_gmean4 > target[1], na.rm = TRUE)) %>% 
     ungroup() %>% 
     mutate(Precovery = binconf(sum(recovered), ndraws(recovered), alpha = 0.1)) %>% 
     do.call(data.frame, .) # unpack col with nested data frame
@@ -792,20 +810,22 @@ LCRchumIPM_Precovery_plot <- function(modH0, modHmax, fish_data_foreH0, fish_dat
 # Probability of quasi-extinction under alternative scenarios
 #--------------------------------------------------------------------------------
 
-LCRchumIPM_PQE_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, 
+PQE_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, 
                                 pop_names, QET) 
 {
   year <- as.numeric(factor(fish_data_foreH0$year))
+  n_draws <- (sum(modH0@sim$n_save - modH0@sim$warmup) %/% 3) * 3
   
   drawsH0 <- as_draws_rvars(as.matrix(modH0, c("eta_year_MS","S"))) %>% 
     mutate_variables(eta_year_MS = eta_year_MS[year]) %>% 
-    subset_draws(iter = sample(ndraws(.), 3000))
+    subset_draws(iter = sample(ndraws(.), n_draws))
   drawsHmax <- as_draws_rvars(as.matrix(modHmax,  c("eta_year_MS","S"))) %>% 
     mutate_variables(eta_year_MS = eta_year_MS[year]) %>% 
-    subset_draws(iter = sample(ndraws(.), 3000))
+    subset_draws(iter = sample(ndraws(.), n_draws))
   
   datH0 <- fish_data_foreH0 %>% mutate(scenario = "No")
   datHmax <- fish_data_foreHmax %>% mutate(scenario = "Yes")
+  
   dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
     mutate(eta_year_MS = c(drawsH0$eta_year_MS, drawsHmax$eta_year_MS), 
            S = c(drawsH0$S, drawsHmax$S)) %>% 
@@ -822,12 +842,16 @@ LCRchumIPM_PQE_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_fore
            S_med = subset_draws(S, iter = which(draws_of(eta_mean_MS[1]) >= q1_MS[1] &
                                                   draws_of(eta_mean_MS[1] < q2_MS[1]))),
            S_high = subset_draws(S, iter = which(draws_of(eta_mean_MS[1] >= q2_MS[1]))),
-           S = subset_draws(S, iter = 1:1000)) %>%
+           S = subset_draws(S, iter = 1:(n_draws/3))) %>%
     rename(S_all = S) %>% 
     pivot_longer(cols = contains("S_"), names_to = "SAR", names_prefix = "S_", values_to = "S") %>%
     mutate(SAR = factor(SAR, levels = c("all","low","med","high"))) %>%
     group_by(scenario, recovery_pop, SAR) %>% 
-    summarize(quasi_extinct = rvar_any(S < QET)) %>% 
+    mutate(S_gmean4 = c(rep(as_rvar(NA), 3), 
+                        rvar_apply(array(4:n()), .margin = 1, 
+                                   .f = function(i) rvar_mean(S[(i-3):i]))),
+           .after = S) %>% 
+    summarize(quasi_extinct = rvar_any(S_gmean4 < QET, na.rm = TRUE)) %>% 
     ungroup() %>% 
     mutate(PQE = binconf(sum(quasi_extinct), ndraws(quasi_extinct), alpha = 0.1)) %>% 
     do.call(data.frame, .) # unpack col with nested data frame
@@ -838,7 +862,7 @@ LCRchumIPM_PQE_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_fore
     ggplot(aes(x = scenario, y = PQE.PointEst, color = SAR, fill = SAR)) +
     geom_col(position = "dodge", color = NA, alpha = 0.5) +
     geom_pointrange(aes(ymin = PQE.Lower, ymax = PQE.Upper), linewidth = 1, 
-                  position = position_dodge(width = 0.9)) +
+                    position = position_dodge(width = 0.9)) +
     scale_color_manual(values = cols) + scale_fill_manual(values = cols) +
     labs(x = "Hatchery scenario", y = "Probability of quasi-extinction") +
     facet_wrap(vars(recovery_pop), ncol = 3) + 
