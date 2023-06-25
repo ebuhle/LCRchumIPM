@@ -64,7 +64,7 @@ multiplot <- function(mod, SR_fun, fish_data)
   dd_age <- lapply(as.data.frame(mu_E), density)
   
   plot(dd_age[[1]]$x, dd_age[[1]]$y, pch = "", las = 1, cex.axis = 1.2, cex.lab = 1.5,
-       xlab = bquote("Mean fecundity (" * mu[italic(E)] * ")"), ylab = "", 
+       xlab = bquote("Mean fecundity (" * mu[italic(E)] * ")"), ylab = NA, 
        xlim = range(sapply(dd_age, function(m) m$x)),
        ylim = range(sapply(dd_age, function(m) m$y))*1.02,
        xaxs = "i", yaxs = "i", yaxt = "n")
@@ -79,7 +79,7 @@ multiplot <- function(mod, SR_fun, fish_data)
   dd_NG <- density(delta_NG)
   
   plot(dd_NG, type = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
-       xlab = bquote("Non-green fecundity discount (" * delta[NG] * ")"), ylab = "", main = "", 
+       xlab = bquote("Non-green fecundity discount (" * delta[NG] * ")"), ylab = NA, main = NA, 
        xlim = c(0,1), ylim = range(dd_NG$y)*1.02, xaxs = "i", yaxs = "i", yaxt = "n", xpd = NA)
   polygon(dd_NG, col = c1tt, border = NA)
   text(par("usr")[1], par("usr")[4], adj = c(-1,1.5), "B", cex = 1.5)
@@ -90,7 +90,7 @@ multiplot <- function(mod, SR_fun, fish_data)
   
   plot(dd_ESU$x, dd_ESU$y, pch = "", lwd = 3, col = c1, las = 1, 
        xaxs = "i", yaxs = "i", yaxt = "n", cex.axis = 1.2, cex.lab = 1.5, 
-       xlab = bquote("Maximum egg-to-smolt survival (" * psi * ")"), ylab = "",
+       xlab = bquote("Maximum egg-to-smolt survival (" * psi * ")"), ylab = NA,
        xlim = c(0,1), ylim = range(dd_ESU$y, sapply(dd_pop, function(m) m$y))*1.02, xpd = NA)
   polygon(dd_ESU, col = c1tt, border = NA)
   for(i in 1:length(dd_pop))
@@ -103,7 +103,7 @@ multiplot <- function(mod, SR_fun, fish_data)
   
   plot(dd_ESU$x, dd_ESU$y, pch = "", lwd = 3, col = c1, las = 1, 
        xaxt = "n", yaxt = "n", yaxs = "i", cex.axis = 1.2, cex.lab = 1.5, 
-       xlab = bquote("Maximum smolt density" ~ "(" * italic(M)[max] * ")"), ylab = "",
+       xlab = bquote("Maximum smolt density" ~ "(" * italic(M)[max] * ")"), ylab = NA,
        xlim = range(dd_ESU$x[dd_ESU$y > 0.02], sapply(dd_pop, function(m) range(m$x[m$y > 0.02]))),
        ylim = range(dd_ESU$y, sapply(dd_pop, function(m) m$y))* 1.02, xpd = NA)
   polygon(dd_ESU, col = c1tt, border = NA)
@@ -494,7 +494,7 @@ fecundity_plot <- function(mod, fish_data, fecundity_data)
     hist(E_obs[fecundity_data$age_E == ages[a]], 20, prob = TRUE, 
          col = c1tt[a], border = "white", las = 1, cex.axis = 1.5, cex.lab = 1.8,
          xlim = range(E_seq), ylim = range(0, apply(E_fit, 2:3, quantile, 0.99)),
-         xlab = "", ylab = "", main = "", xaxs = "i", yaxt = "n", bty = "n")
+         xlab = NA, ylab = NA, main = NA, xaxs = "i", yaxt = "n", bty = "n")
     lines(E_seq, colMedians(E_fit[,,a]), col = c1[a], lwd = 3)
     polygon(c(E_seq, rev(E_seq)),
             c(colQuantiles(E_fit[,,a], probs = 0.05), 
@@ -535,7 +535,7 @@ obs_error_plot <- function(mod, fish_data)
        col = "lightgray", border = "white",
        ylim = c(0, max(colQuantiles(tau_M_fit, probs = 0.95))),
        xlab = bquote("Smolt observation error (" * tau[italic(M)] * ")"), 
-       ylab = "Probability density", main = "")
+       ylab = "Probability density", main = NA)
   polygon(c(tau_M_seq, rev(tau_M_seq)),
           c(colQuantiles(tau_M_fit, probs = 0.05), rev(colQuantiles(tau_M_fit, probs = 0.95))),
           col = c1t, border = NA)
@@ -546,7 +546,7 @@ obs_error_plot <- function(mod, fish_data)
        col = "lightgray", border = "white",
        ylim = c(0, max(colQuantiles(tau_S_fit, probs = 0.95))),
        xlab = bquote("Spawner observation error (" * tau[italic(S)] * ")"), 
-       ylab = "Probability density", main = "")
+       ylab = "Probability density", main = NA)
   polygon(c(tau_S_seq, rev(tau_S_seq)),
           c(colQuantiles(tau_S_fit, probs = 0.05), rev(colQuantiles(tau_S_fit, probs = 0.95))),
           col = c1t, border = NA)
@@ -575,7 +575,7 @@ SAR_fore_plot <- function(mod, fish_data_fore, example_pop)
   layout(matrix(c(1:4), nrow = 2, byrow = TRUE), widths = c(7, 1, 7, 1))
   par(oma = c(2, 0, 0, 0))
   cols <- c(low = "firebrick1", med = "gold", high = "darkgreen")
-  
+
   # eta_year_MS time series
   par(mar = c(2, 5, 1, 0.1))
   with(dat, {
@@ -601,7 +601,7 @@ SAR_fore_plot <- function(mod, fish_data_fore, example_pop)
   
   par(mar = c(2, 0, 1, 0.5))
   plot(d$y, d$x, type = "n", ylim = par("usr")[3:4],
-       xaxt = "n", yaxt = "n", bty = "n", xlab = "", ylab = "")
+       xaxt = "n", yaxt = "n", bty = "n", xlab = NA, ylab = NA)
   with(d, 
        for(q in 1:3)
          polygon(c(y[xqnt == q], rep(0, sum(xqnt == q))), c(x[xqnt == q], rev(x[xqnt == q])), 
@@ -612,7 +612,7 @@ SAR_fore_plot <- function(mod, fish_data_fore, example_pop)
   with(dat, {
     plot(year, log10(S_obs), type = "n", ylim = c(0, log10(max(range(rdraws$S)))),
          xaxs = "i", yaxt = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
-         xlab = "", ylab = "Spawners")
+         xlab = NA, ylab = "Spawners")
     mtext("Year", side = 1, outer = TRUE, cex = par("cex")*1.5)
     tck <- maglab(10^par("usr")[3:4], log = TRUE)
     axis(2, at = log10(tck$labat), labels = tck$exp, las = 1, cex.axis = 1.2)
@@ -635,7 +635,7 @@ SAR_fore_plot <- function(mod, fish_data_fore, example_pop)
   par(mar = c(3, 0, 1, 0.5))
   plot(dens[[1]]$y, dens[[1]]$x, type = "n", 
        xlim = c(0, max(sapply(dens, function(d) max(d$y)))), ylim = par("usr")[3:4], 
-       xaxt = "n", yaxt = "n", bty = "n", xlab = "", ylab = "")
+       xaxt = "n", yaxt = "n", bty = "n", xlab = NA, ylab = NA)
   for(q in 1:3)
     polygon(c(dens[[q]]$y, rep(0, length(dens[[q]]$y))), c(dens[[q]]$x, rev(dens[[q]]$x)), 
             border = NA, col = alpha(cols[q], 0.5))
@@ -663,12 +663,12 @@ S_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, po
                      q_MS = quantile(eta_mean_MS, (1:2)/3),
                      qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
   
-  datH0 <- fish_data_foreH0 %>% mutate(scenario = "No")
-  datHmax <- fish_data_foreHmax %>% mutate(scenario = "Yes")
+  datH0 <- fish_data_foreH0 %>% 
+    mutate(scenario = "No", qnt_MS = drawsH0$qnt_MS, S = drawsH0$S)
+  datHmax <- fish_data_foreHmax %>% 
+    mutate(scenario = "Yes", qnt_MS = drawsHmax$qnt_MS, S = drawsHmax$S)
   
   dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
-    mutate(qnt_MS = rep(c(drawsH0$qnt_MS, drawsHmax$qnt_MS), each = nrow(datH0)),
-           S = c(drawsH0$S, drawsHmax$S)) %>% 
     filter(pop_type == "natural" & forecast) %>% 
     left_join(pop_names) %>% mutate(pop = recovery_pop) %>% # comment out to use model pops instead of recovery pops #
     select(scenario, pop, year, qnt_MS, S) %>% 
@@ -723,12 +723,12 @@ StS0_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
                      q_MS = quantile(eta_mean_MS, (1:2)/3),
                      qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
   
-  datH0 <- fish_data_foreH0 %>% mutate(scenario = "No")
-  datHmax <- fish_data_foreHmax %>% mutate(scenario = "Yes")
+  datH0 <- fish_data_foreH0 %>% 
+    mutate(scenario = "No", qnt_MS = drawsH0$qnt_MS, S = drawsH0$S)
+  datHmax <- fish_data_foreHmax %>% 
+    mutate(scenario = "Yes", qnt_MS = drawsHmax$qnt_MS, S = drawsHmax$S)
   
   dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
-    mutate(qnt_MS = rep(c(drawsH0$qnt_MS, drawsHmax$qnt_MS), each = nrow(datH0)),
-           S = c(drawsH0$S, drawsHmax$S)) %>% 
     filter(pop_type == "natural") %>% 
     left_join(pop_names) %>% mutate(pop = recovery_pop) %>% # comment out to use model pops instead of recovery pops #
     select(scenario, pop, year, forecast, qnt_MS, S) %>% 
@@ -786,12 +786,12 @@ p_HOS_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax
                      qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1,
                      S_H = S*p_HOS)
   
-  datH0 <- fish_data_foreH0 %>% mutate(scenario = "No")
-  datHmax <- fish_data_foreHmax %>% mutate(scenario = "Yes")
+  datH0 <- fish_data_foreH0 %>% 
+    mutate(scenario = "No", qnt_MS = drawsH0$qnt_MS, S = drawsH0$S, S_H = drawsH0$S_H)
+  datHmax <- fish_data_foreHmax %>% 
+    mutate(scenario = "Yes", qnt_MS = drawsHmax$qnt_MS, S = drawsHmax$S, S_H = drawsHmax$S_H)
   
   dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
-    mutate(qnt_MS = rep(c(drawsH0$qnt_MS, drawsHmax$qnt_MS), each = nrow(datH0)),
-           S = c(drawsH0$S, drawsHmax$S), S_H = c(drawsH0$S_H, drawsHmax$S_H)) %>% 
     filter(pop_type == "natural" & forecast) %>% 
     left_join(pop_names) %>% mutate(pop = recovery_pop) %>% # comment out to use model pops instead of recovery pops #
     select(scenario, pop, year, qnt_MS, S, S_H) %>% 
@@ -846,12 +846,12 @@ Precovery_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
                      q_MS = quantile(eta_mean_MS, (1:2)/3),
                      qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
   
-  datH0 <- fish_data_foreH0 %>% mutate(scenario = "No")
-  datHmax <- fish_data_foreHmax %>% mutate(scenario = "Yes")
+  datH0 <- fish_data_foreH0 %>% 
+    mutate(scenario = "No", qnt_MS = drawsH0$qnt_MS, S = drawsH0$S)
+  datHmax <- fish_data_foreHmax %>% 
+    mutate(scenario = "Yes", qnt_MS = drawsHmax$qnt_MS, S = drawsHmax$S)
   
   dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
-    mutate(qnt_MS = rep(c(drawsH0$qnt_MS, drawsHmax$qnt_MS), each = nrow(datH0)),
-           S = c(drawsH0$S, drawsHmax$S)) %>% 
     filter(pop_type == "natural" & forecast) %>% 
     left_join(pop_names) %>% 
     select(scenario, recovery_pop, year, qnt_MS, S) %>% 
@@ -915,12 +915,12 @@ PQE_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
                      q_MS = quantile(eta_mean_MS, (1:2)/3),
                      qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
   
-  datH0 <- fish_data_foreH0 %>% mutate(scenario = "No")
-  datHmax <- fish_data_foreHmax %>% mutate(scenario = "Yes")
+  datH0 <- fish_data_foreH0 %>% 
+    mutate(scenario = "No", qnt_MS = drawsH0$qnt_MS, S = drawsH0$S)
+  datHmax <- fish_data_foreHmax %>% 
+    mutate(scenario = "Yes", qnt_MS = drawsHmax$qnt_MS, S = drawsHmax$S)
   
   dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
-    mutate(qnt_MS = rep(c(drawsH0$qnt_MS, drawsHmax$qnt_MS), each = nrow(datH0)),
-           S = c(drawsH0$S, drawsHmax$S)) %>% 
     filter(pop_type == "natural" & forecast) %>% 
     left_join(pop_names) %>% 
     select(scenario, recovery_pop, year, qnt_MS, S) %>% 
