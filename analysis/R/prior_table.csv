@@ -1,0 +1,29 @@
+Hyperparameter,Definition (units),Prior
+$\boldsymbol{\mu}_{E}$,mean fecundity by female age,"$N_+(2500,500)$"
+$\boldsymbol{\sigma}_{E}$,SD of fecundity by female age,"$N_+(500,1000)$"
+$\delta_{\text{NG}}$,non-green female fecundity discount,"$U(0,1)$"
+$\mu_\psi$,mean egg-to-fry survival,"$U(0,1)$"
+$\sigma_\psi$,logit-SD of egg-to-fry survival,"$N_+(0,1)$"
+$\mu_{M_\text{max}}$,log-mean maximum smolt production (10^6^ km^-1^),"$N(m_{M_\text{max}}, s_{M_\text{max}})$"
+$\sigma_{M_\text{max}}$,log-SD of maximum smolt production (10^6^ km^-1^),"$N_+(0,3)$"
+$\rho_M$,autocorrelation of shared smolt recruitment process error,"$\text{PowerExp}(0,0.85,20)$"
+$\sigma^\text{year}_M$,log-SD of shared smolt recruitment process error,"$N_+(0,2)$"
+$\sigma_M$,log-SD of unique smolt recruitment process error,"$N_+(0,2)$"
+$\mu_{MS}$,mean SAR,"$U(0,1)$"
+$\beta_{MS}$,effect of rearing type on logit SAR,"$N(0,3)$"
+$\rho_{MS}$,autocorrelation of shared SAR process error,"$\text{PowerExp}(0,0.85,20)$"
+$\sigma^\text{year}_{MS}$,log-SD of shared SAR process error,"$N_+(0,2)$"
+$\sigma_{MS}$,log-SD of unique SAR process error,"$N_+(0,2)$"
+$\boldsymbol{\mu}_\mathbf{p}$,mean conditional probabilities of age-at-return,$\text{Dirichlet}(\mathbf{1})$
+$\boldsymbol{\sigma}^\text{pop}_\mathbf{p}$,among-pop SD of log ratio age-at-return probabilities,"$N_+(0,2)$"
+$\boldsymbol{\sigma}_\mathbf{p}$,within-pop SD of log ratio age-at-return probabilities,"$N_+(0,2)$"
+$\mathbf{R}_\mathbf{p}^\text{pop}$,among-pop correlation matrix of log ratio age-at-return,$\text{LKJ}(1)$
+$\mathbf{R}_\mathbf{p}$,within-pop correlation matrix of log ratio age-at-return,$\text{LKJ}(1)$
+$\mu_\text{F}$,mean proportion female,"$U(0,1)$"
+$\sigma^\text{pop}_\text{F}$,among-pop logit-SD of proportion female,"$N_+(0,2)$"
+$\sigma_\text{F}$,within-pop logit-SD of proportion female,"$N_+(0,2)$"
+$\mathbf{P}_\text{origin}$,hatchery-to-natural straying matrix (prior is applied by row),$\text{Dirichlet}(\mathbf{1})$
+$\mu_{\tau_M}$,log-mean smolt observation error log-SD,"$N(0,1)$"
+$\sigma_{\tau_M}$,log-SD of smolt observation error log-SD,"$N_+(0,5)$"
+$\mu_{\tau_S}$,log-mean spawner observation error log-SD,"$N(0,1)$"
+$\sigma_{\tau_S}$,log-SD of spawner observation error log-SD,"$N_+(0,5)$"

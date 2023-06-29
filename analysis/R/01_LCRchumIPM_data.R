@@ -10,6 +10,7 @@ library(tibble)
 library(dplyr)
 library(tidyr)
 library(forcats)
+library(lubridate)
 library(reshape2)
 library(here)
 
@@ -39,11 +40,11 @@ hatcheries <- read.csv(here("data","Hatchery_Programs.csv"), header = TRUE, stri
 # Habitat size data (currently stream length)
 # Assumptions:
 # (1) Duncan Creek should really be Duncan Channel
-# (2) 2020 is missing; assume same as 2019
+# (2) most recent years are missing; assume same as last available
 habitat_data <- read.csv(here("data","Data_Habitat_Spawning_Linear_2021-04-15.csv"),
                          header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(year = Return.Yr., strata = Strata, pop = Location.Reach, mi = Habitat_Length_miles) %>% 
-  complete(nesting(strata, pop), year = min(year):2021) %>% fill(mi) %>% 
+  complete(nesting(strata, pop), year = min(year):year(Sys.Date())) %>% fill(mi) %>% 
   mutate(pop = gsub("Duncan Creek", "Duncan Channel", gsub("I205", "I-205", gsub("_", " ", pop))), 
          m = mi*1609) %>%  # convert to m
   select(strata, pop, year, m) %>% arrange(strata, pop, year)
@@ -57,7 +58,7 @@ habitat_data <- read.csv(here("data","Data_Habitat_Spawning_Linear_2021-04-15.cs
 # (4) When calculating the observation error of log(S_obs), tau_S_obs, assume
 #     Abund.Mean and Abund.SD are the mean and SD of a lognormal posterior distribution
 #     of spawner abundance based on the sample
-spawner_data <- read.csv(here("data","Data_Abundance_Spawners_Chum_2022-02-22.csv"), 
+spawner_data <- read.csv(here("data","Data_Abundance_Spawners_Chum.csv"), 
                          header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(year = Return.Yr., strata = Strata, location = Location.Reach, 
          disposition = Disposition, method = Method, S_obs = Abund.Mean, SD = Abund.SD) %>% 
@@ -114,7 +115,7 @@ spawner_data_agg <- spawner_data %>% group_by(strata, disposition, year) %>%
 #     return location to another disposition (i.e., Duncan Channel).
 #     So "H" now includes true hatchery fish based on origin *plus* any others whose
 #     known origin (i.e., Duncan Channel) does not match the disposition.
-bio_data <- read.csv(here("data","Data_BioData_Spawners_Chum_2022-02-22.csv"), 
+bio_data <- read.csv(here("data","Data_BioData_Spawners_Chum.csv"), 
                      header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(year = Return.Yr., strata = Strata, location = Location.Reach, 
          disposition = Disposition, origin = Origin, sex = Sex, age = Age, count = Count) %>% 
@@ -163,14 +164,16 @@ green_female_data <- read.csv(here("data","Data_Duncan_Females_by_Condition_2022
 
 # Juvenile abundance data
 # Assumptions:
-# (1) Duncan_North + Duncan_South = Duncan_Channel, so the former two are redundant 
+# (1) Duncan North + Duncan South = Duncan Channel, so the former two are redundant 
 #     (not really an assumption, although the equality isn't perfect in all years)
 # (2) When calculating the observation error of log(M_obs), tau_M_obs, assume
 #     Abund_Median and Abund_SD are the median and SD of a lognormal posterior 
 #     distribution of smolt abundance based on the sample
 # (3) If Abund_SD == 0 (when Analysis=="Census": some years in Duncan_Channel and 
 #     Hamilton_Channel) treat as NA
-juv_data <- read.csv(here("data", "Data_Abundance_Juveniles_Chum_2022-02-22.csv"), 
+# (4) TEMPORARY KLUDGE 2023-06-26: 
+#     change tau_M_obs for Duncan Channel 2022 to NA instead of 2.4e-6
+juv_data <- read.csv(here("data","Data_Abundance_Juveniles_Chum.csv"), 
                      header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(brood_year = Brood.Year, year = Outmigration.Year, strata = Strata, 
          location = Location.Reach, origin = Origin, trap_type = TrapType, 
@@ -180,13 +183,15 @@ juv_data <- read.csv(here("data", "Data_Abundance_Juveniles_Chum_2022-02-22.csv"
   mutate(location = gsub("I205", "I-205", gsub("_", " ", location)),
          origin = sapply(gsub("_", " ", origin), function(x)
            paste(rev(strsplit(x, " ")[[1]]), collapse = " ")), # names inconsistent w/ bio_data 
-         tau_M_obs = replace(sqrt(log((SD/mean)^2 + 1)), SD==0, NA)) %>% 
+         tau_M_obs = replace(sqrt(log((SD/mean)^2 + 1)), SD==0, NA),
+         tau_M_obs = replace(tau_M_obs, location == "Duncan Channel" & year == 2022, NA)) %>% # TEMP 
   select(strata, location, year, brood_year, origin:CV, tau_M_obs, comments) %>% 
   arrange(strata, location, year)
 
-# drop hatchery or redundant pops, hatchery-origin releases,
-# and cases with leading or trailing NAs in M_obs
+# drop redundant pops and cases with leading or trailing NAs in M_obs
 # use only pooled Duncan Channel data for now, not North / South
+# drop final year if it contains only hatchery releases
+#   (kludge to avoid rows with only hatchery M_obs in fish_data as of 2023-06-26)
 head_noNA <- function(x) { cumsum(!is.na(x)) > 0 }
 juv_data_incl <- juv_data %>% 
   mutate(pop = ifelse(grepl("Hatchery", origin), origin, location), .after = strata) %>% 
@@ -194,11 +199,8 @@ juv_data_incl <- juv_data %>%
   select(pop, year, M_obs, tau_M_obs) %>% arrange(pop, year) %>% 
   group_by(pop, year) %>% summarize(M_obs = sum(M_obs), tau_M_obs = unique(tau_M_obs)) %>%
   ungroup() %>% group_by(pop) %>% filter(head_noNA(M_obs) & rev(head_noNA(rev(M_obs)))) %>%
-  as.data.frame()
-# juv_data_incl <- juv_data %>% group_by(location) %>%
-#   filter(head_noNA(M_obs) & rev(head_noNA(rev(M_obs)))) %>%
-#   filter(!(location %in% c("Duncan North","Duncan South")) & !grepl("Hatchery", origin)) %>%
-#   rename(pop = location) %>% as.data.frame()
+  group_by(year) %>% mutate(all_H = all(grepl("Hatchery", pop))) %>% ungroup() %>% 
+  filter(!(year == max(year) & all_H)) %>% select(-all_H) %>% as.data.frame()
 
 # Pairwise distance data
 # convert ft to km
@@ -234,7 +236,6 @@ dist_mouth_data <- pairwise_data %>% filter(pop1 == "Columbia Mouth") %>% select
 # (since their estimated smolts will be summed)  
 # Pad data as necessary so hatchery populations are represented in all years
 fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year")) %>% 
-  # full_join(bio_data_HW, by = c("pop","year")) %>% 
   full_join(bio_data_origin, by = c("pop","year")) %>% 
   full_join(bio_data_sex, by = c("pop","year")) %>% 
   full_join(juv_data_incl, by = c("pop","year")) %>%
@@ -246,7 +247,6 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
   left_join(green_female_data, by = c("pop","year")) %>% 
   rename_at(vars(contains("Age-")), list(~ paste0(sub("Age-","n_age",.), "_obs"))) %>% 
   select(-c(n_age2_obs, n_age6_obs)) %>% 
-  # filter(!grepl("Hatchery|Duncan Creek", pop)) %>% 
   filter(pop != "Duncan Creek") %>% 
   mutate(pop = droplevels(factor(pop, levels = pop_names$pop)), # order E-W
          m = replace(m, grepl("Hatchery", pop), 1),
