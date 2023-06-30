@@ -78,7 +78,7 @@ fit_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
                         center = FALSE, scale = FALSE, ages = list(M = 1), 
                         fish_data = fish_data, fecundity_data = fecundity_data,
                         log_lik = TRUE, chains = 4, iter = 2000, warmup = 1000,
-                        control = list(adapt_delta = 0.95, max_treedepth = 14))
+                        control = list(adapt_delta = 0.95, max_treedepth = 15))
 
 ## @knitr print_fit_Ricker
 print(fit_Ricker, prob = c(0.05,0.5,0.95),
@@ -299,7 +299,7 @@ if(save_plot) {
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
 
-mod_name <- "fore_Ricker"
+mod_name <- "fit_Ricker"
 life_stage <- "S"   # "S" = spawners, "M" = smolts
 save_plot <- FALSE
 
@@ -326,7 +326,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 ## @knitr plot_spawner_age_ts
 gg <- age_timeseries(mod = get(mod_name), fish_data = fish_data)

@@ -208,7 +208,7 @@ SAR_timeseries <- function(mod, fish_data)
     scale_color_discrete(type = c(natural = alpha("slategray4", 0.5), 
                                   hatchery = alpha("salmon", 0.6))) +
     labs(x = "Year", y = "SAR (%)", color = "Origin") +
-    theme(panel.grid.minor = element_blank(), legend.position = c(0.86, 0.91))
+    theme(panel.grid.minor = element_blank(), legend.position = c(0.11, 0.915))
   
   return(gg)
 }
@@ -689,6 +689,7 @@ S_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, po
     ggplot(aes(x = scenario, ydist = gmean_S, color = SAR, fill = SAR)) +
     stat_eye(.width = c(0.5, 0.9), normalize = "groups", position = "dodge",
              point_size = 2, slab_alpha = 0.5, slab_color = NA) +
+    scale_x_discrete(labels = c(quote(H[0]), quote(H[max]))) + 
     scale_y_log10(labels = function(y) y) + 
     coord_cartesian(ylim = range(quantile(dat$gmean_S, c(0.05, 0.95)))) +
     scale_color_manual(values = cols) + scale_fill_manual(values = cols) +
@@ -751,6 +752,7 @@ StS0_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
     geom_hline(yintercept = 1) +
     stat_eye(.width = c(0.5, 0.9), normalize = "groups", position = "dodge",
              point_size = 2, slab_alpha = 0.5, slab_color = NA) +
+    scale_x_discrete(labels = c(quote(H[0]), quote(H[max]))) + 
     scale_y_log10(breaks = 10^seq(-4, 4, by = 2), labels = function(y) y) + 
     coord_cartesian(ylim = range(quantile(dat$StS0, c(0.02, 0.98)))) +
     scale_color_manual(values = cols) + scale_fill_manual(values = cols) +
@@ -818,6 +820,7 @@ p_HOS_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax
     stat_eye(.width = c(0.5, 0.9), normalize = "groups", position = "dodge",
              point_size = 2, slab_alpha = 0.5, slab_color = NA) +
     coord_cartesian(ylim = c(0, max(quantile(dat$p_HOS_mean, 0.95)))) +
+    scale_x_discrete(labels = c(quote(H[0]), quote(H[max]))) + 
     scale_color_manual(values = cols) + scale_fill_manual(values = cols) +
     labs(x = "Hatchery scenario", y = bquote("Mean" ~ italic(p)[HOS])) +
     facet_wrap(vars(pop), ncol = 3) + 
@@ -888,6 +891,7 @@ Precovery_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
     geom_col(position = "dodge", color = NA, alpha = 0.5) +
     geom_pointrange(aes(ymin = Precovery.Lower, ymax = Precovery.Upper), linewidth = 1, 
                     position = position_dodge(width = 0.9)) +
+    scale_x_discrete(labels = c(quote(H[0]), quote(H[max]))) + 
     scale_color_manual(values = cols) + scale_fill_manual(values = cols) +
     labs(x = "Hatchery scenario", y = "Recovery probability") +
     facet_wrap(vars(recovery_pop), ncol = 3) + 
@@ -957,6 +961,7 @@ PQE_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
     geom_col(position = "dodge", color = NA, alpha = 0.5) +
     geom_pointrange(aes(ymin = PQE.Lower, ymax = PQE.Upper), linewidth = 1, 
                     position = position_dodge(width = 0.9)) +
+    scale_x_discrete(labels = c(quote(H[0]), quote(H[max]))) + 
     scale_color_manual(values = cols) + scale_fill_manual(values = cols) +
     labs(x = "Hatchery scenario", y = "Quasi-extinction probability") +
     facet_wrap(vars(recovery_pop), ncol = 3) + 
