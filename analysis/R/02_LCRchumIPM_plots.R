@@ -780,7 +780,8 @@ p_HOS_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax
     mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
                      q_MS = quantile(eta_mean_MS, (1:2)/3),
                      qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1,
-                     S_H = S*p_HOS)
+                     # S_H = S*p_HOS)
+                     S_H = as_rvar(0)) # TEMPORARY KLUDGE!! Figure out WTF is causing nonzero p_HOS in H0
   drawsHmax <- as_draws_rvars(as.matrix(modHmax, c("eta_year_MS","S","p_HOS"))) %>%
     subset_draws(iter = 1:n_draws) %>% 
     mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
@@ -794,7 +795,8 @@ p_HOS_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax
     mutate(scenario = "Yes", qnt_MS = drawsHmax$qnt_MS, S = drawsHmax$S, S_H = drawsHmax$S_H)
   
   dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
-    filter(pop_type == "natural" & forecast) %>% 
+    group_by(year) %>% mutate(all_forecast = all(forecast)) %>% ungroup() %>% 
+    filter(pop_type == "natural" & year >= min(year[all_forecast]) + 5) %>% # after last H spawners return in H0
     left_join(pop_names) %>% mutate(pop = recovery_pop) %>% # comment out to use model pops instead of recovery pops #
     select(scenario, pop, year, qnt_MS, S, S_H) %>% 
     group_by(scenario, pop, year) %>% 

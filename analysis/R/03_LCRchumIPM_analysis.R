@@ -493,7 +493,7 @@ if(save_plot) {
 
 modH0_name <- "foreH0_Ricker"
 modHmax_name <- "foreHmax_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 ## @knitr plot_p_HOS_fore
 gg <- p_HOS_fore_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
@@ -582,7 +582,7 @@ forecast_df <- fish_data_fore %>%
          psi05 = round(as.vector(quantile(psi, 0.05)), 2), 
          psi95 = round(as.vector(quantile(psi, 0.95)), 2),
          psi_mci = paste0(psi50, " (", psi05, ", ", psi95, ")"),
-         Mmax = draws$Mmax/1000, Mmax50 = round(median(Mmax), 1), # mil/km
+         Mmax = draws$Mmax/1000, Mmax50 = round(median(Mmax), 1), # smolts/m -> mil/km
          Mmax05 = round(as.vector(quantile(Mmax, 0.05)), 1), 
          Mmax95 = round(as.vector(quantile(Mmax, 0.95)), 1),
          Mmax_mci = paste0(Mmax50, " (", Mmax05, ", ", Mmax95, ")")) %>% 

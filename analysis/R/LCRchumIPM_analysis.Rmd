@@ -34,6 +34,13 @@ fontsize: 11pt
 geometry: margin=1in
 ---
 
+```{css, eval=TRUE, echo=FALSE}
+.tocify-subheader > .tocify-item {
+  text-indent: initial;
+  padding-left: 2em;
+}
+```
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(tidy = FALSE, highlight = TRUE, comment = NA, 
                       dev = "png", dev.args = list(type = "cairo-png"), dpi = 200,
@@ -298,16 +305,6 @@ $$
 \mathbf{q}_{jt} \right).
 $$
 
-### Spawner Origin Composition
-
-Frequencies of hatchery-origin spawners from each program are estimated based on otolith marking or genetic parentage-based tagging (PBT). Together with the frequency of unknown natural-origin spawners, they are assumed to follow a multinomial observation likelihood with expected probabilities given by the true origin distribution:
-
-$$
-\mathbf{n}_{\text{origin},jt}^\text{obs} \sim 
-\text{Multinomial} \left(  \sum \mathbf{n}_{\text{origin},jt}^\text{obs},
-\mathbf{q}_{\text{origin},jt} \right).
-$$
-
 ### Spawner Sex Ratio
 
 The observed frequency of female spawners is modeled with a binomial observation likelihood given the true proportion and the total sample size that were sexed:
@@ -316,6 +313,16 @@ $$
 n_{\text{F},jt}^\text{obs} \sim 
 \text{Bin} \left( n_{\text{M},jt}^\text{obs} + n_{\text{F},jt}^\text{obs},
 q_{\text{F},jt} \right).
+$$
+
+### Spawner Origin Composition
+
+Frequencies of hatchery-origin spawners from each program are estimated based on otolith marking or genetic parentage-based tagging (PBT). Together with the frequency of unknown natural-origin spawners, they are assumed to follow a multinomial observation likelihood with expected probabilities given by the true origin distribution:
+
+$$
+\mathbf{n}_{\text{origin},jt}^\text{obs} \sim 
+\text{Multinomial} \left(  \sum \mathbf{n}_{\text{origin},jt}^\text{obs},
+\mathbf{q}_{\text{origin},jt} \right).
 $$
 
 ## Priors
@@ -330,7 +337,6 @@ $$
 is used to regularize autocorrelation coefficients away from the computationally problematic boundaries 1 and -1. The Lewandowski, Kurowicka and Joe [@lewandowski_generating_2009] distribution with density $\text{LKJ}(\eta)$, is a distribution over correlation matrices; when $\eta = 1$ it is uniform. The prior mean and SD of log-mean smolt capacity, $m_{M_\text{max}}$ and $s_{M_\text{max}}$, are the sample maximum and SD of observed log smolt density, respectively. While this data-aware prior technically uses the data twice, it is broad and weakly informative and merely serves to find a reasonable scale for overall population size, similar to [widely used Bayesian inference packages](https://cran.r-project.org/web/packages/rstanarm/vignettes/priors.html).
 
 ```{r prior_table, results="asis", echo=FALSE}
-## alternative presentation
 prior_table <- read.csv(here("analysis","R","prior_table.csv"), check.names = FALSE)
 kable(prior_table, escape = FALSE) %>% 
     kable_styling(bootstrap_options = c("striped","hover","condensed"), full_width = FALSE)
@@ -353,7 +359,7 @@ fish_data %>% filter(pop == "Grays CJ") %>% select(-fit_p_HOS) %>%
   scroll_box(width = "100%")
 ```
 
-<br> Column names generally follow the mathematical notation; `pop_type` is a dummy indicator to distinguish natural and hatchery populations, and `downstream_trap` gives the row index corresponding to the downstream smolt trap that captures outmigrants from the given `pop` and `year`. In this case, `Grays CJ` smolts are also counted at a local trap. The origin-frequency columns are indexed by the numeric values of the factor levels corresponding to hatchery populations; for example, `levels(fish_data$pop)[6]` is `r levels(fish_data$pop)[6]`, while `n_origin0_obs` corresponds to natural spawners of unknown origin.
+<br> Column names generally follow the mathematical notation; `pop_type` is a dummy indicator to distinguish natural and hatchery populations, and `downstream_trap` gives the row index corresponding to the downstream smolt trap that captures outmigrants from the given `pop` and `year`. In this case, `Grays CJ` smolts are also counted at a local trap. The origin-frequency columns are indexed by the numeric values of the factor levels corresponding to hatchery populations; for example, `levels(fish_data$pop)[14]` is `r levels(fish_data$pop)[14]`, while `n_origin0_obs` corresponds to natural spawners of unknown origin.
 
 Second, `fecundity_data` contains observations of individual fecundity indexed by hatchery female. Here are the first few rows (as described above, `year` and `ID` are not used in modeling):
 
@@ -549,9 +555,7 @@ show(gg)
 
 ## Proportion of Hatchery-Origin Spawners
 
-Under the H~max~ scenario, time-averaged future $p_\text{HOS}$ is highest under low-SAR conditions, which elevate the probability of a decline in natural spawners while hatchery smolt releases are assumed to remain constant. Average future $p_\text{HOS}$ in the I-205 population (the only one in the I-205 / Washougal recovery unit) is higher than has been observed historically, as seen above in the data and estimated states. This reflects the relatively large influx of Lewis Hatchery-origin adults in tandem with a potential decline in natural spawners. Predicted future $p_\text{HOS}$ in the other two groups is broadly consistent with past observations.
-
-[CHECK YEAR RANGE IN THIS PLOT: p_HOS SHOULD BE 0 IN H0]
+Under the H~max~ scenario, time-averaged future $p_\text{HOS}$ is highest under low-SAR conditions, which elevate the probability of a decline in natural spawners while hatchery smolt releases are assumed to remain constant. Average future $p_\text{HOS}$ in the I-205 population (the only one in the I-205 / Washougal recovery unit) is higher than has been observed historically; compare the plots of the data and retrospectively estimated states. This reflects the relatively large influx of Lewis Hatchery-origin adults in tandem with a potential decline in natural spawners. Predicted future $p_\text{HOS}$ in the other two groups is broadly consistent with past observations.
 
 ```{r plot_p_HOS_fore_Ricker, echo=FALSE, message=FALSE, fig.width=12, fig.height=4, out.width="100%"}
 <<plot_p_HOS_fore>>
