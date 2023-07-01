@@ -15,10 +15,10 @@ $\rho_{MS}$,autocorrelation of shared SAR process error,"$\text{PowerExp}(0,0.85
 $\sigma^\text{year}_{MS}$,log-SD of shared SAR process error,"$\text{N}_+(0,2)$"
 $\sigma_{MS}$,log-SD of unique SAR process error,"$\text{N}_+(0,2)$"
 $\boldsymbol{\mu}_\mathbf{p}$,mean conditional probabilities of age-at-return,$\text{Dirichlet}(\mathbf{1})$
-$\boldsymbol{\sigma}^\text{pop}_\mathbf{p}$,among-pop SD of log ratio age-at-return probabilities,"$\text{N}_+(0,2)$"
-$\boldsymbol{\sigma}_\mathbf{p}$,within-pop SD of log ratio age-at-return probabilities,"$\text{N}_+(0,2)$"
-$\mathbf{R}_\mathbf{p}^\text{pop}$,among-pop correlation matrix of log ratio age-at-return,$\text{LKJ}(1)$
-$\mathbf{R}_\mathbf{p}$,within-pop correlation matrix of log ratio age-at-return,$\text{LKJ}(1)$
+$\boldsymbol{\sigma}^\text{pop}_\mathbf{p}$,among-pop SDs of log ratio age-at-return probabilities,"$\text{N}_+(0,2)$"
+$\boldsymbol{\sigma}_\mathbf{p}$,within-pop SDs of log ratio age-at-return probabilities,"$\text{N}_+(0,2)$"
+$\rho_\mathbf{p}^\text{pop}$,among-pop correlation of log ratio age-at-return probabilities,"$\text{U}(-1,1)$"
+$\rho_\mathbf{p}$,within-pop correlation of log ratio age-at-return probabilities,"$\text{U}(-1,1)$"
 $\mu_\text{F}$,mean proportion female,"$\text{U}(0,1)$"
 $\sigma^\text{pop}_\text{F}$,among-pop logit-SD of proportion female,"$\text{N}_+(0,2)$"
 $\sigma_\text{F}$,within-pop logit-SD of proportion female,"$\text{N}_+(0,2)$"

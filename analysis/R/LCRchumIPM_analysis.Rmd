@@ -48,8 +48,7 @@ padding-left: 3em;
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(tidy = FALSE, highlight = TRUE, comment = NA, 
-                      dev = "png", dev.args = list(type = "cairo-png"), dpi = 200,
-                      out.width = "50%", fig.align = "center")
+                      dev = "ragg_png", dpi = 200, out.width = "50%", fig.align = "center")
 
 library(here) 
 if(!require(captioner))
@@ -203,21 +202,7 @@ $$
 \end{aligned}
 $$
 
-Here the 2 $\times$ 2 covariance matrices $\boldsymbol{\Sigma}^\text{pop}_\mathbf{p}$ and $\boldsymbol{\Sigma}_\mathbf{p}$ allow correlated variation among age classes (on the unconstrained scale, not merely due to the simplex constraint on $\mathbf{p}$) across populations and over time within a population, respectively. For example, populations or cohorts may skew overall younger or older than average. We parameterize each covariance matrix by a vector of standard deviations and a correlation matrix:
-
-$$
-\begin{aligned}
-\boldsymbol{\Sigma}^\text{pop}_\mathbf{p} &= 
-\boldsymbol{\sigma}^\text{pop}_\mathbf{p}
-\mathbf{R}_\mathbf{p}^\text{pop} 
-{ \boldsymbol{\sigma}^\text{pop}_\mathbf{p} } ^ \top
-\\
-\boldsymbol{\Sigma}_\mathbf{p} &= 
-\boldsymbol{\sigma}_\mathbf{p} 
-\mathbf{R}_\mathbf{p}
-\boldsymbol{\sigma}_\mathbf{p} ^ \top .
-\end{aligned}
-$$
+Here the 2 $\times$ 2 covariance matrices $\boldsymbol{\Sigma}^\text{pop}_\mathbf{p}$ and $\boldsymbol{\Sigma}_\mathbf{p}$, parameterized by correlations $\rho^\text{pop}_\mathbf{p}$ and $\rho_\mathbf{p}$ and SD vectors $\boldsymbol{\sigma}^\text{pop}_\mathbf{p}$ and $\boldsymbol{\sigma}_\mathbf{p}$ respectively, allow correlated variation among age classes (on the unconstrained scale, not merely due to the simplex constraint on $\mathbf{p}$) across populations and over time within a population, respectively. For example, populations or cohorts may skew overall younger or older than average.
 
 ### Sex Structure
 
@@ -349,7 +334,7 @@ $$
 \text{exp}{\left[ - \left( \dfrac{|x - u|}{s} \right)^r \right]}
 $$
 
-is used to regularize autocorrelation coefficients away from the computationally problematic boundaries 1 and -1. The Lewandowski, Kurowicka and Joe [@lewandowski_generating_2009] distribution with density $\text{LKJ}(\eta)$, is a distribution over correlation matrices; when $\eta = 1$ it is uniform. The prior mean and SD of log-mean smolt capacity, $m_{M_\text{max}}$ and $s_{M_\text{max}}$, are the sample maximum and SD of observed log smolt density, respectively. While this data-aware prior technically uses the data twice, it is broad and weakly informative and merely serves to find a reasonable scale for overall population size, similar to [widely used Bayesian inference packages](https://cran.r-project.org/web/packages/rstanarm/vignettes/priors.html).
+is used to regularize autocorrelation coefficients away from the computationally problematic boundaries 1 and -1. The prior mean and SD of log-mean smolt capacity, $m_{M_\text{max}}$ and $s_{M_\text{max}}$, are the sample maximum and SD of observed log smolt density, respectively. While this data-aware prior technically uses the data twice, it is broad and weakly informative and merely serves to find a reasonable scale for overall population size, similar to [widely used Bayesian inference packages](https://cran.r-project.org/web/packages/rstanarm/vignettes/priors.html).
 
 ```{r prior_table, results="asis", echo=FALSE}
 prior_table <- read.csv(here("analysis","R","prior_table.csv"), check.names = FALSE)
