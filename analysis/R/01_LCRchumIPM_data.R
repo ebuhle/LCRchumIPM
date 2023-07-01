@@ -28,7 +28,7 @@ pop_names <- read.csv(here("data","pop_names.csv"), header = TRUE, stringsAsFact
 recovery_targets <- read.csv(here("data","recovery_targets.csv"), header = TRUE, stringsAsFactors = FALSE)
 
 # List of "bad" or questionable observations
-bad_data <- read.csv(here("data","Data_Chum_estimates_to_censor_2021-04-16.csv"), 
+bad_data <- read.csv(here("data","Data_Chum_estimates_to_censor.csv"), 
                      header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(pop = Population) %>% filter(pop != "") %>%  # there are bad data in the bad data
   mutate(pop = gsub("_", " ", pop), Censored_data_file = Censored_data_file == "Y", 
@@ -41,7 +41,7 @@ hatcheries <- read.csv(here("data","Hatchery_Programs.csv"), header = TRUE, stri
 # Assumptions:
 # (1) Duncan Creek should really be Duncan Channel
 # (2) most recent years are missing; assume same as last available
-habitat_data <- read.csv(here("data","Data_Habitat_Spawning_Linear_2021-04-15.csv"),
+habitat_data <- read.csv(here("data","Data_Habitat_Spawning_Linear.csv"),
                          header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(year = Return.Yr., strata = Strata, pop = Location.Reach, mi = Habitat_Length_miles) %>% 
   complete(nesting(strata, pop), year = min(year):year(Sys.Date())) %>% fill(mi) %>% 
@@ -155,7 +155,7 @@ bio_data_sex <- bio_data %>%
 # Non-green (ripe or partial) females are assumed to have lower fecundity
 # Proportion green females outside Duncan Channel assumed to = 1
 # https://github.com/mdscheuerell/chumIPM/issues/5
-green_female_data <- read.csv(here("data","Data_Duncan_Females_by_Condition_2022-02-22.csv"),
+green_female_data <- read.csv(here("data","Data_Duncan_Females_by_Condition.csv"),
                               header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(year = BY, disposition = Channel_Disposition, sex = Sex, condition = Condition,
          N = Qty, comment = Comment) %>% 
@@ -208,7 +208,7 @@ juv_data_incl <- juv_data %>%
 #  Duncan Channel, Duncan Hatchery (same location as Duncan Creek)
 #  Grays Hatchery (same location as Grays MS)
 # extract lower triangle to a tidy data frame
-pairwise_dist <- read.csv(here("data","Chum_Pairwise_Points_2021_Mat_Final.csv"), 
+pairwise_dist <- read.csv(here("data","Chum_Pairwise_Points_Mat_Final.csv"), 
                           header = TRUE, row.names = 1) * 0.0003048
 rownames(pairwise_dist) <- pop_names$pop[match(rownames(pairwise_dist), pop_names$pairwise_dist_name)]
 colnames(pairwise_dist) <- rownames(pairwise_dist)
@@ -335,7 +335,7 @@ fish_data_foreHmax <- fish_data_fore %>% group_by(pop) %>%
 
 # Fecundity data
 # Note that L95% and U95% are reversed
-fecundity <- read.csv(here("data","Data_ChumFecundity_fromHatcheryPrograms_2017-01-25.csv"),
+fecundity <- read.csv(here("data","Data_ChumFecundity_fromHatcheryPrograms.csv"),
                       header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(stock = Stock, year = BY, ID = Female.., age_E = Age, L95 = U95., U95 = L95.,
          reproductive_effort = Reproductive.Effort, E_obs = Estimated.Fecundity,
