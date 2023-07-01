@@ -48,7 +48,8 @@ padding-left: 3em;
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(tidy = FALSE, highlight = TRUE, comment = NA, 
-                      dev = "ragg_png", dpi = 200, out.width = "50%", fig.align = "center")
+                      dev = "png", dev.args = list(type = "cairo-png"), dpi = 200, 
+                      out.width = "50%", fig.align = "center")
 
 library(here) 
 if(!require(captioner))
@@ -334,7 +335,7 @@ $$
 \text{exp}{\left[ - \left( \dfrac{|x - u|}{s} \right)^r \right]}
 $$
 
-is used to regularize autocorrelation coefficients away from the computationally problematic boundaries 1 and -1. The prior mean and SD of log-mean smolt capacity, $m_{M_\text{max}}$ and $s_{M_\text{max}}$, are the sample maximum and SD of observed log smolt density, respectively. While this data-aware prior technically uses the data twice, it is broad and weakly informative and merely serves to find a reasonable scale for overall population size, similar to [widely used Bayesian inference packages](https://cran.r-project.org/web/packages/rstanarm/vignettes/priors.html).
+is used to regularize autocorrelation coefficients away from the computationally problematic boundaries [-1,1]. Autocorrelations are declared to have support on the stationary region, so Stan truncates the distribution. The prior mean and SD of log-mean smolt capacity, $m_{M_\text{max}}$ and $s_{M_\text{max}}$, are the sample maximum and SD of observed log smolt density, respectively. While this data-aware prior technically uses the data twice, it is broad and weakly informative and merely serves to find a reasonable scale for overall population size, similar to [widely used Bayesian inference packages](https://cran.r-project.org/web/packages/rstanarm/vignettes/priors.html).
 
 ```{r prior_table, results="asis", echo=FALSE}
 prior_table <- read.csv(here("analysis","R","prior_table.csv"), check.names = FALSE)
@@ -343,7 +344,7 @@ kable(prior_table, escape = FALSE) %>%
 ```
 
 
-Finally, lognormal priors on initial smolt abundance (in year 1 of each population time series) and spawner abundance (in years 1-3) are also data-aware but weakly informative, with parameters equal to the sample log-mean and 2 times the sample log-SD of observed abundance, respectively. The prior on spawner age composition in years 1-3 is simplex-uniform over the space of "orphan" age classes, i.e. those too old to have parent brood years included in the process model. The proportion of females in the same orphan age classes is given a $\text{Beta}(3,3)$ prior to weakly regularize toward an equal sex ratio.
+Finally, lognormal priors on initial smolt abundance (in year 1 of each population time series) and spawner abundance (in years 1-3) are also data-aware but weakly informative, with parameters equal to the sample log-mean and 2 times the sample log-SD of all observed abundances, respectively. The prior on spawner age composition in years 1-3 is simplex-uniform over the space of "orphan" age classes, i.e. those too old to have parent brood years included in the process model. The proportion of females in the same orphan age classes is given a $\text{Beta}(3,3)$ prior to weakly regularize toward an equal sex ratio.
 
 # Data Structure
 
@@ -374,7 +375,7 @@ fecundity_data %>% select(-strata) %>% head(10) #%>% kable() %>%
 
 ## Model Fitting
 
-We can now call the function `salmonIPM()` to fit models to the historical LCR chum monitoring data. Here we use the Ricker spawner-recruit function. We also allow a fixed difference between the average SAR of natural and hatchery populations using the `par_models` formula interface. The `center = FALSE` and `scale = FALSE` arguments prevent the default behavior of centering and standardizing covariates since `pop_type` is a factor. As with all multi-stage **salmonIPM** models, we need to specify the age in years of juvenile life stages, in this case smolts (`M`).
+We can now call the function `salmonIPM()` to fit models to the historical LCR chum monitoring data. Here we use the Ricker spawner-recruit function. We also allow a fixed difference between the average SAR of natural and hatchery populations using the `par_models` formula interface. The `center = FALSE` and `scale = FALSE` arguments prevent the default behavior of centering and standardizing covariates since `pop_type` is a factor. As with all multi-stage **salmonIPM** models, we need to specify the age in years of juvenile life stages, in this case smolts (`M`). The help page `?salmonIPM` provides much more detail on available arguments.
 
 ```{r fit_Ricker, eval = !exists("fit_Ricker")}
 ```
@@ -386,7 +387,7 @@ print(fit_Ricker, prob = c(0.05, 0.5, 0.95),
       include = FALSE, use_cache = FALSE)
 ```
 
-This model takes approximately `r round(mean(rowSums(get_elapsed_time(fit_Ricker)))/3600)` hr to fit on a multicore 3-GHz Intel processor. The results (showing only hyperparameters, except `p_origin`, for readability) suggest that the Markov chains mixed adequately, since the Gelman-Rubin $\widehat{R}$ diagnostics are all ≤ 1.02 and effective sample sizes $n_\text{eff}$ are sufficient for computing 90% credible intervals. We may get false-positive warnings that some `Rhat` and `n_eff` estimates are `NaN`, but these are for the fixed diagonal elements of correlation matrices. We could further explore the chains and HMC diagnostics using interactive visualizations in the [**shinystan**](https://mc-stan.org/users/interfaces/shinystan) package.
+This model takes approximately `r round(mean(rowSums(get_elapsed_time(fit_Ricker)))/3600)` hr to fit on a multicore 3-GHz Intel processor. The results (showing only hyperparameters, except `p_origin`, for readability) suggest that the Markov chains mixed adequately, since the Gelman-Rubin $\widehat{R}$ diagnostics are all ≤ 1.02 and effective sample sizes $n_\text{eff}$ are sufficient for computing 90% credible intervals. We may get false-positive warnings that some `Rhat` and `n_eff` estimates are `NaN`, but these are for the fixed diagonal elements of the 2 $\times$ 2 correlation matrices `R_pop_p` and `R_p` parameterized by $\rho_{\mathbf{p}}^\text{pop}$ and $\rho_{\mathbf{p}}$, respectively. We could further explore the chains and HMC diagnostics using interactive visualizations in the [**shinystan**](https://mc-stan.org/users/interfaces/shinystan) package.
 
 In principle we could fit all three spawner-recruit functions, or models with alternative covariate specifications, and compare them based on estimated out-of-sample predictive performance using the approximate leave-one-out cross-validation score ([LOO](http://mc-stan.org/loo/); Vehtari et al. 2017). In practice we find that LOO estimates for IPMs fitted to the LCR chum data are too unstable to be usable (excessive Pareto *k*-values indicating that some observations are highly influential on the posterior), requiring brute-force cross-validation or customized methods. These are under development, but in the meantime we proceed to use the Ricker model for inference since it is biologically plausible and fits the data reasonably well.
 
@@ -401,7 +402,7 @@ mod_name <- "fit_Ricker"
 <<multiplot>>
 ```
 
-There is clear evidence of density dependence, with more among-population heterogeneity in smolt capacity (millions of smolts per km of spawning habitat) than in maximum egg-to-smolt survival, but most populations exhibit little if any overcompensation over the range of observed spawner densities (shown by the *x*-axis rug in E-F). Both freshwater productivity (total smolt process error, G) and SAR are strongly synchronous across populations at the ESU scale. Freshwater productivity is relatively stable except for the sharp drop in 2019. Smolt-to-adult survival, by contrast, shows strong and quasiperiodic fluctuations consistent with large-scale oceanographic or other environmental drivers. Because of this large and as-yet-unexplained process stochasticity, the SAR estimates in the initial 3 years (when no `S_obs` are available) and final 4 years (corresponding to cohorts that have not yet fully returned as adults), which are informed more by the process model than by data, are very uncertain.
+There is clear evidence of density dependence, with more among-population heterogeneity in smolt capacity (converted to millions of smolts per km of spawning habitat) than in maximum egg-to-smolt survival, but most populations exhibit little if any overcompensation over the range of observed spawner densities (shown by the *x*-axis rug in E-F). Both freshwater productivity (total smolt process error, G) and SAR are strongly synchronous across populations at the ESU scale. Freshwater productivity is relatively stable except for the sharp drop in 2019. Smolt-to-adult survival, by contrast, shows strong and quasiperiodic fluctuations consistent with large-scale oceanographic or other environmental drivers. Because of this large and as-yet-unexplained process stochasticity, the SAR estimates in the initial 3 years (when no $S_{jt}^\text{obs}$ are available) and final 4 years (corresponding to cohorts that have not yet fully returned as adults), which are informed more by the process model than by data, are very uncertain.
 
 <!-- ## Spawner-Recruit Functions -->
 
@@ -435,7 +436,7 @@ mod_name <- "fit_Ricker"
 show(gg)
 ```
 
-## Dispersal of Hatchery Adults
+## Hatchery Spawner Dispersal
 
 Plotting the posterior distribution of the hatchery straying matrix (posterior medians, 50% and 90% credible intervals) reveals broad overlap between Duncan and Lewis Hatcheries in their spatial distribution of adult recruits, while Grays Hatchery fish returned exclusively to the Grays subbasins. The estimates for Grays Hatchery are much tighter due to the larger number of recoveries for the origin-composition likelihood, especially compared to the sparse observations of Lewis Hatchery fish.
 
@@ -449,7 +450,7 @@ We now examine model fits to individual data components in more detail.
 
 ## Fecundity
 
-Fecundity was higher for 4- and 5-year old females than for the youngest age class. Here the histograms show observations and the lines and shading show the posterior median and 95% credible interval, respectively, of the estimated zero-truncated normal density, which fits the data reasonably well.
+Fecundity was higher for 4- and 5-year old females than for the youngest age class. Here the histograms show observations and the lines and shading show the posterior median and 90% credible interval, respectively, of the estimated zero-truncated normal density, which fits the data reasonably well.
 
 ```{r plot_fecundity_Ricker, echo=FALSE, fig.width=5, fig.height=5}
 mod_name <- "fit_Ricker"

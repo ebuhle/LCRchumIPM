@@ -406,7 +406,7 @@ if(save_plot) dev.off()
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 if(save_plot) {
   agg_png(filename = here("analysis","results",

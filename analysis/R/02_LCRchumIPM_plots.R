@@ -208,7 +208,7 @@ SAR_timeseries <- function(mod, fish_data)
     scale_color_discrete(type = c(natural = alpha("slategray4", 0.5), 
                                   hatchery = alpha("salmon", 0.6))) +
     labs(x = "Year", y = "SAR (%)", color = "Origin") +
-    theme(panel.grid.minor = element_blank(), legend.position = c(0.11, 0.915))
+    theme(panel.grid.minor.x = element_blank(), legend.position = c(0.11, 0.915))
   
   return(gg)
 }
@@ -532,10 +532,11 @@ obs_error_plot <- function(mod, fish_data)
   
   # smolt observation error SD
   hist(tau_M_obs, 10, prob = TRUE, las = 1, cex.axis = 1.2, cex.lab = 1.5, 
-       col = "lightgray", border = "white",
+       col = "lightgray", border = "white", yaxt = "n",
        ylim = c(0, max(colQuantiles(tau_M_fit, probs = 0.95))),
        xlab = bquote("Smolt observation error (" * tau[italic(M)] * ")"), 
-       ylab = "Probability density", main = NA, xpd = NA)
+       ylab = NA, main = NA, xpd = NA)
+  mtext("Probability density", cex = 1.5, side = 2, line = 1)
   polygon(c(tau_M_seq, rev(tau_M_seq)),
           c(colQuantiles(tau_M_fit, probs = 0.05), rev(colQuantiles(tau_M_fit, probs = 0.95))),
           col = c1t, border = NA)
@@ -543,7 +544,7 @@ obs_error_plot <- function(mod, fish_data)
   
   # spawner observation error SD
   hist(tau_S_obs, 20, prob = TRUE, las = 1, cex.axis = 1.2, cex.lab = 1.5, 
-       col = "lightgray", border = "white",
+       col = "lightgray", border = "white", yaxt = "n",
        ylim = c(0, max(colQuantiles(tau_S_fit, probs = 0.95))),
        xlab = bquote("Spawner observation error (" * tau[italic(S)] * ")"), 
        ylab = NA, main = NA)
