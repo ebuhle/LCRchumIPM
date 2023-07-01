@@ -296,6 +296,25 @@ if(save_plot) {
 }
 
 #--------------------------------------------------------------------------------
+# Distributions of observed and fitted fecundity by age
+#--------------------------------------------------------------------------------
+
+mod_name <- "fit_Ricker"
+save_plot <- TRUE
+
+if(save_plot) {
+  agg_png(filename = here("analysis","results",
+                          paste0("fecundity_fit_", strsplit(mod_name, "_")[[1]][2], ".png")), 
+          width=5, height=5, units="in", res=200)
+} else dev.new(width=5,height=5)
+
+## @knitr plot_fecundity_fit
+fecundity_plot(get(mod_name), fish_data = fish_data, fecundity_data = fecundity_data)
+## @knitr
+
+if(save_plot) dev.off()
+
+#--------------------------------------------------------------------------------
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
 
@@ -346,7 +365,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 ## @knitr plot_sex_ratio_ts
 gg <- sex_timeseries(mod = get(mod_name), fish_data = fish_data)
@@ -380,25 +399,6 @@ if(save_plot) {
   dev.new(width=11, height=7)
   show(gg)
 }
-
-#--------------------------------------------------------------------------------
-# Distributions of observed and fitted fecundity by age
-#--------------------------------------------------------------------------------
-
-mod_name <- "fit_Ricker"
-save_plot <- TRUE
-
-if(save_plot) {
-  agg_png(filename = here("analysis","results",
-                          paste0("fecundity_fit_", strsplit(mod_name, "_")[[1]][2], ".png")), 
-          width=5, height=5, units="in", res=200)
-} else dev.new(width=5,height=5)
-
-## @knitr plot_fecundity_fit
-fecundity_plot(get(mod_name), fish_data = fish_data, fecundity_data = fecundity_data)
-## @knitr
-
-if(save_plot) dev.off()
 
 #--------------------------------------------------------------------------------
 # Observed and fitted distributions of "known" smolt and spawner 

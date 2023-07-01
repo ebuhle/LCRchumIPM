@@ -459,7 +459,7 @@ mod_name <- "fit_Ricker"
 
 ## Spawner Abundance
 
-The next plot shows observed (observation-model posterior medians; points) and estimated total spawner abundance for each natural population. Filled points indicate observations whose error SD is known (90% intervals are sometimes too narrow to be visible), while the SD for open points is imputed. The solid gray line is the posterior median of the true state from the IPM. Posterior 90% credible intervals indicate process (dark shading) and observation (light shading) uncertainty, i.e. the posterior predictive distribution (PPD) of hypothetical replicate data under the model. Leading or trailing years without spawner abundance estimates are included if smolt abundance is available.
+The next plot shows observed and estimated total spawner abundance for each natural population. Points are "data", i.e. posterior medians from the sample-based observation models, with associated 90% credible intervals (sometimes too narrow to be visible). Filled points indicate observations whose error SD is known, while the SD for open points is imputed. The solid gray line is the posterior median of the estimated true state from the IPM. Posterior 90% credible intervals indicate process (dark shading) and observation (light shading) uncertainty, i.e. the posterior predictive distribution (PPD) of hypothetical replicate data under the model. Leading or trailing years without spawner abundance estimates are included if smolt abundance is available.
 
 ```{r plot_spawners_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
 life_stage <- "S"
@@ -487,7 +487,7 @@ To understand how the IPM imputes the abundance observation error SD in cases wh
 
 ## Spawner Age Composition
 
-Next we compare the estimated true natural spawner age-frequencies (posterior median and 90% credible interval) to the observed sample proportions (with 90% binomial confidence interval). Age composition varies considerably across populations and through time, tracking fluctuations in cohort strength. The precision of the estimated states follows the sample size, with smaller samples giving relatively more weight to the hierarchical process model.
+Next we compare the estimated true natural spawner age-frequencies (posterior medians and 90% credible intervals of the states and of the binomial PPD for hypothetical replicate data) to the observed sample proportions (with 90% binomial confidence intervals). Age composition varies considerably across populations and through time, tracking fluctuations in cohort strength. The precision of the estimated states and the PPD follows the sample size, with smaller samples giving relatively more weight to the hierarchical process model.
 
 ```{r plot_spawner_age_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7*11/12, out.width="100%"}
 <<plot_spawner_age_ts>>
@@ -505,7 +505,7 @@ show(gg)
 
 ## Proportion of Hatchery-Origin Spawners
 
-The plot below shows estimated true $p_\text{HOS}$ summed across hatchery programs, with corresponding sample proportions and binomial 90% confidence intervals. The proportion of hatchery-origin spawners was generally low, with some very small origin-frequency samples that cannot definitively rule out higher values. There is some noticeable lack of fit, especially in Crazy Johnson Creek, due to the relatively parsimonious model of hatchery adult dispersal (e.g., time-invariant straying probabilities), but overall the hatchery smolt-to-adult process model closely matches the observations. 
+The plot below shows the estimated true states and PPD of $p_\text{HOS}$, summed across hatchery programs, with corresponding sample proportions and binomial 90% confidence intervals. The proportion of hatchery-origin spawners was generally low, with some very small origin-frequency sample sizes that cannot definitively rule out higher values. There is some noticeable lack of fit, especially in Crazy Johnson Creek, due to the relatively parsimonious model of hatchery adult dispersal (e.g., time-invariant straying probabilities), but overall the PPD based on the hatchery smolt-to-adult process model closely matches the observed data. 
 
 ```{r plot_p_HOS_ts_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
 <<plot_p_HOS_ts>>

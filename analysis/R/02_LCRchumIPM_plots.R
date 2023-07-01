@@ -303,6 +303,29 @@ SR_plot <- function(mod, SR_fun, life_stage, fish_data)
   return(gg)
 }
 
+#--------------------------------------------------------------------------------
+# Straying matrix: probability of straying from each origin to each population
+#--------------------------------------------------------------------------------
+
+p_origin_plot <- function(mod, fish_data)
+{
+  p_origin <- as_draws_rvars(as.array(mod, "p_origin"))
+  
+  gg <- data.frame(p_origin = p_origin) %>% 
+    setNames(unique(fish_data$pop[fish_data$pop_type == "natural"])) %>% 
+    cbind(origin = unique(fish_data$pop[fish_data$pop_type == "hatchery"])) %>% 
+    pivot_longer(cols = -origin, names_to = "pop", values_to = "p_origin") %>% 
+    mutate(pop = factor(pop, levels = levels(fish_data$pop))) %>% 
+    ggplot(aes(xdist = p_origin, y = pop)) +
+    stat_eye(.width = c(0.5, 0.9), normalize = "groups", 
+             color = "slategray4", fill = alpha("slategray4", 0.5)) + 
+    scale_y_discrete(limits = rev) + labs(x = "Straying rate", y = "") + 
+    facet_wrap(vars(origin)) + 
+    theme(panel.grid.minor = element_blank(), strip.background = element_rect(fill = NA),
+          strip.text = element_text(margin = margin(b = 3, t = 3)))
+  
+  return(gg)
+}
 
 #--------------------------------------------------------------------------------
 # Time series of observed and fitted total spawners or smolts for each pop
@@ -354,23 +377,26 @@ MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data)
 
 age_timeseries <- function(mod, fish_data)
 {
-  q <- extract1(mod, "q")
+  q <- as_draws_rvars(as.matrix(mod, "q"))
   year <- fish_data$year
   
   gg <- fish_data %>% 
-    select(pop, year, starts_with("n_age")) %>% 
+    select(pop, pop_type, year, starts_with("n_age")) %>% 
     mutate(total = rowSums(across(starts_with("n_age"))),
            across(starts_with("n_age"), ~ binconf(.x, total, alpha = 0.1))) %>% 
     do.call(data.frame, .) %>% # unpack cols of nested data frames
-    pivot_longer(cols = -c(pop, year, total), names_to = c("age",".value"),
+    pivot_longer(cols = -c(pop, pop_type, year, total), names_to = c("age",".value"),
                  names_pattern = "n_age(.)_obs.(.*)") %>% 
-    cbind(array(aperm(sapply(1:3, function(k) colQuantiles(q[,,k], probs = c(0.05, 0.5, 0.95)), 
-                             simplify = "array"), c(3,1,2)), dim = c(nrow(.), 3), 
-                dimnames = list(NULL, paste0("q_age_", c("L","m","U"))))) %>%
-    filter(!grepl("Hatchery", pop)) %>% 
-    ggplot(aes(x = year, group = age, color = age, fill = age)) +
-    geom_line(aes(y = q_age_m), lwd = 1, alpha = 0.8) +
-    geom_ribbon(aes(ymin = q_age_L, ymax = q_age_U), color = NA, alpha = 0.3) +
+    mutate(q = as.vector(t(q$q)), 
+           n_age_ppd = rvar_rng(rbinom, n(), size = total, prob = q),
+           q_ppd = n_age_ppd/total) %>% 
+    filter(pop_type == "natural") %>% 
+    ggplot(aes(x = year, y = median(q), group = age, color = age, fill = age)) +
+    geom_line(lwd = 1, alpha = 0.8) +
+    geom_ribbon(aes(ymin = t(quantile(q, 0.05)), ymax = t(quantile(q, 0.95))), 
+                color = NA, alpha = 0.4) +
+    geom_ribbon(aes(ymin = t(quantile(q_ppd, 0.05)), ymax = t(quantile(q_ppd, 0.95))), 
+                color = NA, alpha = 0.2) +
     geom_point(aes(y = PointEst), pch = 16, size = 2.5, alpha = 0.8) +
     geom_errorbar(aes(ymin = Lower, ymax = Upper), width = 0, alpha = 0.8) +
     scale_color_manual(values = viridis(3, end = 0.8, direction = -1)) +
@@ -396,13 +422,17 @@ sex_timeseries <- function(mod, fish_data)
   year <- fish_data$year
   
   gg <- cbind(fish_data, q_F = q_F) %>%
-    mutate(n_MF_obs = n_M_obs + n_F_obs) %>% 
-    cbind(., with(., binconf(x = n_F_obs, n = n_MF_obs))) %>%
+    mutate(n_MF_obs = n_M_obs + n_F_obs, 
+           n_F_ppd = rvar_rng(rbinom, n = n(), size = n_MF_obs, prob = q_F),
+           q_F_ppd = n_F_ppd/n_MF_obs) %>% 
+    cbind(., with(., binconf(x = n_F_obs, n = n_MF_obs, alpha = 0.1))) %>%
     filter(!grepl("Hatchery", pop)) %>% 
     ggplot(aes(x = year, y = PointEst, ymin = Lower, ymax = Upper)) + 
     geom_abline(intercept = 0.5, slope = 0, color = "gray") + 
     geom_ribbon(aes(ymin = t(quantile(q_F, 0.05)), ymax = t(quantile(q_F, 0.95))), 
                 fill = "slategray4", alpha = 0.5) +
+    geom_ribbon(aes(ymin = t(quantile(q_F_ppd, 0.05)), ymax = t(quantile(q_F_ppd, 0.95))), 
+                fill = "slategray4", alpha = 0.3) +
     geom_line(aes(y = median(q_F)), col = "slategray4", lwd = 1) +
     geom_point(pch = 16, size = 2.5) + geom_errorbar(width = 0) +
     scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5) +
@@ -425,12 +455,17 @@ p_HOS_timeseries <- function(mod, fish_data)
   year <- fish_data$year
   
   gg <- fish_data %>% cbind(p_HOS = p_HOS) %>% 
-    mutate(p_HOS_obs = binconf(n_H_obs, n_H_obs + n_W_obs, alpha = 0.1)) %>% 
+    mutate(n_HW_obs = n_H_obs + n_W_obs,
+           n_H_ppd = rvar_rng(rbinom, n = n(), size = n_HW_obs, prob = p_HOS),
+           p_HOS_ppd = n_H_ppd/n_HW_obs,
+           p_HOS_obs = binconf(n_H_obs, n_HW_obs, alpha = 0.1)) %>% 
     do.call(data.frame, .) %>% # unpack col with nested data frame
     filter(!grepl("Hatchery", pop)) %>% 
     ggplot(aes(x = year)) +
     geom_ribbon(aes(ymin = t(quantile(p_HOS, 0.05)), ymax = t(quantile(p_HOS, 0.95))), 
                 fill = "slategray4", alpha = 0.5) +
+    geom_ribbon(aes(ymin = t(quantile(p_HOS_ppd, 0.05)), ymax = t(quantile(p_HOS_ppd, 0.95))), 
+                fill = "slategray4", alpha = 0.3) +
     geom_line(aes(y = median(p_HOS)), col = "slategray4", lwd = 1) +
     geom_point(aes(y = p_HOS_obs.PointEst), pch = 16, size = 2.5) +
     geom_errorbar(aes(ymin = p_HOS_obs.Lower, ymax = p_HOS_obs.Upper), width = 0) +
@@ -439,30 +474,6 @@ p_HOS_timeseries <- function(mod, fish_data)
     facet_wrap(vars(pop), ncol = 4) + 
     theme(panel.grid.major.y = element_blank(), panel.grid.minor = element_blank(),
           strip.background = element_rect(fill = NA),
-          strip.text = element_text(margin = margin(b = 3, t = 3)))
-  
-  return(gg)
-}
-
-#--------------------------------------------------------------------------------
-# Straying matrix: probability of straying from each origin to each population
-#--------------------------------------------------------------------------------
-
-p_origin_plot <- function(mod, fish_data)
-{
-  p_origin <- as_draws_rvars(as.array(mod, "p_origin"))
-  
-  gg <- data.frame(p_origin = p_origin) %>% 
-    setNames(unique(fish_data$pop[fish_data$pop_type == "natural"])) %>% 
-    cbind(origin = unique(fish_data$pop[fish_data$pop_type == "hatchery"])) %>% 
-    pivot_longer(cols = -origin, names_to = "pop", values_to = "p_origin") %>% 
-    mutate(pop = factor(pop, levels = levels(fish_data$pop))) %>% 
-    ggplot(aes(xdist = p_origin, y = pop)) +
-    stat_eye(.width = c(0.5, 0.9), normalize = "groups", 
-             color = "slategray4", fill = alpha("slategray4", 0.5)) + 
-    scale_y_discrete(limits = rev) + labs(x = "Straying rate", y = "") + 
-    facet_wrap(vars(origin)) + 
-    theme(panel.grid.minor = element_blank(), strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
   
   return(gg)
