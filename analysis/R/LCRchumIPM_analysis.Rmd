@@ -122,15 +122,15 @@ The discount for partially spawned females is only relevant for one population, 
 This formulation implicitly assumes egg deposition is density-independent while egg-to-smolt survival is density-dependent, resulting in realized survival $< \psi_j$ as spawner density increases. Maximum egg-to-smolt survival varies randomly among populations according to the hyperdistribution
 
 $$
-\text{logit}{\left( \psi_j \right)} \sim N 
-{\left(\mu_\psi + \mathbf{x}_{\psi jt} \boldsymbol{\beta}_\psi, \sigma_\psi \right)}
+\text{logit}{\left( \psi_j \right)} \sim 
+\text{N}{\left(\mu_\psi + \mathbf{x}_{\psi jt} \boldsymbol{\beta}_\psi, \sigma_\psi \right)}
 $$
 
 and maximum smolt production varies randomly among populations according to the hyperdistribution
 
 $$
 \text{log}{\left( M_{\text{max},j} \right)} \sim 
-N{\left( \mu_{M_\text{max}} + \mathbf{x}_{M_\text{max},jt} \boldsymbol{\beta}_{M_\text{max}}, \sigma_{M_\text{max}} \right)}.
+\text{N}{\left( \mu_{M_\text{max}} + \mathbf{x}_{M_\text{max},jt} \boldsymbol{\beta}_{M_\text{max}}, \sigma_{M_\text{max}} \right)}.
 $$
 
 Covariates can be incorporated into the hierarchical model for each spawner-recruit parameter $\theta$ via a $1 \times K_\theta$ vector of predictors $\mathbf{x}_{\theta jt}$ with corresponding $K_\theta \times 1$ coefficient vector $\boldsymbol{\beta}_\theta$. We do not consider this option further here, but we are exploring the use of covariates to represent freshwater habitat conditions.
@@ -144,10 +144,10 @@ $$
 M_{jt} &= f {\left( S_{jt} | \alpha_{jt}, M_{\text{max},j}, A_{jt} \right)} \ 
 \text{exp}{\left(\mathbf{x}_{Mjt} \beta_M + \eta^\text{year}_{Mt} + \varepsilon_{Mjt}\right)}
 \\
-\eta^\text{year}_{Mt} &\sim N{\left( \rho_{M} \eta^\text{year}_{M,t-1}, 
-\sigma^\text{year}_{M} \right)}
+\eta^\text{year}_{Mt} &\sim 
+\text{N}{\left( \rho_{M} \eta^\text{year}_{M,t-1}, \sigma^\text{year}_{M} \right)}
 \\
-\varepsilon_{Mjt} &\sim N{\left( 0, \sigma_{M} \right)}.
+\varepsilon_{Mjt} &\sim \text{N}{\left( 0, \sigma_{M} \right)}.
 \end{aligned}
 $$
 
@@ -164,9 +164,9 @@ $$
 \eta^\text{year}_{MSt} + \varepsilon_{MSjt} \right)}
 \\
 \eta^\text{year}_{MSt} &\sim 
-N{\left(\rho_{MS} \eta^\text{year}_{MS,t-1}, \sigma^\text{year}_{MS} \right)}
+\text{N}{\left(\rho_{MS} \eta^\text{year}_{MS,t-1}, \sigma^\text{year}_{MS} \right)}
 \\
-\varepsilon_{MSjt} &\sim N{\left( 0, \sigma_{MS} \right)}.
+\varepsilon_{MSjt} &\sim \text{N}{\left( 0, \sigma_{MS} \right)}.
 \end{aligned}
 $$
 
@@ -196,14 +196,14 @@ $$
 \boldsymbol{\varepsilon}_{\mathbf{p}jt} 
 \\
 \boldsymbol{\eta}^\text{pop}_{\mathbf{p}j} &\sim 
-N{\left( \mathbf{0}, \boldsymbol{\Sigma}^\text{pop}_\mathbf{p} \right)}
+\text{N}{\left( \mathbf{0}, \boldsymbol{\Sigma}^\text{pop}_\mathbf{p} \right)}
 \\
 \boldsymbol{\varepsilon}_{\mathbf{p}jt} &\sim
-N{\left( \mathbf{0}, \boldsymbol{\Sigma}_\mathbf{p} \right)}.
+\text{N}{\left( \mathbf{0}, \boldsymbol{\Sigma}_\mathbf{p} \right)}.
 \end{aligned}
 $$
 
-Here the 2 $\times$ 2 covariance matrices $\boldsymbol{\Sigma}^\text{pop}_\mathbf{p}$ and $\boldsymbol{\Sigma}_\mathbf{p}$ allow correlated variation among age classes (on the unconstrained scale, not merely due to the simplex constraint on $\mathbf{p}$) across populations and over time within a population, respectively. For example, some populations or cohorts may skew overall younger or older than average. We parameterize each covariance matrix by a vector of standard deviations and a correlation matrix:
+Here the 2 $\times$ 2 covariance matrices $\boldsymbol{\Sigma}^\text{pop}_\mathbf{p}$ and $\boldsymbol{\Sigma}_\mathbf{p}$ allow correlated variation among age classes (on the unconstrained scale, not merely due to the simplex constraint on $\mathbf{p}$) across populations and over time within a population, respectively. For example, populations or cohorts may skew overall younger or older than average. We parameterize each covariance matrix by a vector of standard deviations and a correlation matrix:
 
 $$
 \begin{aligned}
@@ -229,9 +229,9 @@ $$
 \text{logit}{\left( \mu_\text{F} \right)} + \eta^\text{pop}_{\text{F}j} + \varepsilon_{\text{F}jt} 
 \\
 \eta^\text{pop}_{\text{F}j} &\sim 
-N{\left( 0, \sigma^\text{pop}_\text{F} \right)} 
+\text{N}{\left( 0, \sigma^\text{pop}_\text{F} \right)} 
 \\
-\varepsilon_{\text{F}jt} &\sim N{\left( 0, \sigma_\text{F} \right)}.
+\varepsilon_{\text{F}jt} &\sim \text{N}{\left( 0, \sigma_\text{F} \right)}.
 \end{aligned}
 $$
 
@@ -280,7 +280,7 @@ where $S^\text{add}_{jt}$ is the number of spawners that returned to populations
 We modeled observations of fecundity from individual female chum salmon collected at hatcheries. The observation likelihood for the fecundity of female $i$ of age $a$ is a zero-truncated normal with age-specific mean and SD:
 
 $$
-E_{ai}^\text{obs} \sim N_+ {\left( \mu_{Ea}, \sigma_{Ea} \right)}.
+E_{ai}^\text{obs} \sim \text{N}_+ {\left( \mu_{Ea}, \sigma_{Ea} \right)}.
 $$
 
 ### Smolt and Spawner Abundance
@@ -292,10 +292,10 @@ One complication is that outmigrant monitoring sites do not always have a one-to
 $$
 \begin{aligned}
 \text{log}{\left( \tilde{M}_{jt} \right)} &\sim 
-N{\left( \mu_{\tilde{M}jt}, \tau_{\tilde{M}jt} \right)}
+\text{N}{\left( \mu_{\tilde{M}jt}, \tau_{\tilde{M}jt} \right)}
 \\
 \text{log}{\left(S_{jt} \right)} &\sim 
-N{\left(\mu_{Sjt}, \tau_{Sjt} \right)}.
+\text{N}{\left(\mu_{Sjt}, \tau_{Sjt} \right)}.
 \end{aligned}
 $$
 
@@ -304,10 +304,10 @@ The IPM framework naturally handles missing observations, but in some cases an e
 $$
 \begin{aligned}
 \text{log}{\left(\tau_{Mij}\right)} &\sim 
-N{\left( \mu_{\tau_M},  \sigma_{\tau_M} \right)}
+\text{N}{\left( \mu_{\tau_M},  \sigma_{\tau_M} \right)}
 \\
 \text{log}{\left( \tau_{Sij} \right)} &\sim 
-N{\left( \mu_{\tau_S}, \sigma_{\tau_S} \right)}.
+\text{N}{\left( \mu_{\tau_S}, \sigma_{\tau_S} \right)}.
 \end{aligned}
 $$
 
