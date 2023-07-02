@@ -186,17 +186,22 @@ psi_Mmax_plot <- function(mod, fish_data)
                      mu_Mmax = mu_Mmax * log10(exp(1)) - 3,  # convert to base 10, units of mil/km
                      .value = c(psi, mu_psi, log10_Mmax, mu_Mmax))
   
+  has_M_obs <- fish_data %>% group_by(pop) %>% 
+    summarize(has_M_obs = any(!is.na(M_obs) | !is.na(downstream_trap)))
+  
   dat <- data.frame(pop = rep(c(levels(fish_data$pop), "ESU hyper-mean"), 2)) %>% 
     mutate(pop = factor(pop, levels = unique(pop)),
            pars = rep(c("Maximum ~ egg*'-'*to*'-'*smolt ~ survival ~ (psi)", 
                         "Smolt ~ capacity ~ (italic(M)[max] ~ '['*10^6 ~ km^-1*']')"), 
                       each = length(levels(pop))),
-           hyper = ifelse(pop == "ESU hyper-mean", "hyper","pop"),
+           # hyper = ifelse(pop == "ESU hyper-mean", "hyper","pop"),
+           has_M_obs = rep(c(has_M_obs$has_M_obs, FALSE), 2),
+           fill = ifelse(pop == "ESU hyper-mean", "dark", ifelse(has_M_obs, "light", "none")),
            .value = draws$.value) %>% 
     filter(!grepl("Hatchery", pop)) 
   
   gg <- dat %>% 
-    ggplot(aes(xdist = .value, y = pop, fill = hyper)) +
+    ggplot(aes(xdist = .value, y = pop, fill = fill)) +
     stat_eye(.width = c(0.5, 0.9), normalize = "groups", 
              density = function(v, range_only = range_only, trim = trim, adjust = adjust, 
                                 n = n, breaks = breaks, align = align, 
@@ -204,8 +209,7 @@ psi_Mmax_plot <- function(mod, fish_data)
                dv <- density(v)
                density(v, to = dv$x[max(which(dv$y/max(dv$y) > 2e-2))])
              },
-             color = "slategray4", slab_color = "slategray4",
-             slab_alpha = 0.7, slab_linewidth = 0.5) +
+             color = "slategray4", slab_color = "slategray4", slab_linewidth = 0.5) +
     scale_x_continuous(limits = function(x) range(x,0,1), expand = expansion(0.01),
                        breaks = function(x) {
                          roundx <- round(x)
@@ -220,7 +224,8 @@ psi_Mmax_plot <- function(mod, fish_data)
                          } else return(x)
                        }) +
     scale_y_discrete(limits = rev) + labs(x = NULL, y = NULL) + 
-    scale_fill_manual(values = alpha(c(hyper = "slategray4", pop = "white"), 0.5), 
+    scale_fill_manual(values = alpha(c(dark = "slategray4", light = "slategray4", none = "white"),
+                                     c(0.7, 0.15, 0)),
                       guide = "none") +
     facet_wrap(vars(pars), scales = "free_x", labeller = label_parsed,
                strip.position = "bottom") + 
