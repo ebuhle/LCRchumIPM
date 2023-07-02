@@ -176,50 +176,43 @@ multiplot <- function(mod, SR_fun, fish_data)
 }
 
 #--------------------------------------------------------------------------------
-# Spawner-to-smolt S-R parameters at population and ESU level 
+# S-R parameters at population and ESU level 
 #--------------------------------------------------------------------------------
 
 psi_Mmax_plot <- function(mod, fish_data)
 {
   draws <- as_draws_rvars(as.matrix(mod, c("psi","mu_psi","Mmax","mu_Mmax"))) %>% 
-    mutate_variables(log10_Mmax = log10(Mmax) - 3,    # units of mil / km
-                     mu_Mmax = mu_Mmax * log10(exp(1)) - 3,  # convert to base 10, units of mil/km
+    mutate_variables(log10_Mmax = log10(Mmax) - 3,           # units of mil / km
+                     mu_Mmax = mu_Mmax * log10(exp(1)) - 3,  # convert to base 10, mil/km
                      .value = c(psi, mu_psi, log10_Mmax, mu_Mmax))
   
-  has_M_obs <- fish_data %>% group_by(pop) %>% 
-    summarize(has_M_obs = any(!is.na(M_obs) | !is.na(downstream_trap)))
-  
-  dat <- data.frame(pop = rep(c(levels(fish_data$pop), "ESU hyper-mean"), 2)) %>% 
+  gg <- fish_data %>% group_by(pop) %>% 
+    summarize(has_M_obs = any(!is.na(M_obs) | !is.na(downstream_trap))) %>% 
+    add_row(pop = "ESU hyper-mean", has_M_obs = FALSE) %>% rbind(., .) %>% 
     mutate(pop = factor(pop, levels = unique(pop)),
            pars = rep(c("Maximum ~ egg*'-'*to*'-'*smolt ~ survival ~ (psi)", 
                         "Smolt ~ capacity ~ (italic(M)[max] ~ '['*10^6 ~ km^-1*']')"), 
                       each = length(levels(pop))),
-           # hyper = ifelse(pop == "ESU hyper-mean", "hyper","pop"),
-           has_M_obs = rep(c(has_M_obs$has_M_obs, FALSE), 2),
            fill = ifelse(pop == "ESU hyper-mean", "dark", ifelse(has_M_obs, "light", "none")),
            .value = draws$.value) %>% 
-    filter(!grepl("Hatchery", pop)) 
-  
-  gg <- dat %>% 
+    filter(!grepl("Hatchery", pop)) %>% 
     ggplot(aes(xdist = .value, y = pop, fill = fill)) +
     stat_eye(.width = c(0.5, 0.9), normalize = "groups", 
-             density = function(v, range_only = range_only, trim = trim, adjust = adjust, 
-                                n = n, breaks = breaks, align = align, 
-                                outline_bars = outline_bars) {
+             color = "slategray4", slab_color = "slategray4", slab_linewidth = 0.5,
+             density = function(v, ...) { # trim long tails (p_limits only works w/ distributional)
                dv <- density(v)
-               density(v, to = dv$x[max(which(dv$y/max(dv$y) > 2e-2))])
-             },
-             color = "slategray4", slab_color = "slategray4", slab_linewidth = 0.5) +
+               density(v, to = dv$x[max(which(dv$y/max(dv$y) > 0.02))])
+             }) +
     scale_x_continuous(limits = function(x) range(x,0,1), expand = expansion(0.01),
                        breaks = function(x) {
                          roundx <- round(x)
-                         if(roundx[1] < -1 | roundx[2] > 2) {
+                         if(roundx[1] < -1 | roundx[2] > 2) { # proxy for psi vs. Mmax
                            return(roundx[1]:min(roundx[2], 3))
                          } else return(pretty(x))
                        },
                        labels = function(x) {
                          rangex <- range(round(x,2), na.rm = TRUE)
-                         if(rangex[1] < -1 | rangex[2] > 2) {
+                         if(rangex[1] < -1 | rangex[2] > 2) { # proxy for psi vs. Mmax
                            return(10^round(x))
                          } else return(x)
                        }) +
@@ -227,8 +220,7 @@ psi_Mmax_plot <- function(mod, fish_data)
     scale_fill_manual(values = alpha(c(dark = "slategray4", light = "slategray4", none = "white"),
                                      c(0.7, 0.15, 0)),
                       guide = "none") +
-    facet_wrap(vars(pars), scales = "free_x", labeller = label_parsed,
-               strip.position = "bottom") + 
+    facet_wrap(~ pars, scales = "free_x", strip.position = "bottom", labeller = label_parsed) + 
     theme(panel.grid.minor = element_blank(), strip.background = element_blank(),
           strip.text = element_text(size = 14, margin = margin(b = 3, t = 3)),
           strip.placement = "outside")

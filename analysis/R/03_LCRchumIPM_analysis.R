@@ -234,7 +234,7 @@ multiplot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2],
 if(save_plot) dev.off()
 
 #--------------------------------------------------------------------------------
-# Spawner-to-smolt S-R parameters at population and ESU level 
+# S-R parameters at population and ESU level 
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
