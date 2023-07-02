@@ -223,12 +223,12 @@ $$
 
 ### Hatchery Smolt-to-Adult Survival and Dispersal
 
-In the current version of the IPM, the process model of the hatchery chum life cycle begins with smolts released from (hatchery) population $h$ in year $t$. The reported release size $M^\text{obs}_{ht}$ is taken as known without error since it is relatively precisely estimated, especially compared to smolt abundance in natural populations. The released juveniles are then subject to SAR $s_{MSht}$ and conditional age-at-return probabilities $\mathbf{p}_{ht}$ as described above. Adult recruits from hatchery $h$ return to natural population $j$ with probability $p_{\text{origin},hj}$. These probabilities can be written compactly as the straying matrix $\mathbf{P}_\text{origin}$, whose rows corresponding to hatchery sources sum to 1 over destinations in the set of natural or wild populations $\mathcal{W}$:
+In the current version of the IPM, the process model of the hatchery chum life cycle begins with smolts released from (hatchery) population $h$ in year $t$. The reported release size $M^\text{obs}_{ht}$ is taken as known without error since it is relatively precisely estimated, especially compared to smolt abundance in natural populations. The released juveniles are then subject to SAR $s_{MSht}$ and conditional age-at-return probabilities $\mathbf{p}_{ht}$ as described above. Adult recruits from hatchery $h$ return to natural population $j$ with probability $p_{\text{origin},hj}$. Given the relatively sparse annual recoveries of known-origin spawners, we do not attempt to model interannual variation in the straying probabilities; $\mathbf{P}_\text{origin}$ is time-invariant. The probabilities can be written compactly as the straying matrix $\mathbf{P}_\text{origin}$, whose rows corresponding to hatchery sources sum to 1 over destinations in the set of natural or wild populations $\mathcal{W}$:
 
 $$
 \sum_{j \in \mathcal{W}}{p_{\text{origin},hj}} = 1.
 $$
-This implies that all hatchery-origin adults return to populations in the modeled set $\mathcal{W}$. To the extent that fish from hatchery $h$ return to sites outside this set, the effect will be to reduce the corresponding estimates of $s_{MSht}$. Given the relatively small number of annual recoveries of known-origin spawners, we do not attempt to model interannual variation in the straying probabilities; $\mathbf{P}_\text{origin}$ is time-invariant. The set of modeled hatcheries $\mathcal{H}$ currently includes Duncan Hatchery, Lewis Hatchery and Grays Hatchery. Although Duncan Channel-origin adults are also identifiable, we do not yet model straying from naturally reproducing populations. This will be added in a future iteration of the IPM (see *Next Steps*).
+This implies that all hatchery-origin adults return to populations in the modeled set $\mathcal{W}$. To the extent that fish from hatchery $h$ return to sites outside this set, the effect will be to reduce the corresponding estimates of $s_{MSht}$ (of course, the same is true for the wild populations). In that sense $s_{MS}$ should be regarded as apparent smolt-to-adult survival. The set of modeled hatcheries $\mathcal{H}$ currently includes Duncan Hatchery, Lewis Hatchery and Grays Hatchery. Although Duncan Channel-origin adults are also identifiable, we do not yet model straying from naturally reproducing populations. This will be added in a future iteration of the IPM (see *Next Steps*).
 
 ### Adult Recruitment and Composition
 
@@ -387,11 +387,21 @@ print(fit_Ricker, prob = c(0.05, 0.5, 0.95),
       include = FALSE, use_cache = FALSE)
 ```
 
-This model takes approximately `r round(mean(rowSums(get_elapsed_time(fit_Ricker)))/3600)` hr to fit on a multicore 3-GHz Intel processor. The results (showing only hyperparameters, except `p_origin`, for readability) suggest that the Markov chains mixed adequately, since the Gelman-Rubin $\widehat{R}$ diagnostics are all ≤ 1.02 and effective sample sizes $n_\text{eff}$ are sufficient for computing 90% credible intervals. We may get false-positive warnings that some `Rhat` and `n_eff` estimates are `NaN`, but these are for the fixed diagonal elements of the 2 $\times$ 2 correlation matrices `R_pop_p` and `R_p` parameterized by $\rho_{\mathbf{p}}^\text{pop}$ and $\rho_{\mathbf{p}}$, respectively. We could further explore the chains and HMC diagnostics using interactive visualizations in the [**shinystan**](https://mc-stan.org/users/interfaces/shinystan) package.
+This model takes approximately `r round(mean(rowSums(get_elapsed_time(fit_Ricker)))/3600)` hr to fit on a 3-GHz multicore Intel processor. The results (showing only hyperparameters, except `p_origin`, for readability) suggest that the Markov chains mixed adequately, since the Gelman-Rubin $\widehat{R}$ diagnostics are all ≤ 1.02 and effective sample sizes $n_\text{eff}$ are sufficient for computing 90% credible intervals. We may get false-positive warnings that some `Rhat` and `n_eff` estimates are `NaN`, but these are for the fixed diagonal elements of the 2 $\times$ 2 correlation matrices `R_pop_p` and `R_p` parameterized by $\rho_{\mathbf{p}}^\text{pop}$ and $\rho_{\mathbf{p}}$, respectively. We could further explore the chains and HMC diagnostics using interactive visualizations in the [**shinystan**](https://mc-stan.org/users/interfaces/shinystan) package.
 
 In principle we could fit all three spawner-recruit functions, or models with alternative covariate specifications, and compare them based on estimated out-of-sample predictive performance using the approximate leave-one-out cross-validation score ([LOO](http://mc-stan.org/loo/); Vehtari et al. 2017). In practice we find that LOO estimates for IPMs fitted to the LCR chum data are too unstable to be usable (excessive Pareto *k*-values indicating that some observations are highly influential on the posterior), requiring brute-force cross-validation or customized methods. These are under development, but in the meantime we proceed to use the Ricker model for inference since it is biologically plausible and fits the data reasonably well.
 
-The posterior of the SAR regression coefficient `beta_MS[1]` is strongly negative. Since the levels of `pop_type` are ordered `c("natural","hatchery")`, this indicates that hatchery SAR was lower than natural SAR on average. We show this graphically below.
+```{r hyper_mean_SAR_summary, echo=FALSE}
+logit <- rfun(qlogis)
+ilogit <- rfun(plogis)
+SARout <- as_draws_rvars(as.matrix(fit_Ricker, c("mu_MS","beta_MS"))) %>% 
+  mutate_variables(mu_SAR_W = mu_MS*100, mu_SAR_H = ilogit(logit(mu_MS) + beta_MS)*100) %>%
+  subset_draws(variable = c("mu_SAR_W","mu_SAR_H")) %>% 
+  summarize_draws() %>% 
+  mutate(mci = paste0(round(median,3), "% [", round(q5,3), "%, ", round(q95,3), "%]"))
+```
+
+The posterior of the regression coefficient `beta_MS[1]` is strongly negative. Since the levels of `pop_type` are ordered `c("natural", "hatchery")`, this indicates that hatchery SAR was lower than natural SAR on average. The respective ESU-level hyper-means of smolt-to-adult survival, summarized by posterior median and 90% credible interval, are `r SARout$mci[2]` for the wild populations and (`r SARout$mci[1]`) for the hatcheries. We show this graphically below.
 
 ## Life-Cycle Parameters and States
 
@@ -418,17 +428,7 @@ show(gg)
 
 ## Natural and Hatchery SAR
 
-```{r hyper_mean_SAR_summary, echo=FALSE}
-logit <- rfun(qlogis)
-ilogit <- rfun(plogis)
-SARout <- as_draws_rvars(as.matrix(fit_Ricker, c("mu_MS","beta_MS"))) %>% 
-  mutate_variables(mu_SAR_W = mu_MS*100, mu_SAR_H = ilogit(logit(mu_MS) + beta_MS)*100) %>%
-  subset_draws(variable = c("mu_SAR_W","mu_SAR_H")) %>% 
-  summarize_draws() %>% 
-  mutate(mci = paste0(round(median,3), "% [", round(q5,3), "%, ", round(q95,3), "%]"))
-```
-
-To visualize the effect of the strongly negative regression coefficent `beta_MS[1]` for `pop_type`, we can compare the time series of ESU-level (posterior medians and 90% credible intervals) and population-level (posterior medians only) SAR for natural and hatchery populations. The difference between the ESU-level hyper-means reflects that SAR was lower on average for the 3 hatcheries (posterior median and 90% credible interval = `r SARout$mci[2]`) than for the wild populations (`r SARout$mci[1]`). The two groups are highly correlated, however, because variation in SAR is dominated by the common trend `eta_year_MS`. This also allows information to be shared between the groups via the hyperparameters of the SAR process model, so the inclusion of the hatcheries in the model improves the estimates for wild populations. As mentioned previously, the lower apparent survival of hatchery smolts could reflect a greater tendency to stray outside the modeled set $\mathcal{W}$ in addition to biological differences due to hatchery rearing.
+To visualize the effect of the strongly negative regression coefficent `beta_MS[1]` for `pop_type`, we can compare the time series of ESU-level (posterior medians and 90% credible intervals) and population-level (posterior medians only) SAR for natural and hatchery populations. The difference between the ESU-level hyper-means reflects that SAR was lower on average for the 3 hatcheries than for the wild populations. The two groups are highly correlated, however, because variation in SAR is dominated by the common trend `eta_year_MS`. This also allows information to be shared between the groups via the hyperparameters of the SAR process model, so the inclusion of the hatcheries in the model improves the estimates for wild populations. As mentioned previously, the lower apparent survival of hatchery smolts could reflect a greater tendency to stray outside the modeled set $\mathcal{W}$ in addition to biological differences due to hatchery rearing [@naish_evaluation_2008].
 
 ```{r plot_SAR_ts_Ricker, echo=FALSE, warning=FALSE, fig.width=7, fig.height=7}
 mod_name <- "fit_Ricker"
@@ -461,7 +461,7 @@ mod_name <- "fit_Ricker"
 
 The next plot shows observed and estimated total spawner abundance for each natural population. Points are "data", i.e. posterior medians from the sample-based observation models, with associated 90% credible intervals (sometimes too narrow to be visible). Filled points indicate observations whose error SD is known, while the SD for open points is imputed. The solid gray line is the posterior median of the estimated true state from the IPM. Posterior 90% credible intervals indicate process (dark shading) and observation (light shading) uncertainty, i.e. the posterior predictive distribution (PPD) of hypothetical replicate data under the model. Leading or trailing years without spawner abundance estimates are included if smolt abundance is available.
 
-```{r plot_spawners_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
+```{r plot_spawners_Ricker, echo = FALSE, warning=FALSE, fig.width=14, fig.height=7, out.width="100%"}
 life_stage <- "S"
 <<plot_spawner_smolt_ts>>
 show(gg)
@@ -471,7 +471,7 @@ show(gg)
 
 Fits to the smolt abundance data, following the same conventions as for spawner abundance, immediately show how much sparser the juvenile sampling is. Only six populations are monitored with smolt traps (including `Grays WF`, which along with `Grays CJ` is incorporated into the summed smolt observations and estimates for the downstream `Grays MS` trap) and several of those time series are incomplete. For that reason, a greater share of the information about the underlying state comes from the process model, which induces synchronous fluctuations.
 
-```{r plot_smolts_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
+```{r plot_smolts_Ricker, echo = FALSE, warning=FALSE, fig.width=14, fig.height=7, out.width="100%"}
 life_stage <- "M"
 <<plot_spawner_smolt_ts>>
 show(gg)
@@ -589,7 +589,7 @@ The reduction in PQE under supplementation is due to the buffering effect of rel
 
 We also computed the probability of recovery, defined as the 4-year running geometric mean spawner abundance exceeding the recovery population-specific target at least once during the forecast period. Recovery probabilities were nearly indistinguishable from 1 (minimum point estimate, 0.97) for all three recovery populations under both hatchery scenarios and all SAR conditions, so results are not shown here.
 
-## One-Step Ahead Forecast
+# One-Step Ahead Forecast
 
 We can easily generate short-term run forecasts using the same approach of augmenting `fish_data` with future rows. In fact, for forecast horizons up to 3 years we can simply use the existing `foreH0_Ricker` model because all returning adults belong to cohorts that have already been born, so are unaffected by assumptions about future hatchery operations. Within a single chum generation, the forecast is informed by the observed abundance of parent spawners and outmigrants as well as younger recruit age classes whose older siblings have yet to return. Thus the IPM automatically incorporates the information used in "sibling regression" models [@peterman_model_1982], but without the restrictive assumption of constant within-cohort age structure. 
 
