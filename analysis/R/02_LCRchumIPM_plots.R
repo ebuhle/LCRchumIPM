@@ -176,42 +176,43 @@ multiplot <- function(mod, SR_fun, fish_data)
 }
 
 #--------------------------------------------------------------------------------
-# Time series of SAR for natural populations and hatcheries
+# Spawner-to-smolt S-R parameters at population and ESU level 
 #--------------------------------------------------------------------------------
 
-SAR_timeseries <- function(mod, fish_data)
+psi_Mmax_plot <- function(mod, fish_data)
 {
-  logit <- rfun(qlogis)
-  ilogit <- rfun(plogis)
+  draws <- as_draws_rvars(as.matrix(mod, c("psi","mu_psi","Mmax","mu_Mmax"))) %>% 
+    mutate_variables(`log10(M[max])` = log10(Mmax) - 3,    # units of mil / km
+                     mu_Mmax = mu_Mmax * log10(exp(1)) - 3,  # convert to base 10, units of mil/km
+                     .value = c(psi, mu_psi, `log10(M[max])`, mu_Mmax))
   
-  draws <- as.matrix(mod, c("s_MS","mu_MS","beta_MS","eta_year_MS")) %>% as_draws_rvars() %>% 
-    mutate_variables(s_hat_MS_N = ilogit(logit(mu_MS) + eta_year_MS),
-                     s_hat_MS_H = ilogit(logit(mu_MS) + eta_year_MS + beta_MS[1]))
+  dat <- data.frame(pop = rep(c(levels(fish_data$pop), "ESU hyper-mean"), 2)) %>% 
+    mutate(pop = factor(pop, levels = unique(pop)),
+           pars = rep(c("psi", "log[10](italic(M)[max] ~ group('[', 10^6 ~ km^-1, ']'))"), each = length(levels(pop))),
+                      each = length(levels(pop)),
+           hyper = ifelse(pop == "ESU hyper-mean", "hyper","pop"),
+           .value = draws$.value) %>% 
+    filter(!grepl("Hatchery", pop)) 
   
-  hyper <- data.frame(year = sort(unique(fish_data$year)), 
-                      s_hat_MS_N = draws$s_hat_MS_N, s_hat_MS_H = draws$s_hat_MS_H)
-  
-  gg <- fish_data %>% cbind(s_MS = draws$s_MS) %>% 
-    ggplot(aes(x = year, y = median(s_MS), group = pop, color = pop_type)) +
-    geom_line(linewidth = 0.7) + 
-    geom_line(aes(x = year, y = median(s_hat_MS_N)), inherit.aes = FALSE,
-              data = hyper, linewidth = 1.5, col = alpha("slategray4", 0.8)) +
-    geom_ribbon(aes(x = year, ymin = t(quantile(s_hat_MS_N, 0.05)), 
-                    ymax = t(quantile(s_hat_MS_N, 0.95))),
-                inherit.aes = FALSE, data = hyper, fill = alpha("slategray4", 0.3)) +
-    geom_line(aes(x = year, y = median(s_hat_MS_H)), inherit.aes = FALSE,
-              data = hyper, linewidth = 1.5, col = alpha("salmon", 0.8)) +
-    geom_ribbon(aes(x = year, ymin = t(quantile(s_hat_MS_H, 0.05)), 
-                    ymax = t(quantile(s_hat_MS_H, 0.95))),
-                inherit.aes = FALSE, data = hyper, fill = alpha("salmon", 0.3)) +
-    scale_y_continuous(labels = function(x) x*100) +
-    scale_color_discrete(type = c(natural = alpha("slategray4", 0.5), 
-                                  hatchery = alpha("salmon", 0.6))) +
-    labs(x = "Year", y = "SAR (%)", color = "Origin") +
-    theme(legend.position = c(0.11, 0.915), legend.box.margin = margin(0,-10,0,-15),
-          panel.grid.minor.x = element_blank())
-  
-  return(gg)
+  gg <- dat %>% 
+    ggplot(aes(xdist = .value, y = pop, fill = hyper)) +
+    stat_eye(.width = c(0.5, 0.9), normalize = "groups", 
+             density = function(v, range_only = range_only, trim = trim, adjust = adjust, 
+                                n = n, breaks = breaks, align = align, 
+                                outline_bars = outline_bars) {
+               dv <- density(v)
+               density(v, to = dv$x[max(which(dv$y/max(dv$y) > 2e-2))])
+             },
+             color = "slategray4", slab_color = "slategray4",
+             slab_alpha = 0.7, slab_linewidth = 0.5) +
+    scale_x_continuous(limits = function(x) range(x,0,1), expand = expansion(0.01),
+                       labels = function(x) round(x, 2)) +
+    scale_y_discrete(limits = rev) + labs(x = NULL, y = NULL) + 
+    scale_fill_manual(values = alpha(c(hyper = "slategray4", pop = "white"), 0.5), 
+                      guide = "none") +
+    facet_wrap(vars(pars), scales = "free_x", labeller = label_parsed) + 
+    theme(panel.grid.minor.y = element_blank(), strip.background = element_rect(fill = NA),
+          strip.text = element_text(margin = margin(b = 3, t = 3)))
 }
 
 #--------------------------------------------------------------------------------
@@ -305,7 +306,46 @@ SR_plot <- function(mod, SR_fun, life_stage, fish_data)
 }
 
 #--------------------------------------------------------------------------------
-# Straying matrix: probability of straying from each origin to each population
+# Time series of SAR for natural populations and hatcheries
+#--------------------------------------------------------------------------------
+
+SAR_timeseries <- function(mod, fish_data)
+{
+  logit <- rfun(qlogis)
+  ilogit <- rfun(plogis)
+  
+  draws <- as.matrix(mod, c("s_MS","mu_MS","beta_MS","eta_year_MS")) %>% as_draws_rvars() %>% 
+    mutate_variables(s_hat_MS_N = ilogit(logit(mu_MS) + eta_year_MS),
+                     s_hat_MS_H = ilogit(logit(mu_MS) + eta_year_MS + beta_MS[1]))
+  
+  hyper <- data.frame(year = sort(unique(fish_data$year)), 
+                      s_hat_MS_N = draws$s_hat_MS_N, s_hat_MS_H = draws$s_hat_MS_H)
+  
+  gg <- fish_data %>% cbind(s_MS = draws$s_MS) %>% 
+    ggplot(aes(x = year, y = median(s_MS), group = pop, color = pop_type)) +
+    geom_line(linewidth = 0.7) + 
+    geom_line(aes(x = year, y = median(s_hat_MS_N)), inherit.aes = FALSE,
+              data = hyper, linewidth = 1.5, col = alpha("slategray4", 0.8)) +
+    geom_ribbon(aes(x = year, ymin = t(quantile(s_hat_MS_N, 0.05)), 
+                    ymax = t(quantile(s_hat_MS_N, 0.95))),
+                inherit.aes = FALSE, data = hyper, fill = alpha("slategray4", 0.3)) +
+    geom_line(aes(x = year, y = median(s_hat_MS_H)), inherit.aes = FALSE,
+              data = hyper, linewidth = 1.5, col = alpha("salmon", 0.8)) +
+    geom_ribbon(aes(x = year, ymin = t(quantile(s_hat_MS_H, 0.05)), 
+                    ymax = t(quantile(s_hat_MS_H, 0.95))),
+                inherit.aes = FALSE, data = hyper, fill = alpha("salmon", 0.3)) +
+    scale_y_continuous(labels = function(x) x*100) +
+    scale_color_discrete(type = c(natural = alpha("slategray4", 0.5), 
+                                  hatchery = alpha("salmon", 0.6))) +
+    labs(x = "Year", y = "SAR (%)", color = "Origin") +
+    theme(legend.position = c(0.11, 0.915), legend.box.margin = margin(0,-10,0,-15),
+          panel.grid.minor.x = element_blank())
+  
+  return(gg)
+}
+
+#--------------------------------------------------------------------------------
+# Straying matrix: probability of dispersal from each origin to each population
 #--------------------------------------------------------------------------------
 
 p_origin_plot <- function(mod, fish_data)
@@ -320,7 +360,7 @@ p_origin_plot <- function(mod, fish_data)
     ggplot(aes(xdist = p_origin, y = pop)) +
     stat_eye(.width = c(0.5, 0.9), normalize = "groups", 
              color = "slategray4", fill = alpha("slategray4", 0.5)) + 
-    scale_y_discrete(limits = rev) + labs(x = "Straying rate", y = "") + 
+    scale_y_discrete(limits = rev) + labs(x = "Dispersal probability", y = "") + 
     facet_wrap(vars(origin)) + 
     theme(panel.grid.minor = element_blank(), strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))

@@ -234,6 +234,26 @@ multiplot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2],
 if(save_plot) dev.off()
 
 #--------------------------------------------------------------------------------
+# Spawner-to-smolt S-R parameters at population and ESU level 
+#--------------------------------------------------------------------------------
+
+mod_name <- "fit_Ricker"
+save_plot <- TRUE
+
+## @knitr plot_SAR_ts
+gg <- psi_Mmax_plot(mod = get(mod_name), fish_data)
+## @knitr
+
+if(save_plot) {
+  ggsave(filename = here("analysis","results",
+                         paste0("psi_Mmax_", strsplit(mod_name, "_")[[1]][2], ".png")), 
+         width=7, height=7, units="in", dpi=300, type = "cairo-png")
+} else {
+  dev.new(width=7,height=7)
+  show(gg)
+}
+
+#--------------------------------------------------------------------------------
 # Time series of SAR for natural populations and hatcheries
 #--------------------------------------------------------------------------------
 
@@ -276,7 +296,7 @@ if(save_plot) {
 # }
 
 #--------------------------------------------------------------------------------
-# Straying matrix: probability of straying from each origin to each population
+# Straying matrix: probability of dispersal from each origin to each population
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
