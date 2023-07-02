@@ -247,9 +247,9 @@ gg <- psi_Mmax_plot(mod = get(mod_name), fish_data)
 if(save_plot) {
   ggsave(filename = here("analysis","results",
                          paste0("psi_Mmax_", strsplit(mod_name, "_")[[1]][2], ".png")), 
-         width=7, height=7, units="in", dpi=300, type = "cairo-png")
+         width=8, height=7, units="in", dpi=300, type = "cairo-png")
 } else {
-  dev.new(width=7,height=7)
+  dev.new(width=8,height=7)
   show(gg)
 }
 
