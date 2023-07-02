@@ -181,7 +181,7 @@ multiplot <- function(mod, SR_fun, fish_data)
 
 psi_Mmax_plot <- function(mod, fish_data)
 {
-  draws <- as_draws_rvars(as.matrix(mod, c("psi","mu_psi","Mmax","mu_Mmax"))) %>% 
+  draws <- as.matrix(mod, c("psi","mu_psi","Mmax","mu_Mmax")) %>% as_draws_rvars() %>% 
     mutate_variables(log10_Mmax = log10(Mmax) - 3,           # units of mil / km
                      mu_Mmax = mu_Mmax * log10(exp(1)) - 3,  # convert to base 10, mil/km
                      .value = c(psi, mu_psi, log10_Mmax, mu_Mmax))
@@ -316,41 +316,54 @@ SR_plot <- function(mod, SR_fun, life_stage, fish_data)
   return(gg)
 }
 
-#--------------------------------------------------------------------------------
-# Time series of SAR for natural populations and hatcheries
-#--------------------------------------------------------------------------------
+#-------------------------------------------------------------------------
+# Time series of smolt productivity anomaly and natural and hatchery SAR
+#-------------------------------------------------------------------------
 
-SAR_timeseries <- function(mod, fish_data)
+M_anomaly_SAR_timeseries <- function(mod, fish_data)
 {
   logit <- rfun(qlogis)
   ilogit <- rfun(plogis)
+
+  draws <- as.matrix(mod, c("eta_year_M","sigma_M","s_MS","mu_MS","beta_MS","eta_year_MS")) %>% 
+    as_draws_rvars() %>% 
+    mutate_variables(zeta_M = as_rvar(stan_mean(mod,"zeta_M")), # not monitored: use mean
+                     epsilon_M = sigma_M*zeta_M,
+                     error_M = eta_year_M[as.numeric(factor(fish_data$year))] + epsilon_M,
+                     SAR = 100*s_MS,
+                     SAR_N_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS),
+                     SAR_H_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS + beta_MS))
   
-  draws <- as.matrix(mod, c("s_MS","mu_MS","beta_MS","eta_year_MS")) %>% as_draws_rvars() %>% 
-    mutate_variables(s_hat_MS_N = ilogit(logit(mu_MS) + eta_year_MS),
-                     s_hat_MS_H = ilogit(logit(mu_MS) + eta_year_MS + beta_MS[1]))
+  hyper <- data.frame(year = sort(unique(fish_data$year))) %>% 
+    cbind(pars = rep(c("Smolt productivity anomaly","SAR (%)"), times = (1:2)*nrow(.)),
+          pop_type = rep(c("natural","hatchery"), times = (2:1)*nrow(.)),
+          .value = c(draws$eta_year_M, draws$SAR_N_ESU, draws$SAR_H_ESU)) %>% 
+    mutate(pars = factor(pars, levels = unique(pars)))
   
-  hyper <- data.frame(year = sort(unique(fish_data$year)), 
-                      s_hat_MS_N = draws$s_hat_MS_N, s_hat_MS_H = draws$s_hat_MS_H)
+  cols <- c(natural = "slategray4", hatchery = "salmon")
   
-  gg <- fish_data %>% cbind(s_MS = draws$s_MS) %>% 
-    ggplot(aes(x = year, y = median(s_MS), group = pop, color = pop_type)) +
-    geom_line(linewidth = 0.7) + 
-    geom_line(aes(x = year, y = median(s_hat_MS_N)), inherit.aes = FALSE,
-              data = hyper, linewidth = 1.5, col = alpha("slategray4", 0.8)) +
-    geom_ribbon(aes(x = year, ymin = t(quantile(s_hat_MS_N, 0.05)), 
-                    ymax = t(quantile(s_hat_MS_N, 0.95))),
-                inherit.aes = FALSE, data = hyper, fill = alpha("slategray4", 0.3)) +
-    geom_line(aes(x = year, y = median(s_hat_MS_H)), inherit.aes = FALSE,
-              data = hyper, linewidth = 1.5, col = alpha("salmon", 0.8)) +
-    geom_ribbon(aes(x = year, ymin = t(quantile(s_hat_MS_H, 0.05)), 
-                    ymax = t(quantile(s_hat_MS_H, 0.95))),
-                inherit.aes = FALSE, data = hyper, fill = alpha("salmon", 0.3)) +
-    scale_y_continuous(labels = function(x) x*100) +
-    scale_color_discrete(type = c(natural = alpha("slategray4", 0.5), 
-                                  hatchery = alpha("salmon", 0.6))) +
-    labs(x = "Year", y = "SAR (%)", color = "Origin") +
-    theme(legend.position = c(0.11, 0.915), legend.box.margin = margin(0,-10,0,-15),
-          panel.grid.minor.x = element_blank())
+  gg <- fish_data %>% 
+    cbind(.value = c(draws$error_M, draws$SAR), 
+          pars = rep(c("Smolt productivity anomaly","SAR (%)"), each = nrow(.))) %>% 
+    mutate(.value = replace(.value, grepl("Smolt", pars) & pop_type == "hatchery", NA),
+           pars = factor(pars, levels = unique(pars))) %>% 
+    ggplot(aes(x = year, y = median(.value), group = pop, color = pop_type)) +
+    geom_line(linewidth = 0.7, alpha = 0.5) + 
+    geom_lineribbon(data = hyper, 
+                    aes(x = year, y = median(.value),
+                        ymin = t(quantile(.value, 0.05)), 
+                        ymax = t(quantile(.value, 0.95)),
+                        color = pop_type, fill = pop_type),
+                    inherit.aes = FALSE, linewidth = 1.5) +
+    scale_x_continuous(minor_breaks = unique(fish_data$year), expand = expansion(0)) +
+    scale_color_discrete(type = cols) +
+    scale_fill_discrete(type = alpha(cols, 0.3), guide = "none") +
+    facet_wrap(~ pars, dir = "v", scales = "free_y", strip.position = "left") +
+    labs(x = "Year", y = NULL, color = "Origin") +
+    theme(panel.grid.minor.y = element_blank(), strip.text = element_text(size = 16),
+          strip.background = element_blank(), strip.placement = "outer",
+          legend.position = c(0.2, 0.4), legend.box.margin = margin(0,-10,0,-15),
+          legend.background = element_rect(fill = "transparent"))
   
   return(gg)
 }

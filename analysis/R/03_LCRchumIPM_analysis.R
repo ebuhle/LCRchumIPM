@@ -253,20 +253,20 @@ if(save_plot) {
   show(gg)
 }
 
-#--------------------------------------------------------------------------------
-# Time series of SAR for natural populations and hatcheries
-#--------------------------------------------------------------------------------
+#-------------------------------------------------------------------------
+# Time series of smolt productivity anomaly and natural and hatchery SAR
+#-------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
 save_plot <- TRUE
 
 ## @knitr plot_SAR_ts
-gg <- SAR_timeseries(mod = get(mod_name), fish_data = fish_data)
+gg <- M_anomaly_SAR_timeseries(mod = get(mod_name), fish_data = fish_data)
 ## @knitr
 
 if(save_plot) {
   ggsave(filename = here("analysis","results",
-                         paste0("SAR_fit_", strsplit(mod_name, "_")[[1]][2], ".png")), 
+                         paste0("M_anomaly_SAR_fit_", strsplit(mod_name, "_")[[1]][2], ".png")), 
          width=7, height=7, units="in", dpi=300)
 } else {
   dev.new(width=7,height=7)
