@@ -188,7 +188,7 @@ psi_Mmax_plot <- function(mod, fish_data)
   
   dat <- data.frame(pop = rep(c(levels(fish_data$pop), "ESU hyper-mean"), 2)) %>% 
     mutate(pop = factor(pop, levels = unique(pop)),
-           pars = rep(c("psi", "log[10](italic(M)[max] ~ group('[', 10^6 ~ km^-1, ']'))"), each = length(levels(pop))),
+           pars = rep(c("psi", "italic(M)[max] ~ (10^6 ~ km^-1)"), each = length(levels(pop))),
                       each = length(levels(pop)),
            hyper = ifelse(pop == "ESU hyper-mean", "hyper","pop"),
            .value = draws$.value) %>% 
@@ -206,13 +206,26 @@ psi_Mmax_plot <- function(mod, fish_data)
              color = "slategray4", slab_color = "slategray4",
              slab_alpha = 0.7, slab_linewidth = 0.5) +
     scale_x_continuous(limits = function(x) range(x,0,1), expand = expansion(0.01),
-                       labels = function(x) round(x, 2)) +
+                       breaks = function(x) {
+                         lims <- round(x)
+                         if(lims[1] < -1 | lims[2] > 2) {
+                           return(lims[1]:min(lims[2], 3))
+                         } else return(pretty(x))
+                       },
+                       labels = function(x) {
+                         las <- round(x, 2)
+                         rangelas <- range(las, na.rm = TRUE)
+                         if(rangelas[1] < -1 | rangelas[2] > 2) {
+                           return(10^las)
+                         } else return(las)
+                       }) +
     scale_y_discrete(limits = rev) + labs(x = NULL, y = NULL) + 
     scale_fill_manual(values = alpha(c(hyper = "slategray4", pop = "white"), 0.5), 
                       guide = "none") +
     facet_wrap(vars(pars), scales = "free_x", labeller = label_parsed) + 
-    theme(panel.grid.minor.y = element_blank(), strip.background = element_rect(fill = NA),
-          strip.text = element_text(margin = margin(b = 3, t = 3)))
+    theme(panel.grid.minor = element_blank(), strip.background = element_rect(fill = NA),
+          strip.text = element_text(margin = margin(b = 3, t = 3)), 
+          panel.spacing = unit(20, units = "points"))
 }
 
 #--------------------------------------------------------------------------------
