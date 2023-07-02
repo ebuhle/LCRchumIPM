@@ -224,8 +224,7 @@ psi_Mmax_plot <- function(mod, fish_data)
                       guide = "none") +
     facet_wrap(vars(pars), scales = "free_x", labeller = label_parsed) + 
     theme(panel.grid.minor = element_blank(), strip.background = element_rect(fill = NA),
-          strip.text = element_text(margin = margin(b = 3, t = 3)), 
-          panel.spacing = unit(20, units = "points"))
+          strip.text = element_text(margin = margin(b = 3, t = 3)))
 }
 
 #--------------------------------------------------------------------------------
