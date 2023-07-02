@@ -3,7 +3,7 @@
 #===========================================================================
 
 ## @knitr getting_started
-options(device = ifelse(.Platform$OS.type == "windows", "windows", "quartz"))
+if(.Platform$OS.type == "windows") options(device = "windows")
 options(mc.cores = parallel::detectCores(logical = FALSE))
 
 library(Hmisc)
@@ -13,10 +13,10 @@ library(salmonIPM)
 library(rstan)
 library(shinystan)
 library(posterior)
+library(distributional)
 library(matrixStats)
 library(yarrr)
 library(zoo)
-library(ragg)
 library(ggplot2)
 library(ggdist)
 theme_set(theme_bw(base_size = 16))
@@ -77,6 +77,7 @@ fit_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
                         par_models = list(s_MS ~ pop_type), 
                         center = FALSE, scale = FALSE, ages = list(M = 1), 
                         fish_data = fish_data, fecundity_data = fecundity_data,
+                        pars = c(stan_pars("IPM_LCRchum_pp"), "M_downstream"),
                         log_lik = TRUE, chains = 4, iter = 2000, warmup = 1000,
                         control = list(adapt_delta = 0.95, max_treedepth = 15))
 
@@ -207,8 +208,7 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 
 
 #===========================================================================
-# FIGURES SPECIFIC TO LCR CHUM IPM
-# Figures for generic IPM_SS_pp models are in 04_LCRchumIPM_extra-plots.R
+# FIGURES 
 #===========================================================================
 
 #--------------------------------------------------------------------
@@ -219,12 +219,12 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 #--------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 if(save_plot) {
-  agg_png(filename = here("analysis","results", 
-                          paste0("multiplot_", strsplit(mod_name, "_")[[1]][2], ".png")), 
-          width=12, height=5.5, units="in", res=300)
+  png(filename = here("analysis","results", 
+                      paste0("multiplot_", strsplit(mod_name, "_")[[1]][2], ".png")), 
+      width=12, height=5.5, units="in", res=300, type = "cairo-png")
 } else dev.new(width = 12, height = 5.5)
 
 ## @knitr multiplot
@@ -238,7 +238,7 @@ if(save_plot) dev.off()
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_SAR_ts
 gg <- SAR_timeseries(mod = get(mod_name), fish_data = fish_data)
@@ -280,7 +280,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_p_origin
 gg <- p_origin_plot(mod = get(mod_name), fish_data = fish_data)
@@ -303,9 +303,9 @@ mod_name <- "fit_Ricker"
 save_plot <- TRUE
 
 if(save_plot) {
-  agg_png(filename = here("analysis","results",
-                          paste0("fecundity_fit_", strsplit(mod_name, "_")[[1]][2], ".png")), 
-          width=5, height=5, units="in", res=200)
+  png(filename = here("analysis","results",
+                      paste0("fecundity_fit_", strsplit(mod_name, "_")[[1]][2], ".png")), 
+      width=5, height=5, units="in", res=200, type = "cairo-png")
 } else dev.new(width=5,height=5)
 
 ## @knitr plot_fecundity_fit
@@ -320,7 +320,7 @@ if(save_plot) dev.off()
 
 mod_name <- "fit_Ricker"
 life_stage <- "S"   # "S" = spawners, "M" = smolts
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_spawner_smolt_ts
 gg <- MS_timeseries(mod = get(mod_name), life_stage = life_stage, 
@@ -333,9 +333,9 @@ gg <- MS_timeseries(mod = get(mod_name), life_stage = life_stage,
 if(save_plot) {
   ggsave(filename = here("analysis","results",
                          paste0(life_stage, "_fit_", strsplit(mod_name, "_")[[1]][2], ".png")), 
-         width=11, height=7, units="in", dpi=300)
+         width=14, height=7, units="in", dpi=300)
 } else {
-  dev.new(width=11,height=7)
+  dev.new(width=14,height=7)
   show(gg)
 }
 
@@ -345,7 +345,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_spawner_age_ts
 gg <- age_timeseries(mod = get(mod_name), fish_data = fish_data)
@@ -365,7 +365,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_sex_ratio_ts
 gg <- sex_timeseries(mod = get(mod_name), fish_data = fish_data)
@@ -385,7 +385,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_p_HOS_ts
 gg <- p_HOS_timeseries(mod = get(mod_name), fish_data = fish_data)
@@ -406,12 +406,12 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 if(save_plot) {
-  agg_png(filename = here("analysis","results",
-                          paste0("tau_fit_", strsplit(mod_name, "_")[[1]][2], ".png")), 
-          width=10, height=5, units="in", res=200)
+  png(filename = here("analysis","results",
+                      paste0("tau_fit_", strsplit(mod_name, "_")[[1]][2], ".png")), 
+      width=10, height=5, units="in", res=200, type = "cairo-png")
 } else dev.new(width=10,height=5)
 
 ## @knitr plot_obs_error_fit
@@ -428,9 +428,9 @@ mod_name <- "foreH0_Ricker"
 save_plot <- TRUE
 
 if(save_plot) {
-  agg_png(filename = here("analysis","results",
-                          paste0("SAR_fore_", strsplit(mod_name, "_")[[1]][2], ".png")), 
-          width=7, height=7, units="in", res=300)
+  png(filename = here("analysis","results",
+                      paste0("SAR_fore_", strsplit(mod_name, "_")[[1]][2], ".png")), 
+      width=7, height=7, units="in", res=300, type = "cairo-png")
 } else dev.new(width=7,height=7)
 
 ## @knitr plot_SAR_fore

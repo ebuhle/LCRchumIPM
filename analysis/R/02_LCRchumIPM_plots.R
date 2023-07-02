@@ -196,19 +196,20 @@ SAR_timeseries <- function(mod, fish_data)
     geom_line(linewidth = 0.7) + 
     geom_line(aes(x = year, y = median(s_hat_MS_N)), inherit.aes = FALSE,
               data = hyper, linewidth = 1.5, col = alpha("slategray4", 0.8)) +
-    geom_ribbon(aes(x = year, ymin = as.vector(quantile(s_hat_MS_N, 0.05)), 
-                    ymax = as.vector(quantile(s_hat_MS_N, 0.95))),
+    geom_ribbon(aes(x = year, ymin = t(quantile(s_hat_MS_N, 0.05)), 
+                    ymax = t(quantile(s_hat_MS_N, 0.95))),
                 inherit.aes = FALSE, data = hyper, fill = alpha("slategray4", 0.3)) +
     geom_line(aes(x = year, y = median(s_hat_MS_H)), inherit.aes = FALSE,
               data = hyper, linewidth = 1.5, col = alpha("salmon", 0.8)) +
-    geom_ribbon(aes(x = year, ymin = as.vector(quantile(s_hat_MS_H, 0.05)), 
-                    ymax = as.vector(quantile(s_hat_MS_H, 0.95))),
+    geom_ribbon(aes(x = year, ymin = t(quantile(s_hat_MS_H, 0.05)), 
+                    ymax = t(quantile(s_hat_MS_H, 0.95))),
                 inherit.aes = FALSE, data = hyper, fill = alpha("salmon", 0.3)) +
     scale_y_continuous(labels = function(x) x*100) +
     scale_color_discrete(type = c(natural = alpha("slategray4", 0.5), 
                                   hatchery = alpha("salmon", 0.6))) +
     labs(x = "Year", y = "SAR (%)", color = "Origin") +
-    theme(panel.grid.minor.x = element_blank(), legend.position = c(0.11, 0.915))
+    theme(legend.position = c(0.11, 0.915), legend.box.margin = margin(0,-10,0,-15),
+          panel.grid.minor.x = element_blank())
   
   return(gg)
 }
@@ -238,8 +239,8 @@ SR_plot <- function(mod, SR_fun, life_stage, fish_data)
     select(pop, year, A, S_obs, N_obs) %>% 
     data.frame(alpha = draws$alpha, S = draws$S, N = draws$N) %>% 
     group_by(pop) %>% 
-    mutate(S_q2 = as.vector(quantile(S, qnt[2])), S_upper = pmin(S_q2, max(median(S))*1.1),
-           N_q2 = as.vector(quantile(N, qnt[2])), N_upper = pmin(N_q2, max(median(N)*1.1)))
+    mutate(S_q2 = t(quantile(S, qnt[2])), S_upper = pmin(S_q2, max(median(S))*1.1),
+           N_q2 = t(quantile(N, qnt[2])), N_upper = pmin(N_q2, max(median(N)*1.1)))
   
   # spawner densities at which to evaluate S-R function
   S_grid <- states_obs %>% group_by(pop) %>% 
@@ -328,47 +329,128 @@ p_origin_plot <- function(mod, fish_data)
 }
 
 #--------------------------------------------------------------------------------
+# Distributions of observed and fitted fecundity by age
+#--------------------------------------------------------------------------------
+
+fecundity_plot <- function(mod, fish_data, fecundity_data)
+{
+  ages <- substring(names(select(fish_data, starts_with("n_age"))), 6, 6)
+  E_obs <- fecundity_data$E_obs
+  E_seq <- seq(min(E_obs, na.rm = TRUE), max(E_obs, na.rm = TRUE), length = 500)
+  mu_E <- extract1(mod, "mu_E")
+  sigma_E <- extract1(mod, "sigma_E")
+  E_fit <- array(NA, c(nrow(mu_E), length(E_seq), ncol(mu_E)))
+  for(a in 1:length(ages))
+    E_fit[,,a] <- sapply(E_seq, function(x) dnorm(x, mu_E[,a], sigma_E[,a]))
+  
+  c1 <- viridis(length(ages), end = 0.8, direction = -1) 
+  c1t <- transparent(c1, trans.val = 0.5)
+  c1tt <- transparent(c1, trans.val = 0.7)
+  
+  par(mfrow = c(3,1), mar = c(3,2,0,2), oma = c(2,2,0,0))
+  
+  for(a in 1:length(ages))
+  {
+    hist(E_obs[fecundity_data$age_E == ages[a]], 20, prob = TRUE, 
+         col = c1tt[a], border = "white", las = 1, cex.axis = 1.5, cex.lab = 1.8,
+         xlim = range(E_seq), ylim = range(0, apply(E_fit, 2:3, quantile, 0.99)),
+         xlab = NA, ylab = NA, main = NA, xaxs = "i", yaxt = "n", bty = "n")
+    lines(E_seq, colMedians(E_fit[,,a]), col = c1[a], lwd = 3)
+    polygon(c(E_seq, rev(E_seq)),
+            c(colQuantiles(E_fit[,,a], probs = 0.05), 
+              rev(colQuantiles(E_fit[,,a], probs = 0.95))),
+            col = c1t[a], border = NA)
+    text(par("usr")[1] + 0.8*diff(par("usr")[1:2]), par("usr")[4]*0.5, 
+         labels = paste("age", ages[a]), cex = 1.8, col = c1[a], adj = 1)
+  }
+  title(xlab = "Fecundity", ylab = "Probability density", cex.lab = 1.9, line = 0, outer = TRUE)
+}
+
+#--------------------------------------------------------------------------------
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
 
 MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data)
 {
-  life_cycle <- strsplit(mod@model_name, "_")[[1]][2]
-  N <- extract1(mod, life_stage)
-  tau <- extract1(mod, switch(life_cycle, SS = "tau", LCRchum = paste0("tau_", life_stage)))
-  if(life_cycle == "LCRchum" & life_stage == "M")
-    N[,na.omit(fish_data$downstream_trap)] <- N[,na.omit(fish_data$downstream_trap)] + 
-    N[,which(!is.na(fish_data$downstream_trap))]
-  N_ppd <- N * rlnorm(length(N), 0, tau)
   year <- fish_data$year
+  draws <- as_draws_rvars(as.matrix(fit_Ricker, c(life_stage, paste0("tau_", life_stage)))) %>% 
+    rename_variables(N = !!life_stage, tau_N = !!paste0("tau_", life_stage))
   
   gg <- fish_data %>% 
-    mutate(N_obs = !!sym(paste0(life_stage, "_obs")),
-           tau_obs = !!sym(paste0("tau_", life_stage, "_obs")),
-           N_obs_L = qlnorm(0.05, log(N_obs), tau_obs),
-           N_obs_U = qlnorm(0.95, log(N_obs), tau_obs),
-           N_L = colQuantiles(N, probs = 0.05),
-           N_m = colMedians(N),
-           N_U = colQuantiles(N, probs = 0.95),
-           N_ppd_L = colQuantiles(N_ppd, probs = 0.05),
-           N_ppd_U = colQuantiles(N_ppd, probs = 0.95),
-           pch = ifelse(is.na(tau_obs), 1, 16)) %>% 
-    filter(!grepl("Hatchery", pop)) %>% 
-    ggplot(aes(x = year, y = N_obs)) +
-    geom_ribbon(aes(ymin = N_L, ymax = N_U), fill = "slategray4", alpha = 0.5) +
-    geom_ribbon(aes(ymin = N_ppd_L, ymax = N_ppd_U), fill = "slategray4", alpha = 0.3) +
-    geom_line(aes(y = N_m), lwd = 1, col = "slategray4") +
-    geom_point(aes(shape = pch), size = 2.5) + scale_shape_identity() +
-    geom_errorbar(aes(ymin = N_obs_L, ymax = N_obs_U), width = 0) +
+    rename(N_obs = !!paste0(life_stage, "_obs"),
+           tau_obs = !!paste0("tau_", life_stage, "_obs")) %>% 
+    mutate(life_stage = life_stage, pch = ifelse(is.na(tau_obs), 1, 16),
+           N = draws$N, M_downstream = draws$M_downstream) %>% 
+    group_by(downstream_trap) %>% mutate(N_downstream = rvar_sum(N)) %>% ungroup() %>% 
+    mutate(N_upstream = replace(as_rvar(rep(0, n())), na.omit(downstream_trap),
+                                N_downstream[!is.na(downstream_trap)]),
+           N = replace(N, life_stage == "M", N + N_upstream), 
+           tau_N = draws$tau_N, N_ppd = rvar_rng(rlnorm, n(), log(N), tau_N)) %>% 
+    filter(pop_type == "natural") %>% 
+    ggplot(aes(x = year, ydist = dist_lognormal(log(N_obs), tau_obs), shape = pch)) +
+    geom_line(aes(y = median(N)), lwd = 1, col = "slategray4") +
+    geom_ribbon(aes(ymin = t(quantile(N, 0.05)), ymax = t(quantile(N, 0.95))), 
+                fill = "slategray4", alpha = 0.5) +
+    geom_ribbon(aes(ymin = t(quantile(N_ppd, 0.05)), ymax = t(quantile(N_ppd, 0.95))),
+                fill = "slategray4", alpha = 0.3) +
+    stat_pointinterval(.width = 0.9, point_size = 2.5, linewidth = 1) + scale_shape_identity() +
     labs(x = "Year", y = switch(life_stage, M = "Smolts (thousands)", S = "Spawners")) + 
     scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5) +
     scale_y_log10(labels = function(y) y*switch(life_stage, M = 1e-3, S = 1)) + 
-    facet_wrap(vars(pop), ncol = 4) + 
+    facet_wrap(vars(pop), ncol = 4, scales = "free_y") + 
     theme(panel.grid.minor = element_blank(), 
           strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
   
   return(gg)
+}
+
+#--------------------------------------------------------------------------------
+# Observed and fitted distributions of "known" smolt and spawner 
+# observation error SDs
+#--------------------------------------------------------------------------------
+
+obs_error_plot <- function(mod, fish_data)
+{
+  tau_M_obs <- fish_data$tau_M_obs
+  tau_M_seq <- seq(min(tau_M_obs, na.rm = TRUE), max(tau_M_obs, na.rm = TRUE), length = 500)
+  mu_tau_M <- extract1(mod, "mu_tau_M")
+  sigma_tau_M <- extract1(mod, "sigma_tau_M")
+  tau_M_fit <- sapply(tau_M_seq, function(x) dlnorm(x, log(mu_tau_M), sigma_tau_M))
+  
+  tau_S_obs <- fish_data$tau_S_obs
+  tau_S_seq <- seq(min(tau_S_obs, na.rm = TRUE), max(tau_S_obs, na.rm = TRUE), length = 500)
+  mu_tau_S <- extract1(mod, "mu_tau_S")
+  sigma_tau_S <- extract1(mod, "sigma_tau_S")
+  tau_S_fit <- sapply(tau_S_seq, function(x) dlnorm(x, log(mu_tau_S), sigma_tau_S))
+  
+  c1 <- "slategray4"
+  c1t <- transparent(c1, trans.val = 0.6)
+  
+  par(mfcol = c(1,2), mar = c(5,0,1,1.5),  oma = c(0,5,0,0))
+  
+  # smolt observation error SD
+  hist(tau_M_obs, 10, prob = TRUE, las = 1, cex.axis = 1.2, cex.lab = 1.5, 
+       col = "lightgray", border = "white", yaxt = "n",
+       ylim = c(0, max(colQuantiles(tau_M_fit, probs = 0.95))),
+       xlab = quote("Smolt observation error (" * tau[italic(M)] * ")"), 
+       ylab = NA, main = NA, xpd = NA)
+  mtext("Probability density", cex = 1.5, side = 2, line = 1)
+  polygon(c(tau_M_seq, rev(tau_M_seq)),
+          c(colQuantiles(tau_M_fit, probs = 0.05), rev(colQuantiles(tau_M_fit, probs = 0.95))),
+          col = c1t, border = NA)
+  lines(tau_M_seq, colMedians(tau_M_fit), col = c1, lwd = 3)
+  
+  # spawner observation error SD
+  hist(tau_S_obs, 20, prob = TRUE, las = 1, cex.axis = 1.2, cex.lab = 1.5, 
+       col = "lightgray", border = "white", yaxt = "n",
+       ylim = c(0, max(colQuantiles(tau_S_fit, probs = 0.95))),
+       xlab = quote("Spawner observation error (" * tau[italic(S)] * ")"), 
+       ylab = NA, main = NA)
+  polygon(c(tau_S_seq, rev(tau_S_seq)),
+          c(colQuantiles(tau_S_fit, probs = 0.05), rev(colQuantiles(tau_S_fit, probs = 0.95))),
+          col = c1t, border = NA)
+  lines(tau_S_seq, colMedians(tau_S_fit), col = c1, lwd = 3)
 }
 
 #--------------------------------------------------------------------------------
@@ -470,99 +552,13 @@ p_HOS_timeseries <- function(mod, fish_data)
     geom_point(aes(y = p_HOS_obs.PointEst), pch = 16, size = 2.5) +
     geom_errorbar(aes(ymin = p_HOS_obs.Lower, ymax = p_HOS_obs.Upper), width = 0) +
     scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5) +
-    labs(x = "Year", y = bquote(italic(p)[HOS])) +
+    coord_cartesian(ylim = c(0, 0.5)) + labs(x = "Year", y = bquote(italic(p)[HOS])) +
     facet_wrap(vars(pop), ncol = 4) + 
     theme(panel.grid.major.y = element_blank(), panel.grid.minor = element_blank(),
           strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
   
   return(gg)
-}
-
-#--------------------------------------------------------------------------------
-# Distributions of observed and fitted fecundity by age
-#--------------------------------------------------------------------------------
-
-fecundity_plot <- function(mod, fish_data, fecundity_data)
-{
-  ages <- substring(names(select(fish_data, starts_with("n_age"))), 6, 6)
-  E_obs <- fecundity_data$E_obs
-  E_seq <- seq(min(E_obs, na.rm = TRUE), max(E_obs, na.rm = TRUE), length = 500)
-  mu_E <- extract1(mod, "mu_E")
-  sigma_E <- extract1(mod, "sigma_E")
-  E_fit <- array(NA, c(nrow(mu_E), length(E_seq), ncol(mu_E)))
-  for(a in 1:length(ages))
-    E_fit[,,a] <- sapply(E_seq, function(x) dnorm(x, mu_E[,a], sigma_E[,a]))
-  
-  c1 <- viridis(length(ages), end = 0.8, direction = -1) 
-  c1t <- transparent(c1, trans.val = 0.5)
-  c1tt <- transparent(c1, trans.val = 0.7)
-  
-  par(mfrow = c(3,1), mar = c(3,2,0,2), oma = c(2,2,0,0))
-  
-  for(a in 1:length(ages))
-  {
-    hist(E_obs[fecundity_data$age_E == ages[a]], 20, prob = TRUE, 
-         col = c1tt[a], border = "white", las = 1, cex.axis = 1.5, cex.lab = 1.8,
-         xlim = range(E_seq), ylim = range(0, apply(E_fit, 2:3, quantile, 0.99)),
-         xlab = NA, ylab = NA, main = NA, xaxs = "i", yaxt = "n", bty = "n")
-    lines(E_seq, colMedians(E_fit[,,a]), col = c1[a], lwd = 3)
-    polygon(c(E_seq, rev(E_seq)),
-            c(colQuantiles(E_fit[,,a], probs = 0.05), 
-              rev(colQuantiles(E_fit[,,a], probs = 0.95))),
-            col = c1t[a], border = NA)
-    text(par("usr")[1] + 0.8*diff(par("usr")[1:2]), par("usr")[4]*0.5, 
-         labels = paste("age", ages[a]), cex = 1.8, col = c1[a], adj = 1)
-  }
-  title(xlab = "Fecundity", ylab = "Probability density", cex.lab = 1.9, line = 0, outer = TRUE)
-}
-
-#--------------------------------------------------------------------------------
-# Observed and fitted distributions of "known" smolt and spawner 
-# observation error SDs
-#--------------------------------------------------------------------------------
-
-obs_error_plot <- function(mod, fish_data)
-{
-  tau_M_obs <- fish_data$tau_M_obs
-  tau_M_seq <- seq(min(tau_M_obs, na.rm = TRUE), max(tau_M_obs, na.rm = TRUE), length = 500)
-  mu_tau_M <- extract1(mod, "mu_tau_M")
-  sigma_tau_M <- extract1(mod, "sigma_tau_M")
-  tau_M_fit <- sapply(tau_M_seq, function(x) dlnorm(x, log(mu_tau_M), sigma_tau_M))
-  
-  tau_S_obs <- fish_data$tau_S_obs
-  tau_S_seq <- seq(min(tau_S_obs, na.rm = TRUE), max(tau_S_obs, na.rm = TRUE), length = 500)
-  mu_tau_S <- extract1(mod, "mu_tau_S")
-  sigma_tau_S <- extract1(mod, "sigma_tau_S")
-  tau_S_fit <- sapply(tau_S_seq, function(x) dlnorm(x, log(mu_tau_S), sigma_tau_S))
-  
-  c1 <- "slategray4"
-  c1t <- transparent(c1, trans.val = 0.6)
-  
-  par(mfcol = c(1,2), mar = c(5,0,1,1.5),  oma = c(0,5,0,0))
-  
-  # smolt observation error SD
-  hist(tau_M_obs, 10, prob = TRUE, las = 1, cex.axis = 1.2, cex.lab = 1.5, 
-       col = "lightgray", border = "white", yaxt = "n",
-       ylim = c(0, max(colQuantiles(tau_M_fit, probs = 0.95))),
-       xlab = bquote("Smolt observation error (" * tau[italic(M)] * ")"), 
-       ylab = NA, main = NA, xpd = NA)
-  mtext("Probability density", cex = 1.5, side = 2, line = 1)
-  polygon(c(tau_M_seq, rev(tau_M_seq)),
-          c(colQuantiles(tau_M_fit, probs = 0.05), rev(colQuantiles(tau_M_fit, probs = 0.95))),
-          col = c1t, border = NA)
-  lines(tau_M_seq, colMedians(tau_M_fit), col = c1, lwd = 3)
-  
-  # spawner observation error SD
-  hist(tau_S_obs, 20, prob = TRUE, las = 1, cex.axis = 1.2, cex.lab = 1.5, 
-       col = "lightgray", border = "white", yaxt = "n",
-       ylim = c(0, max(colQuantiles(tau_S_fit, probs = 0.95))),
-       xlab = bquote("Spawner observation error (" * tau[italic(S)] * ")"), 
-       ylab = NA, main = NA)
-  polygon(c(tau_S_seq, rev(tau_S_seq)),
-          c(colQuantiles(tau_S_fit, probs = 0.05), rev(colQuantiles(tau_S_fit, probs = 0.95))),
-          col = c1t, border = NA)
-  lines(tau_S_seq, colMedians(tau_S_fit), col = c1, lwd = 3)
 }
 
 #--------------------------------------------------------------------------------
@@ -587,7 +583,7 @@ SAR_fore_plot <- function(mod, fish_data_fore, example_pop)
   layout(matrix(c(1:4), nrow = 2, byrow = TRUE), widths = c(7, 1, 7, 1))
   par(oma = c(2, 0, 0, 0))
   cols <- c(low = "firebrick1", med = "gold", high = "darkgreen")
-
+  
   # eta_year_MS time series
   par(mar = c(2, 5, 1, 0.1))
   with(dat, {
@@ -710,7 +706,8 @@ S_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, po
     theme_bw(base_size = 18) +
     theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), 
           strip.background = element_rect(fill = NA),
-          strip.text = element_text(margin = margin(b = 3, t = 3)))
+          strip.text = element_text(margin = margin(b = 3, t = 3)), 
+          legend.box.margin = margin(0,-10,0,-15))
   
   return(gg)
 }
@@ -773,7 +770,8 @@ StS0_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
     theme_bw(base_size = 18) +
     theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), 
           strip.background = element_rect(fill = NA),
-          strip.text = element_text(margin = margin(b = 3, t = 3)))
+          strip.text = element_text(margin = margin(b = 3, t = 3)), 
+          legend.box.margin = margin(0,-10,0,-15))
   
   return(gg)
 }
@@ -839,7 +837,8 @@ p_HOS_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax
     theme_bw(base_size = 18) +
     theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), 
           strip.background = element_rect(fill = NA),
-          strip.text = element_text(margin = margin(b = 3, t = 3)))
+          strip.text = element_text(margin = margin(b = 3, t = 3)), 
+          legend.box.margin = margin(0,-10,0,-15))
   
   return(gg)
 }
@@ -910,7 +909,8 @@ Precovery_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
     theme_bw(base_size = 18) +
     theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), 
           strip.background = element_rect(fill = NA),
-          strip.text = element_text(margin = margin(b = 3, t = 3)))
+          strip.text = element_text(margin = margin(b = 3, t = 3)), 
+          legend.box.margin = margin(0,-10,0,-15))
   
   return(gg)
 }
@@ -980,7 +980,8 @@ PQE_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
     theme_bw(base_size = 18) +
     theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), 
           strip.background = element_rect(fill = NA),
-          strip.text = element_text(margin = margin(b = 3, t = 3)))
+          strip.text = element_text(margin = margin(b = 3, t = 3)), 
+          legend.box.margin = margin(0,-10,0,-15))
   
   return(gg)
 }
