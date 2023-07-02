@@ -182,16 +182,15 @@ multiplot <- function(mod, SR_fun, fish_data)
 psi_Mmax_plot <- function(mod, fish_data)
 {
   draws <- as_draws_rvars(as.matrix(mod, c("psi","mu_psi","Mmax","mu_Mmax"))) %>% 
-    mutate_variables(`log10(M[max])` = log10(Mmax) - 3,    # units of mil / km
+    mutate_variables(log10_Mmax = log10(Mmax) - 3,    # units of mil / km
                      mu_Mmax = mu_Mmax * log10(exp(1)) - 3,  # convert to base 10, units of mil/km
-                     .value = c(psi, mu_psi, `log10(M[max])`, mu_Mmax))
+                     .value = c(psi, mu_psi, log10_Mmax, mu_Mmax))
   
   dat <- data.frame(pop = rep(c(levels(fish_data$pop), "ESU hyper-mean"), 2)) %>% 
     mutate(pop = factor(pop, levels = unique(pop)),
            pars = rep(c("Maximum ~ egg*'-'*to*'-'*smolt ~ survival ~ (psi)", 
                         "Smolt ~ capacity ~ (italic(M)[max] ~ '['*10^6 ~ km^-1*']')"), 
                       each = length(levels(pop))),
-                      each = length(levels(pop)),
            hyper = ifelse(pop == "ESU hyper-mean", "hyper","pop"),
            .value = draws$.value) %>% 
     filter(!grepl("Hatchery", pop)) 
