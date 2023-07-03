@@ -77,7 +77,6 @@ fit_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
                         par_models = list(s_MS ~ pop_type), 
                         center = FALSE, scale = FALSE, ages = list(M = 1), 
                         fish_data = fish_data, fecundity_data = fecundity_data,
-                        pars = c(stan_pars("IPM_LCRchum_pp"), "M_downstream"),
                         log_lik = TRUE, chains = 4, iter = 2000, warmup = 1000,
                         control = list(adapt_delta = 0.95, max_treedepth = 15))
 
@@ -250,7 +249,7 @@ if(save_plot) {
          width=8, height=7, units="in", dpi=300, type = "cairo-png")
 } else {
   dev.new(width=8,height=7)
-  show(gg)
+  plot(gg)
 }
 
 #-------------------------------------------------------------------------
@@ -270,7 +269,7 @@ if(save_plot) {
          width=7, height=7, units="in", dpi=300)
 } else {
   dev.new(width=7,height=7)
-  show(gg)
+  plot(gg)
 }
 
 # #--------------------------------------------------------------------
@@ -292,7 +291,7 @@ if(save_plot) {
 #          width=11, height=7, units="in", dpi=300)
 # } else {
 #   dev.new(width=11,height=7)
-#   show(gg)
+#   plot(gg)
 # }
 
 #--------------------------------------------------------------------------------
@@ -312,7 +311,7 @@ if(save_plot) {
          width=11, height=7, units="in", dpi=300)
 } else {
   dev.new(width=11, height=7)
-  show(gg)
+  plot(gg)
 }
 
 #--------------------------------------------------------------------------------
@@ -322,17 +321,18 @@ if(save_plot) {
 mod_name <- "fit_Ricker"
 save_plot <- TRUE
 
-if(save_plot) {
-  png(filename = here("analysis","results",
-                      paste0("fecundity_fit_", strsplit(mod_name, "_")[[1]][2], ".png")), 
-      width=5, height=5, units="in", res=200, type = "cairo-png")
-} else dev.new(width=5,height=5)
-
 ## @knitr plot_fecundity_fit
 fecundity_plot(get(mod_name), fish_data = fish_data, fecundity_data = fecundity_data)
 ## @knitr
 
-if(save_plot) dev.off()
+if(save_plot) {
+  ggsave(filename = here("analysis","results",
+                         paste0("fecundity_fit_", strsplit(mod_name, "_")[[1]][2], ".png")), 
+         width=7, height=7, units="in", dpi=200, type = "cairo-png")
+} else {
+  dev.new(width=7,height=7)
+  plot(gg)
+}
 
 #--------------------------------------------------------------------------------
 # Time series of observed and fitted total spawners or smolts for each pop
@@ -356,7 +356,7 @@ if(save_plot) {
          width=14, height=7, units="in", dpi=300)
 } else {
   dev.new(width=14,height=7)
-  show(gg)
+  plot(gg)
 }
 
 
@@ -377,7 +377,7 @@ if(save_plot) {
          width=12, height=7, units="in", dpi=300)
 } else {
   dev.new(width=12,height=7)
-  show(gg)
+  plot(gg)
 }
 
 #--------------------------------------------------------------------------------
@@ -397,7 +397,7 @@ if(save_plot) {
          width=11, height=7, units="in", dpi=300)
 } else {
   dev.new(width=11,height=7)
-  show(gg)
+  plot(gg)
 }
 
 #--------------------------------------------------------------------------------
@@ -417,7 +417,7 @@ if(save_plot) {
          width=11, height=7, units="in", dpi=300)
 } else {
   dev.new(width=11, height=7)
-  show(gg)
+  plot(gg)
 }
 
 #--------------------------------------------------------------------------------
@@ -480,7 +480,7 @@ if(save_plot) {
          width=12, height=4, units="in", dpi=300)
 } else {
   dev.new(width=12, height=4)
-  show(gg)
+  plot(gg)
 }
 
 #------------------------------------------------------------------------------------------
@@ -504,7 +504,7 @@ if(save_plot) {
          width=12, height=4, units="in", dpi=300)
 } else {
   dev.new(width=12, height=4)
-  show(gg)
+  plot(gg)
 }
 
 #--------------------------------------------------------------------------------
@@ -528,7 +528,7 @@ if(save_plot) {
          width=12, height=4, units="in", dpi=300)
 } else {
   dev.new(width=12, height=4)
-  show(gg)
+  plot(gg)
 }
 
 #--------------------------------------------------------------------------------
@@ -552,7 +552,7 @@ if(save_plot) {
          width=12, height=4, units="in", dpi=300)
 } else {
   dev.new(width=12, height=4)
-  show(gg)
+  plot(gg)
 }
 
 #--------------------------------------------------------------------------------
@@ -576,7 +576,7 @@ if(save_plot) {
          width=12, height=4, units="in", dpi=300)
 } else {
   dev.new(width=12, height=4)
-  show(gg)
+  plot(gg)
 }
 
 
