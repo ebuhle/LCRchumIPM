@@ -201,13 +201,16 @@ fecundity_plot <- function(mod, fish_data, fecundity_data)
     mutate(age_E = pars$age_E[age_E])
   
   cols <- viridis(nrow(pars), end = 0.8, direction = -1) 
-  
+  brks <- 100*(min(round(fecundity_data$E_obs/100)):max(round(fecundity_data$E_obs/100)))
+
   gg <- likE %>% 
     ggplot(aes(x = E_obs, y = median(lik), color = age_E, fill = age_E)) +
     geom_histogram(data = mutate(fecundity_data, age_E = factor(pars$age_E[age_E - 2])), 
                    aes(x = E_obs, y = after_stat(density), fill = age_E), 
-                   inherit.aes = FALSE, bins = 40, 
-                   alpha = 0.5, color = "white", show.legend = FALSE) +
+                   inherit.aes = FALSE, breaks = brks, #bins = 40, 
+                   alpha = 0.5, color = "white", lwd = 1, show.legend = FALSE) +
+    geom_vline(xintercept = brks[brks %% 1000 == 0], lwd = 1, color = "grey92") +
+    geom_vline(xintercept = brks[brks %% 500 == 0], lwd = 0.5, color = "grey92") +
     stat_halfeye(data = pars, aes(xdist = mu_E, color = age_E, fill = age_E),
                  inherit.aes = FALSE, .width = c(0.5, 0.9), normalize = "none",
                  density = function(v, ...) { # normalize pdf
@@ -220,18 +223,19 @@ fecundity_plot <- function(mod, fish_data, fecundity_data)
     geom_ribbon(aes(ymin = t(quantile(lik, 0.05)), ymax = t(quantile(lik, 0.95))),
                 color = NA, alpha = 0.5, show.legend = FALSE) +
     geom_text(data = pars, aes(x = 4500, y = 0.001, label = age_E, color = age_E), 
-              inherit.aes = FALSE, parse = TRUE, size = 7, show.legend = FALSE) +
+               inherit.aes = FALSE, parse = TRUE, size = 7, show.legend = FALSE) +
     scale_y_continuous(labels = NULL, expand = expansion(0)) + 
-    coord_cartesian(ylim = c(-0.0005, 0.0015)) +
+    coord_cartesian(xlim = c(1000, 5000), ylim = c(-0.0005, 0.0015)) +
     scale_color_manual(aesthetics = c("color", "fill"), values = cols) +
     facet_wrap(~ age_E, dir = "v", scales = "free_y", labeller = label_parsed) +
     labs(x = "Fecundity", y = "Probability density") +
     theme_bw(base_size = 20) +
-    theme(axis.line.y = element_blank(), axis.ticks.y = element_blank(),
-          axis.line.x = element_line(), panel.border = element_blank(),
-          panel.grid = element_blank(), strip.text = element_text(size = 16),
-          strip.text.x = element_blank(),
-          strip.background = element_blank()) 
+    theme(axis.line.x = element_line(), panel.grid = element_blank(),
+          axis.line.y = element_blank(), axis.ticks.y = element_blank(), 
+          # panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank(),
+          panel.spacing.y = unit(0, "cm"),
+          panel.border = element_blank(), strip.text = element_text(size = 16),
+          strip.text.x = element_blank(), strip.background = element_blank()) 
   
   # ages <- substring(names(select(fish_data, starts_with("n_age"))), 6, 6)
   # E_obs <- fecundity_data$E_obs

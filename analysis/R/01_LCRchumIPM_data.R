@@ -343,10 +343,10 @@ fecundity <- read.csv(here("data","Data_ChumFecundity_fromHatcheryPrograms.csv")
   mutate(stock = factor(stock))
 
 # drop cases with age not in c(3,4,5), with estimated fecundity missing, 
-# or with reproductive effort <= 16%
+#   or with reproductive effort <= 16%
 # add strata based on stock: Grays -> Coastal, I-205 -> Cascade, Lower Gorge -> Gorge
-fecundity_data <- fecundity %>% 
-  filter(age_E %in% 3:5 & !is.na(E_obs) & !is.na(reproductive_effort) & reproductive_effort > 16) %>% 
+fecundity_data <- fecundity %>% filter(age_E %in% 3:5 & !is.na(E_obs) & 
+           !is.na(reproductive_effort) & reproductive_effort > 16) %>% 
   mutate(strata = recode(stock, Grays = "Coastal", `I-205` = "Cascade", `Lower Gorge` = "Gorge")) %>% 
   select(strata, year, ID, age_E, E_obs) %>% arrange(strata, year, age_E) 
 
