@@ -375,21 +375,76 @@ fecundity_data %>% select(-strata) %>% head(10) #%>% kable() %>%
 
 ## Model Fitting
 
-We can now call the function `salmonIPM()` to fit models to the historical LCR chum monitoring data. Here we use the Ricker spawner-recruit function. We also allow a fixed difference between the average SAR of natural and hatchery populations using the `par_models` formula interface. The `center = FALSE` and `scale = FALSE` arguments prevent the default behavior of centering and standardizing covariates since `pop_type` is a factor. As with all multi-stage **salmonIPM** models, we need to specify the age in years of juvenile life stages, in this case smolts (`M`). The help page `?salmonIPM` provides much more detail on available arguments.
+We can now call the function `salmonIPM()` to fit models to the historical LCR chum monitoring data. In principle we could fit all three spawner-recruit functions, or models with alternative covariate specifications, and compare them based on estimated out-of-sample predictive performance using the approximate leave-one-out cross-validation score ([LOO](http://mc-stan.org/loo/); Vehtari et al. 2017). In practice we find that LOO estimates for IPMs fitted to the LCR chum data are too unstable to be usable (excessive Pareto *k*-values indicating that some observations are highly influential on the posterior), requiring brute-force cross-validation or customized methods. These are under development, but in the meantime we proceed to use the Ricker model for inference since it is biologically plausible and fits the data reasonably well. We allow a fixed difference between the average SAR of natural and hatchery populations using the `par_models` formula interface. The `center = FALSE` and `scale = FALSE` arguments prevent the default behavior of centering and standardizing covariates since `pop_type` is a factor. As with all multi-stage **salmonIPM** models, we need to specify the age in years of fixed juvenile life stages, in this case smolts (`M`). The help page `?salmonIPM` provides much more detail on available arguments.
 
-```{r fit_Ricker, eval = !exists("fit_Ricker")}
+
+```{r fit_Ricker, eval = FALSE}
 ```
 
 ```{r printshort_fit_Ricker}
 print(fit_Ricker, prob = c(0.05, 0.5, 0.95),
-      pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p","p_F","p_origin",
-               "tau_M","tau_S","B_rate","E_hat","M","S","s_MS","q","q_F","q_origin","p_HOS","LL"), 
+      pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p",
+               "p_F","p_origin","tau_M","tau_S","B_rate","E_hat","M","S","s_MS",
+               "q","q_F","q_origin","p_HOS","LL","M_downstream"), 
       include = FALSE, use_cache = FALSE)
 ```
 
 This model takes approximately `r round(mean(rowSums(get_elapsed_time(fit_Ricker)))/3600)` hr to fit on a 3-GHz multicore Intel processor. The results (showing only hyperparameters, except `p_origin`, for readability) suggest that the Markov chains mixed adequately, since the Gelman-Rubin $\widehat{R}$ diagnostics are all ≤ 1.02 and effective sample sizes $n_\text{eff}$ are sufficient for computing 90% credible intervals. We may get false-positive warnings that some `Rhat` and `n_eff` estimates are `NaN`, but these are for the fixed diagonal elements of the 2 $\times$ 2 correlation matrices `R_pop_p` and `R_p` parameterized by $\rho_{\mathbf{p}}^\text{pop}$ and $\rho_{\mathbf{p}}$, respectively. We could further explore the chains and HMC diagnostics using interactive visualizations in the [**shinystan**](https://mc-stan.org/users/interfaces/shinystan) package.
 
-In principle we could fit all three spawner-recruit functions, or models with alternative covariate specifications, and compare them based on estimated out-of-sample predictive performance using the approximate leave-one-out cross-validation score ([LOO](http://mc-stan.org/loo/); Vehtari et al. 2017). In practice we find that LOO estimates for IPMs fitted to the LCR chum data are too unstable to be usable (excessive Pareto *k*-values indicating that some observations are highly influential on the posterior), requiring brute-force cross-validation or customized methods. These are under development, but in the meantime we proceed to use the Ricker model for inference since it is biologically plausible and fits the data reasonably well.
+
+## Freshwater Productivity
+
+[OLD multiplot TEXT NEEDS TO BE MERGED]
+
+<!-- The plot below summarizes posterior distributions of the main hyperparameters and states across the life cycle. In panels C-H, thick lines and shading correspond to the hyper-mean or ESU level and thin lines correspond to each of the 12 natural populations in the data set. In panels E-H, lines indicate posterior medians and shading indicates 90% posterior credible intervals at the ESU level (uncertainty around population-level curves is omitted for clarity). -->
+
+<!-- There is clear evidence of density dependence, with more among-population heterogeneity in smolt capacity (converted to millions of smolts per km of spawning habitat) than in maximum egg-to-smolt survival, but most populations exhibit little if any overcompensation over the range of observed spawner densities (shown by the *x*-axis rug in E-F). Both freshwater productivity (total smolt process error, G) and SAR are strongly synchronous across populations at the ESU scale. Freshwater productivity is relatively stable except for the sharp drop in 2019. Smolt-to-adult survival, by contrast, shows strong and quasiperiodic fluctuations consistent with large-scale oceanographic or other environmental drivers. Because of this large and as-yet-unexplained process stochasticity, the SAR estimates in the initial 3 years (when no $S_{jt}^\text{obs}$ are available) and final 4 years (corresponding to cohorts that have not yet fully returned as adults), which are informed more by the process model than by data, are very uncertain. -->
+
+### Fecundity
+
+Fecundity was higher for 4- and 5-year old females than for the youngest age class. Here the histograms show observations and the lines and shading show the posterior median and 90% credible interval, respectively, of the estimated zero-truncated normal density, which fits the data reasonably well.
+
+```{r plot_fecundity_Ricker, echo=FALSE, fig.width=7, fig.height=7}
+mod_name <- "fit_Ricker"
+<<plot_fecundity_fit>>
+plot(gg)
+```
+
+### Egg-to-Smolt Survival and Capacity
+
+Spawner-recruit parameters at population and ESU level, showing populations that have direct or indirect smolt abundance observations...
+
+```{r plot_psi_Mmax_Ricker, echo=FALSE, fig.width=8, fig.height=7, out.width="70%"}
+mod_name <- "fit_Ricker"
+<<plot_psi_Mmax>>
+plot(gg)
+```
+
+### Spawner-Recruit Functions
+
+We can look more closely at freshwater productivity by plotting the spawner-recruit functions for each population along with the observations and states. Here the lines and dark inner shading indicate the posterior median and 90% credible interval of the fitted Ricker curve, and the light outer shading represents total (shared plus unique) process error. (Due to the high reported precision of the observations, observation error makes only a minor contribution to the posterior predictive distribution and is not shown.) The black points are the spawner and smolt data for the five populations with smolt traps. Note that the trap counts for Grays MS represent the sum of production in the mainstem and in the upstream Grays CJ and Grays WF populations, as discussed above, and thus the observations in that case are not directly comparable to the states and fitted values. Open gray points are state estimates, with error bars (in some cases truncated for clarity) indicating 90% credible intervals.
+
+```{r SR_plot_Ricker, echo = FALSE, warning=FALSE, message=FALSE, fig.width=11, fig.height=7, out.width="100%", eval=FALSE}
+life_stage <- "M"
+<<SR_plot>>
+plot(gg)
+```
+
+[S-R PLOT UNDER CONSTRUCTION]
+
+The data are sparse, but overall the Ricker appears to be an adequate fit. The states with noticeably higher uncertainty generally correspond to cases with missing spawner observations and/or missing observation error estimates, as we will see in the time series plots below.
+
+### Smolt Abundance
+
+Fits to the smolt abundance data, following the same conventions as for spawner abundance, immediately show how much sparser the juvenile sampling is. Only six populations are monitored with smolt traps (including `Grays WF`, which along with `Grays CJ` is incorporated into the summed smolt observations and estimates for the downstream `Grays MS` trap) and several of those time series are incomplete. For that reason, a greater share of the information about the underlying state comes from the process model, which induces synchronous fluctuations.
+
+```{r smolt_ts_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7*11/12, out.width="100%"}
+life_stage <- "M"
+<<smolt_spawner_ts>>
+plot(gg)
+```
+
+## Marine Survival
 
 ```{r hyper_mean_SAR_summary, echo=FALSE}
 logit <- rfun(qlogis)
@@ -401,83 +456,37 @@ SARout <- as_draws_rvars(as.matrix(fit_Ricker, c("mu_MS","beta_MS"))) %>%
   mutate(mci = paste0(round(median,3), "% [", round(q5,3), "%, ", round(q95,3), "%]"))
 ```
 
-The posterior of the regression coefficient `beta_MS[1]` is strongly negative. Since the levels of `pop_type` are ordered `c("natural", "hatchery")`, this indicates that hatchery SAR was lower than natural SAR on average. The respective ESU-level hyper-means of smolt-to-adult survival, summarized by posterior median and 90% credible interval, are `r SARout$mci[2]` for the wild populations and (`r SARout$mci[1]`) for the hatcheries. We show this graphically below.
+The posterior of the regression coefficient `beta_MS[1]` is strongly negative. Since the levels of `pop_type` are ordered `c("natural", "hatchery")`, this indicates that hatchery SAR was lower on average for the 3 hatcheries than for the 12 wild populations. The respective ESU-level hyper-means of smolt-to-adult survival, summarized by posterior median and 90% credible interval, are `r SARout$mci[2]` for the wild populations and (`r SARout$mci[1]`) for the hatcheries. 
 
-## Life-Cycle Parameters and States
+To visualize this difference, we can compare the time series of ESU-level (posterior medians and 90% credible intervals) and population-level (posterior medians only) SAR for natural and hatchery populations. The two groups are highly correlated, because variation in SAR is dominated by the common trend `eta_year_MS`. This also allows information to be shared between the groups via the hyperparameters of the SAR process model, so the inclusion of the hatcheries in the model improves the estimates for wild populations. As mentioned previously, the lower apparent survival of hatchery smolts could reflect a greater tendency to stray outside the modeled set $\mathcal{W}$ in addition to biological differences due to hatchery rearing [@naish_evaluation_2008].
 
-The plot below summarizes posterior distributions of the main hyperparameters and states across the life cycle. In panels C-H, thick lines and shading correspond to the hyper-mean or ESU level and thin lines correspond to each of the 12 natural populations in the data set. In panels E-H, lines indicate posterior medians and shading indicates 90% posterior credible intervals at the ESU level (uncertainty around population-level curves is omitted for clarity).
-
-```{r multiplot_Ricker, echo=FALSE, warning=FALSE, fig.width=12, fig.height=5.5, out.width="100%"}
+```{r plot_M_SAR_Ricker, echo=FALSE, warning=FALSE, fig.width=7, fig.height=7, out.width="60%"}
 mod_name <- "fit_Ricker"
-<<multiplot>>
+<<plot_M_anomaly_SAR>>
+plot(gg)
 ```
 
-There is clear evidence of density dependence, with more among-population heterogeneity in smolt capacity (converted to millions of smolts per km of spawning habitat) than in maximum egg-to-smolt survival, but most populations exhibit little if any overcompensation over the range of observed spawner densities (shown by the *x*-axis rug in E-F). Both freshwater productivity (total smolt process error, G) and SAR are strongly synchronous across populations at the ESU scale. Freshwater productivity is relatively stable except for the sharp drop in 2019. Smolt-to-adult survival, by contrast, shows strong and quasiperiodic fluctuations consistent with large-scale oceanographic or other environmental drivers. Because of this large and as-yet-unexplained process stochasticity, the SAR estimates in the initial 3 years (when no $S_{jt}^\text{obs}$ are available) and final 4 years (corresponding to cohorts that have not yet fully returned as adults), which are informed more by the process model than by data, are very uncertain.
-
-<!-- ## Spawner-Recruit Functions -->
-
-<!-- We can look more closely at freshwater productivity by plotting the spawner-recruit functions for each population along with the observations and states. Here the lines and dark inner shading indicate the posterior median and 90% credible interval of the fitted Ricker curve, and the light outer shading represents total (shared plus unique) process error. (Due to the high reported precision of the observations, observation error makes only a minor contribution to the posterior predictive distribution and is not shown.) The black points are the spawner and smolt data for the five populations with smolt traps. Note that the trap counts for Grays MS represent the sum of production in the mainstem and in the upstream Grays CJ and Grays WF populations, as discussed above, and thus the observations in that case are not directly comparable to the states and fitted values. Open gray points are state estimates, with error bars (in some cases truncated for clarity) indicating 90% credible intervals. -->
-
-```{r SR_plot_Ricker, echo = FALSE, warning=FALSE, message=FALSE, fig.width=11, fig.height=7, out.width="100%", eval=FALSE}
-life_stage <- "M"
-<<SR_plot>>
-show(gg)
-```
-
-<!-- The data are sparse, but overall the Ricker appears to be an adequate fit. The states with noticeably higher uncertainty generally correspond to cases with missing spawner observations and/or missing observation error estimates, as we will see in the time series plots below. -->
-
-## Natural and Hatchery SAR
-
-To visualize the effect of the strongly negative regression coefficent `beta_MS[1]` for `pop_type`, we can compare the time series of ESU-level (posterior medians and 90% credible intervals) and population-level (posterior medians only) SAR for natural and hatchery populations. The difference between the ESU-level hyper-means reflects that SAR was lower on average for the 3 hatcheries than for the wild populations. The two groups are highly correlated, however, because variation in SAR is dominated by the common trend `eta_year_MS`. This also allows information to be shared between the groups via the hyperparameters of the SAR process model, so the inclusion of the hatcheries in the model improves the estimates for wild populations. As mentioned previously, the lower apparent survival of hatchery smolts could reflect a greater tendency to stray outside the modeled set $\mathcal{W}$ in addition to biological differences due to hatchery rearing [@naish_evaluation_2008].
-
-```{r plot_SAR_ts_Ricker, echo=FALSE, warning=FALSE, fig.width=7, fig.height=7}
-mod_name <- "fit_Ricker"
-<<plot_SAR_ts>>
-show(gg)
-```
-
-## Hatchery Spawner Dispersal
+## Hatchery Adult Dispersal
 
 Plotting the posterior distribution of the hatchery straying matrix (posterior medians, 50% and 90% credible intervals) reveals broad overlap between Duncan and Lewis Hatcheries in their spatial distribution of adult recruits, while Grays Hatchery fish returned exclusively to the Grays subbasins. The estimates for Grays Hatchery are much tighter due to the larger number of recoveries for the origin-composition likelihood, especially compared to the sparse observations of Lewis Hatchery fish.
 
 ```{r plot_p_origin_Ricker, echo=FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="90%"}
 mod_name <- "fit_Ricker"
 <<plot_p_origin>>
-show(gg)
+plot(gg)
 ```
 
-We now examine model fits to individual data components in more detail.
-
-## Fecundity
-
-Fecundity was higher for 4- and 5-year old females than for the youngest age class. Here the histograms show observations and the lines and shading show the posterior median and 90% credible interval, respectively, of the estimated zero-truncated normal density, which fits the data reasonably well.
-
-```{r plot_fecundity_Ricker, echo=FALSE, fig.width=5, fig.height=5}
-mod_name <- "fit_Ricker"
-<<plot_fecundity_fit>>
-```
-
-## Spawner Abundance
+## Spawner Abundance and Composition
 
 The next plot shows observed and estimated total spawner abundance for each natural population. Points are "data", i.e. posterior medians from the sample-based observation models, with associated 90% credible intervals (sometimes too narrow to be visible). Filled points indicate observations whose error SD is known, while the SD for open points is imputed. The solid gray line is the posterior median of the estimated true state from the IPM. Posterior 90% credible intervals indicate process (dark shading) and observation (light shading) uncertainty, i.e. the posterior predictive distribution (PPD) of hypothetical replicate data under the model. Leading or trailing years without spawner abundance estimates are included if smolt abundance is available.
 
-```{r plot_spawners_Ricker, echo = FALSE, warning=FALSE, fig.width=14, fig.height=7, out.width="100%"}
+```{r spawner_ts_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7*11/12, out.width="100%"}
 life_stage <- "S"
-<<plot_spawner_smolt_ts>>
-show(gg)
+<<smolt_spawner_ts>>
+plot(gg)
 ```
 
-## Smolt Abundance
-
-Fits to the smolt abundance data, following the same conventions as for spawner abundance, immediately show how much sparser the juvenile sampling is. Only six populations are monitored with smolt traps (including `Grays WF`, which along with `Grays CJ` is incorporated into the summed smolt observations and estimates for the downstream `Grays MS` trap) and several of those time series are incomplete. For that reason, a greater share of the information about the underlying state comes from the process model, which induces synchronous fluctuations.
-
-```{r plot_smolts_Ricker, echo = FALSE, warning=FALSE, fig.width=14, fig.height=7, out.width="100%"}
-life_stage <- "M"
-<<plot_spawner_smolt_ts>>
-show(gg)
-```
-
-## Observation Error
+### Observation Error
 
 To understand how the IPM imputes the abundance observation error SD in cases where it is not reported, we can plot the lognormal hyperdistribution (posterior median and 90% credible interval) fitted to the known SD values (histogram).
 
@@ -485,31 +494,31 @@ To understand how the IPM imputes the abundance observation error SD in cases wh
 <<plot_obs_error_fit>>
 ```
 
-## Spawner Age Composition
+### Spawner Age Composition
 
 Next we compare the estimated true natural spawner age-frequencies (posterior medians and 90% credible intervals of the states and of the binomial PPD for hypothetical replicate data) to the observed sample proportions (with 90% binomial confidence intervals). Age composition varies considerably across populations and through time, tracking fluctuations in cohort strength. The precision of the estimated states and the PPD follows the sample size, with smaller samples giving relatively more weight to the hierarchical process model.
 
 ```{r plot_spawner_age_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7*11/12, out.width="100%"}
 <<plot_spawner_age_ts>>
-show(gg)
+plot(gg)
 ```
 
-## Spawner Sex Ratio
+### Spawner Sex Ratio
 
 Plots of the estimated natural adult sex ratio, following a similar format, likewise show strong interannual fluctuations and some systematic deviations from a 1:1 sex ratio across populations.
 
-```{r plot_sex_ratio_ts_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
-<<plot_sex_ratio_ts>>
-show(gg)
+```{r plot_sex_ratio_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
+<<plot_sex_ratio>>
+plot(gg)
 ```
 
-## Proportion of Hatchery-Origin Spawners
+### Proportion of Hatchery-Origin Spawners
 
 The plot below shows the estimated true states and PPD of $p_\text{HOS}$, summed across hatchery programs, with corresponding sample proportions and binomial 90% confidence intervals. The proportion of hatchery-origin spawners was generally low, with some very small origin-frequency sample sizes that cannot definitively rule out higher values. There is some noticeable lack of fit, especially in Crazy Johnson Creek, due to the relatively parsimonious model of hatchery adult dispersal (e.g., time-invariant straying probabilities), but overall the PPD based on the hatchery smolt-to-adult process model closely matches the observed data. 
 
-```{r plot_p_HOS_ts_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
-<<plot_p_HOS_ts>>
-show(gg)
+```{r plot_p_HOS_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
+<<plot_p_HOS>>
+plot(gg)
 ```
 
 # Hatchery Scenario Analysis
@@ -539,15 +548,15 @@ recovery_targets %>%
 
 We fit the IPM to each augmented data set. Posterior summaries are not shown, but can be printed as demonstrated above for the `fit_Ricker` model to verify that the sampler apparently converged and that the hyperparameter estimates are the same (up to Monte Carlo error) as in the retrospective case.
 
-```{r fit_foreH0_Ricker, eval = !exists("foreH0_Ricker")}
+```{r fit_foreH0_Ricker, eval=FALSE}
 ```
 
-```{r fit_foreHmax_Ricker, eval = !exists("foreHmax_Ricker")}
+```{r fit_foreHmax_Ricker, eval=FALSE}
 ```
 
 In addition to summarizing quantities of management interest across the full posterior, we present estimates conditional on future environmental conditions. Specifically, we use time-averaged SAR anomalies at the ESU level as a proxy for large-scale (likely oceanographic) factors that drive the majority of process error in population dynamics. The figure below illustrates this procedure. For each trajectory sampled from the posterior (a subsample of 100 draws is shown) we compute the future mean of the shared SAR anomalies $\eta^\text{year}_{MSt}$. The posterior distribution of the means $\overline{\eta^\text{year}_{MS}}$ is shown on the right margin of the top panel, divided into tertiles representing relatively low, medium or high SAR anomalies over the forecast period; trajectories in each tertile are likewise color-coded. The bottom panel shows trajectories of spawner abundance $S_{jt}$ for one population, Hardy Creek (the observations are as shown above for the retrospective fit), with the forecast period color-coded according to the corresponding tertile of mean SAR anomaly. The posterior distributions of geometric mean abundance for trajectories in each level of SAR are on the right margin. Other quantities, such as quasi-extinction risk, can be similarly conditioned on categories of average future SAR.
 
-```{r plot_SAR_fore_Ricker, echo=FALSE, fig.width=7, fig.height=7, out.width="70%"}
+```{r plot_SAR_fore_Ricker, echo=FALSE, fig.width=7, fig.height=7, out.width="70%", eval=FALSE}
 mod_name <- "foreH0_Ricker"
 set.seed(123)
 <<plot_SAR_fore>>
@@ -557,20 +566,20 @@ set.seed(123)
 
 Geometric mean spawner abundance (points are posterior medians; lines are 50% and 90% credible intervals) responds as expected to variation in the average future SAR anomaly, but there is little if any difference between the H~0~ and H~max~ scenarios. This suggests that losses due to broodstock collection are balanced by the addition of hatchery-origin spawners There are, however, some differences in the tails; in I-205 / Washougal, for example, the lower tails are thinner under H~max~. The reasons for and implications of these subtle hatchery effects will become apparent when we consider the probability of quasi-extinction.
 
-```{r plot_S_fore_Ricker, echo=FALSE, message=FALSE, fig.width=12, fig.height=4, out.width="100%"}
+```{r plot_S_fore_Ricker, echo=FALSE, message=FALSE, fig.width=12, fig.height=4, out.width="100%", eval=FALSE}
 modH0_name <- "foreH0_Ricker"
 modHmax_name <- "foreHmax_Ricker"
 <<plot_S_fore>>
-show(gg)
+plot(gg)
 ```
 
 ## Proportion of Hatchery-Origin Spawners
 
 Under the H~max~ scenario, time-averaged future $p_\text{HOS}$ is highest under low-SAR conditions, which elevate the probability of a decline in natural spawners while hatchery smolt releases are assumed to remain constant. Average future $p_\text{HOS}$ in the I-205 population (the only one in the I-205 / Washougal recovery population) is higher than has been observed historically; compare the plots of the data and retrospectively estimated states. This reflects the relatively large influx of Lewis Hatchery-origin adults in tandem with a potential decline in natural spawners. Predicted future $p_\text{HOS}$ in the other two recovery populations is broadly consistent with past observations.
 
-```{r plot_p_HOS_fore_Ricker, echo=FALSE, message=FALSE, fig.width=12, fig.height=4, out.width="100%"}
+```{r plot_p_HOS_fore_Ricker, echo=FALSE, message=FALSE, fig.width=12, fig.height=4, out.width="100%", eval=FALSE}
 <<plot_p_HOS_fore>>
-show(gg)
+plot(gg)
 ```
 
 
@@ -578,9 +587,9 @@ show(gg)
 
 We computed quasi-extinction risk as the probability that the 4-year (approximately one generation) running geometric mean spawner abundance falls below the quasi-extinction threshold (QET = 50) at least once during the forecast period [@mcelhany_viable_2000; @lower_columbia_fish_recovery_board_washington_2010 Table E12-2]. The probability of quasi-extinction (PQE) is shown below, with 90% credible intervals based on the binomial sample of `TRUE` / `FALSE` outcomes. Simulated hatchery supplementation generally reduces PQE, with the possible exception of the Lower Gorge recovery population under low-SAR conditions. The absolute reduction is most dramatic in the I-205 population, especially when average SAR is low, although the relative difference (≈ 50%) is similar in the Grays / Chinook group. 
 
-```{r plot_PQE_fore_Ricker, echo=FALSE, message=FALSE, fig.width=12, fig.height=4, out.width="100%"}
+```{r plot_PQE_fore_Ricker, echo=FALSE, message=FALSE, fig.width=12, fig.height=4, out.width="100%", eval=FALSE}
 <<plot_PQE_fore>>
-show(gg)
+plot(gg)
 ```
 
 The reduction in PQE under supplementation is due to the buffering effect of relatively stable numbers of hatchery-origin spawners $S_\text{H}$. An important caveat to these results, and indeed all projections from this scenario analysis, is that we assumed hatchery smolt releases remain constant despite fluctuations in the number of broodstock taken from wild populations under the constant-rate policy. In reality, broodstock collection and thus juvenile releases will decline if $S_\text{W}$ falls to critically low levels, so the buffering effect will be reduced when it is most needed (e.g., under persistently low-SAR conditions). Thus the results presented here likely represent a best-case scenario for the ability of hatcheries to mitigate quasi-extinction risk. In order to construct a more realistic simulation of hatchery operations, we will first need to complete the process model of the hatchery life cycle so that the numbers of broodstock taken are mechanistically linked to the numbers of smolts produced (see *Next Steps*).
@@ -595,7 +604,7 @@ We can easily generate short-term run forecasts using the same approach of augme
 
 This table shows pre-season forecasts of total spawners for `r year(Sys.Date())` along with current habitat size and estimated freshwater productivity parameters for each population (posteriors are summarized by median and 90% credible intervals).
 
-```{r spawner_forecast_table, echo = FALSE, message=FALSE}
+```{r spawner_forecast_table, echo = FALSE, message=FALSE, eval=FALSE}
 <<forecast_df>>
 knitr::kable(forecast_df, escape = FALSE, align = "l") %>% 
   # column_spec(column = 4:5, width = "130px") %>%

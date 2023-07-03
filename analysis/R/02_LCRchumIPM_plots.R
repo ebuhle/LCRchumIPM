@@ -176,6 +176,96 @@ multiplot <- function(mod, SR_fun, fish_data)
 }
 
 #--------------------------------------------------------------------------------
+# Distributions of observed and fitted fecundity by age
+#--------------------------------------------------------------------------------
+
+fecundity_plot <- function(mod, fish_data, fecundity_data)
+{
+  rdnorm <- rfun(dnorm)
+  draws <- as.matrix(mod, c("mu_E","sigma_E")) %>% as_draws_rvars()
+  
+  pars <- data.frame(age_E = paste0("age ~ ", sort(unique(fecundity_data$age_E)))) %>% 
+    mutate(age_E = setNames(age_E, paste0("age", substring(age_E, 7))),
+           mu_E = setNames(draws$mu_E, names(age_E)), 
+           sigma_E = setNames(draws$sigma_E, names(age_E)))
+  
+  likE <- fecundity_data %>% select(E_obs) %>% na.omit() %>% 
+    reframe(E_obs = seq(min(E_obs), max(E_obs), length = 100)) %>%
+    cbind(
+      as.data.frame(
+        sapply(names(pars$age_E),
+               function(a) rdnorm(.$E_obs, mean = pars$mu_E[a], sd = pars$sigma_E[a])) 
+      )
+    ) %>% 
+    pivot_longer(-E_obs, values_to = "lik", names_to = "age_E") %>% 
+    mutate(age_E = pars$age_E[age_E])
+  
+  cols <- viridis(nrow(pars), end = 0.8, direction = -1) 
+  
+  gg <- likE %>% 
+    ggplot(aes(x = E_obs, y = median(lik), color = age_E, fill = age_E)) +
+    geom_histogram(data = mutate(fecundity_data, age_E = factor(pars$age_E[age_E - 2])), 
+                   aes(x = E_obs, y = after_stat(density), fill = age_E), 
+                   inherit.aes = FALSE, bins = 40, 
+                   alpha = 0.5, color = "white", show.legend = FALSE) +
+    stat_halfeye(data = pars, aes(xdist = mu_E, color = age_E, fill = age_E),
+                 inherit.aes = FALSE, .width = c(0.5, 0.9), normalize = "none",
+                 density = function(v, ...) { # normalize pdf
+                   dv <- density(v)
+                   dv$y <- -0.0005*dv$y/max(dv$y)
+                   return(dv)
+                 },
+                 linewidth = 5, point_size = 3, slab_alpha = 0.7, show.legend = FALSE) +
+    geom_line(lwd = 1, show.legend = FALSE) +
+    geom_ribbon(aes(ymin = t(quantile(lik, 0.05)), ymax = t(quantile(lik, 0.95))),
+                color = NA, alpha = 0.5, show.legend = FALSE) +
+    geom_text(data = pars, aes(x = 4500, y = 0.001, label = age_E, color = age_E), 
+              inherit.aes = FALSE, parse = TRUE, size = 7, show.legend = FALSE) +
+    scale_y_continuous(labels = NULL, expand = expansion(0)) + 
+    coord_cartesian(ylim = c(-0.0005, 0.0015)) +
+    scale_color_manual(aesthetics = c("color", "fill"), values = cols) +
+    facet_wrap(~ age_E, dir = "v", scales = "free_y", labeller = label_parsed) +
+    labs(x = "Fecundity", y = "Probability density") +
+    theme_bw(base_size = 20) +
+    theme(axis.line.y = element_blank(), axis.ticks.y = element_blank(),
+          axis.line.x = element_line(), panel.border = element_blank(),
+          panel.grid = element_blank(), strip.text = element_text(size = 16),
+          strip.text.x = element_blank(),
+          strip.background = element_blank()) 
+  
+  # ages <- substring(names(select(fish_data, starts_with("n_age"))), 6, 6)
+  # E_obs <- fecundity_data$E_obs
+  # E_seq <- seq(min(E_obs, na.rm = TRUE), max(E_obs, na.rm = TRUE), length = 500)
+  # mu_E <- extract1(mod, "mu_E")
+  # sigma_E <- extract1(mod, "sigma_E")
+  # E_fit <- array(NA, c(nrow(mu_E), length(E_seq), ncol(mu_E)))
+  # for(a in 1:length(ages))
+  #   E_fit[,,a] <- sapply(E_seq, function(x) dnorm(x, mu_E[,a], sigma_E[,a]))
+  # 
+  # c1 <- viridis(length(ages), end = 0.8, direction = -1) 
+  # c1t <- transparent(c1, trans.val = 0.5)
+  # c1tt <- transparent(c1, trans.val = 0.7)
+  # 
+  # par(mfrow = c(3,1), mar = c(3,2,0,2), oma = c(2,2,0,0))
+  # 
+  # for(a in 1:length(ages))
+  # {
+  #   hist(E_obs[fecundity_data$age_E == ages[a]], 20, prob = TRUE, 
+  #        col = c1tt[a], border = "white", las = 1, cex.axis = 1.5, cex.lab = 1.8,
+  #        xlim = range(E_seq), ylim = range(0, apply(E_fit, 2:3, quantile, 0.99)),
+  #        xlab = NA, ylab = NA, main = NA, xaxs = "i", yaxt = "n", bty = "n")
+  #   lines(E_seq, colMedians(E_fit[,,a]), col = c1[a], lwd = 3)
+  #   polygon(c(E_seq, rev(E_seq)),
+  #           c(colQuantiles(E_fit[,,a], probs = 0.05), 
+  #             rev(colQuantiles(E_fit[,,a], probs = 0.95))),
+  #           col = c1t[a], border = NA)
+  #   text(par("usr")[1] + 0.8*diff(par("usr")[1:2]), par("usr")[4]*0.5, 
+  #        labels = paste("age", ages[a]), cex = 1.8, col = c1[a], adj = 1)
+  # }
+  # title(xlab = "Fecundity", ylab = "Probability density", cex.lab = 1.9, line = 0, outer = TRUE)
+}
+
+#--------------------------------------------------------------------------------
 # S-R parameters at population and ESU level 
 #--------------------------------------------------------------------------------
 
@@ -320,7 +410,7 @@ SR_plot <- function(mod, SR_fun, life_stage, fish_data)
 # Time series of smolt productivity anomaly and natural and hatchery SAR
 #-------------------------------------------------------------------------
 
-M_anomaly_SAR_timeseries <- function(mod, fish_data)
+smolt_SAR_ts <- function(mod, fish_data)
 {
   logit <- rfun(qlogis)
   ilogit <- rfun(plogis)
@@ -357,7 +447,7 @@ M_anomaly_SAR_timeseries <- function(mod, fish_data)
                         ymax = t(quantile(.value, 0.95)),
                         color = pop_type, fill = pop_type), 
                     inherit.aes = FALSE, linewidth = 1.5) +
-    scale_x_continuous(minor_breaks = unique(fish_data$year), expand = expansion(0)) +
+    scale_x_continuous(minor_breaks = unique(fish_data$year)) +
     scale_y_log10() + scale_color_discrete(type = cols) +
     scale_fill_discrete(type = alpha(cols, 0.3)) +
     facet_wrap(~ pars, dir = "v", scales = "free_y", strip.position = "left") +
@@ -395,100 +485,10 @@ p_origin_plot <- function(mod, fish_data)
 }
 
 #--------------------------------------------------------------------------------
-# Distributions of observed and fitted fecundity by age
-#--------------------------------------------------------------------------------
-
-fecundity_plot <- function(mod, fish_data, fecundity_data)
-{
-  rdnorm <- rfun(dnorm)
-  draws <- as.matrix(mod, c("mu_E","sigma_E")) %>% as_draws_rvars()
-
-  pars <- data.frame(age_E = paste0("age ~ ", sort(unique(fecundity_data$age_E)))) %>% 
-    mutate(age_E = setNames(age_E, paste0("age", substring(age_E, 7))),
-           mu_E = setNames(draws$mu_E, names(age_E)), 
-           sigma_E = setNames(draws$sigma_E, names(age_E)))
-  
-  likE <- fecundity_data %>% select(E_obs) %>% na.omit() %>% 
-    reframe(E_obs = seq(min(E_obs), max(E_obs), length = 100)) %>%
-    cbind(
-      as.data.frame(
-        sapply(names(pars$age_E),
-               function(a) rdnorm(.$E_obs, mean = pars$mu_E[a], sd = pars$sigma_E[a])) 
-      )
-    ) %>% 
-    pivot_longer(-E_obs, values_to = "lik", names_to = "age_E") %>% 
-    mutate(age_E = pars$age_E[age_E])
-  
-  cols <- viridis(nrow(pars), end = 0.8, direction = -1) 
-  
-  gg <- likE %>% 
-    ggplot(aes(x = E_obs, y = median(lik), color = age_E, fill = age_E)) +
-    geom_histogram(data = mutate(fecundity_data, age_E = factor(pars$age_E[age_E - 2])), 
-                   aes(x = E_obs, y = after_stat(density), fill = age_E), 
-                   inherit.aes = FALSE, bins = 40, 
-                   alpha = 0.5, color = "white", show.legend = FALSE) +
-    stat_halfeye(data = pars, aes(xdist = mu_E, color = age_E, fill = age_E),
-                 inherit.aes = FALSE, .width = c(0.5, 0.9), normalize = "none",
-                 density = function(v, ...) { # normalize pdf
-                   dv <- density(v)
-                   dv$y <- -0.0005*dv$y/max(dv$y)
-                   return(dv)
-                 },
-                 linewidth = 5, point_size = 3, slab_alpha = 0.7, show.legend = FALSE) +
-    geom_line(lwd = 1, show.legend = FALSE) +
-    geom_ribbon(aes(ymin = t(quantile(lik, 0.05)), ymax = t(quantile(lik, 0.95))),
-                color = NA, alpha = 0.5, show.legend = FALSE) +
-    geom_text(data = pars, aes(x = 4500, y = 0.001, label = age_E, color = age_E), 
-              inherit.aes = FALSE, parse = TRUE, size = 7, show.legend = FALSE) +
-    scale_y_continuous(labels = NULL, expand = expansion(0)) + 
-    coord_cartesian(ylim = c(-0.0005, 0.0015)) +
-    scale_color_manual(aesthetics = c("color", "fill"), values = cols) +
-    facet_wrap(~ age_E, dir = "v", scales = "free_y", labeller = label_parsed) +
-    labs(x = "Fecundity", y = "Probability density") +
-    theme_bw(base_size = 20) +
-    theme(axis.line.y = element_blank(), axis.ticks.y = element_blank(),
-          axis.line.x = element_line(), panel.border = element_blank(),
-          panel.grid = element_blank(), strip.text = element_text(size = 16),
-          strip.text.x = element_blank(),
-          strip.background = element_blank()) 
-
-  # ages <- substring(names(select(fish_data, starts_with("n_age"))), 6, 6)
-  # E_obs <- fecundity_data$E_obs
-  # E_seq <- seq(min(E_obs, na.rm = TRUE), max(E_obs, na.rm = TRUE), length = 500)
-  # mu_E <- extract1(mod, "mu_E")
-  # sigma_E <- extract1(mod, "sigma_E")
-  # E_fit <- array(NA, c(nrow(mu_E), length(E_seq), ncol(mu_E)))
-  # for(a in 1:length(ages))
-  #   E_fit[,,a] <- sapply(E_seq, function(x) dnorm(x, mu_E[,a], sigma_E[,a]))
-  # 
-  # c1 <- viridis(length(ages), end = 0.8, direction = -1) 
-  # c1t <- transparent(c1, trans.val = 0.5)
-  # c1tt <- transparent(c1, trans.val = 0.7)
-  # 
-  # par(mfrow = c(3,1), mar = c(3,2,0,2), oma = c(2,2,0,0))
-  # 
-  # for(a in 1:length(ages))
-  # {
-  #   hist(E_obs[fecundity_data$age_E == ages[a]], 20, prob = TRUE, 
-  #        col = c1tt[a], border = "white", las = 1, cex.axis = 1.5, cex.lab = 1.8,
-  #        xlim = range(E_seq), ylim = range(0, apply(E_fit, 2:3, quantile, 0.99)),
-  #        xlab = NA, ylab = NA, main = NA, xaxs = "i", yaxt = "n", bty = "n")
-  #   lines(E_seq, colMedians(E_fit[,,a]), col = c1[a], lwd = 3)
-  #   polygon(c(E_seq, rev(E_seq)),
-  #           c(colQuantiles(E_fit[,,a], probs = 0.05), 
-  #             rev(colQuantiles(E_fit[,,a], probs = 0.95))),
-  #           col = c1t[a], border = NA)
-  #   text(par("usr")[1] + 0.8*diff(par("usr")[1:2]), par("usr")[4]*0.5, 
-  #        labels = paste("age", ages[a]), cex = 1.8, col = c1[a], adj = 1)
-  # }
-  # title(xlab = "Fecundity", ylab = "Probability density", cex.lab = 1.9, line = 0, outer = TRUE)
-}
-
-#--------------------------------------------------------------------------------
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
 
-MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data)
+smolt_spawner_ts <- function(mod, life_stage = c("M","S"), fish_data)
 {
   year <- fish_data$year
   draws <- as_draws_rvars(as.matrix(fit_Ricker, c(life_stage, paste0("tau_", life_stage)))) %>% 
@@ -512,11 +512,12 @@ MS_timeseries <- function(mod, life_stage = c("M","S"), fish_data)
     geom_ribbon(aes(ymin = t(quantile(N_ppd, 0.05)), ymax = t(quantile(N_ppd, 0.95))),
                 fill = "slategray4", alpha = 0.3) +
     stat_pointinterval(.width = 0.9, point_size = 2.5, linewidth = 1) + scale_shape_identity() +
-    labs(x = "Year", y = switch(life_stage, M = "Smolts (thousands)", S = "Spawners")) + 
-    scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5) +
-    scale_y_log10(labels = function(y) y*switch(life_stage, M = 1e-3, S = 1)) + 
+    labs(x = "Year", y = switch(life_stage, M = "Smolts", S = "Spawners")) + 
+    scale_x_continuous(minor_breaks = unique(fish_data$year), expand = expansion(0.01)) +
+    scale_y_log10(breaks = function(l) maglab(na.omit(l), log = TRUE)$tickat,
+                  labels = label_log()) +
     facet_wrap(vars(pop), ncol = 4, scales = "free_y") + 
-    theme(panel.grid.minor = element_blank(), 
+    theme(panel.grid.minor.y = element_blank(), 
           strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
   
@@ -616,7 +617,7 @@ age_timeseries <- function(mod, fish_data)
 # Time series of observed and fitted sex ratio for each pop
 #--------------------------------------------------------------------------------
 
-sex_timeseries <- function(mod, fish_data)
+plot_sex_ratio <- function(mod, fish_data)
 {
   q_F <- as_draws_rvars(as.matrix(mod, "q_F"))
   year <- fish_data$year
@@ -628,18 +629,17 @@ sex_timeseries <- function(mod, fish_data)
     cbind(., with(., binconf(x = n_F_obs, n = n_MF_obs, alpha = 0.1))) %>%
     filter(!grepl("Hatchery", pop)) %>% 
     ggplot(aes(x = year, y = PointEst, ymin = Lower, ymax = Upper)) + 
-    geom_abline(intercept = 0.5, slope = 0, color = "gray") + 
     geom_ribbon(aes(ymin = t(quantile(q_F, 0.05)), ymax = t(quantile(q_F, 0.95))), 
                 fill = "slategray4", alpha = 0.5) +
     geom_ribbon(aes(ymin = t(quantile(q_F_ppd, 0.05)), ymax = t(quantile(q_F_ppd, 0.95))), 
                 fill = "slategray4", alpha = 0.3) +
     geom_line(aes(y = median(q_F)), col = "slategray4", lwd = 1) +
     geom_point(pch = 16, size = 2.5) + geom_errorbar(width = 0) +
-    scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5) +
+    scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5,
+                       minor_breaks = sort(unique(year))) +
     labs(x = "Year", y = "Proportion female") +
     facet_wrap(vars(pop), ncol = 4) + 
-    theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_blank(), 
-          strip.background = element_rect(fill = NA),
+    theme(panel.grid.minor.y = element_blank(), strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
   
   return(gg)
@@ -669,11 +669,11 @@ p_HOS_timeseries <- function(mod, fish_data)
     geom_line(aes(y = median(p_HOS)), col = "slategray4", lwd = 1) +
     geom_point(aes(y = p_HOS_obs.PointEst), pch = 16, size = 2.5) +
     geom_errorbar(aes(ymin = p_HOS_obs.Lower, ymax = p_HOS_obs.Upper), width = 0) +
-    scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5) +
+    scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5,
+                       minor_breaks = sort(unique(year))) +
     coord_cartesian(ylim = c(0, 0.5)) + labs(x = "Year", y = bquote(italic(p)[HOS])) +
     facet_wrap(vars(pop), ncol = 4) + 
-    theme(panel.grid.major.y = element_blank(), panel.grid.minor = element_blank(),
-          strip.background = element_rect(fill = NA),
+    theme(panel.grid.minor.y = element_blank(), strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
   
   return(gg)

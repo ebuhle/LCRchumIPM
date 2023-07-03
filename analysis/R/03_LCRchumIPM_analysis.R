@@ -233,13 +233,33 @@ multiplot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2],
 if(save_plot) dev.off()
 
 #--------------------------------------------------------------------------------
+# Distributions of observed and fitted fecundity by age
+#--------------------------------------------------------------------------------
+
+mod_name <- "fit_Ricker"
+save_plot <- TRUE
+
+## @knitr plot_fecundity_fit
+gg <- fecundity_plot(get(mod_name), fish_data = fish_data, fecundity_data = fecundity_data)
+## @knitr
+
+if(save_plot) {
+  ggsave(filename = here("analysis","results",
+                         paste0("fecundity_fit_", strsplit(mod_name, "_")[[1]][2], ".png")), 
+         width=7, height=7, units="in", dpi=200, type = "cairo-png")
+} else {
+  dev.new(width=7,height=7)
+  plot(gg)
+}
+
+#--------------------------------------------------------------------------------
 # S-R parameters at population and ESU level 
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
 save_plot <- TRUE
 
-## @knitr plot_SAR_ts
+## @knitr plot_psi_Mmax
 gg <- psi_Mmax_plot(mod = get(mod_name), fish_data)
 ## @knitr
 
@@ -249,26 +269,6 @@ if(save_plot) {
          width=8, height=7, units="in", dpi=300, type = "cairo-png")
 } else {
   dev.new(width=8,height=7)
-  plot(gg)
-}
-
-#-------------------------------------------------------------------------
-# Time series of smolt productivity anomaly and natural and hatchery SAR
-#-------------------------------------------------------------------------
-
-mod_name <- "fit_Ricker"
-save_plot <- TRUE
-
-## @knitr plot_SAR_ts
-gg <- M_anomaly_SAR_timeseries(mod = get(mod_name), fish_data = fish_data)
-## @knitr
-
-if(save_plot) {
-  ggsave(filename = here("analysis","results",
-                         paste0("M_anomaly_SAR_fit_", strsplit(mod_name, "_")[[1]][2], ".png")), 
-         width=7, height=7, units="in", dpi=300)
-} else {
-  dev.new(width=7,height=7)
   plot(gg)
 }
 
@@ -294,6 +294,26 @@ if(save_plot) {
 #   plot(gg)
 # }
 
+#-------------------------------------------------------------------------
+# Time series of smolt productivity anomaly and natural and hatchery SAR
+#-------------------------------------------------------------------------
+
+mod_name <- "fit_Ricker"
+save_plot <- TRUE
+
+## @knitr plot_M_anomaly_SAR
+gg <- smolt_SAR_ts(mod = get(mod_name), fish_data = fish_data)
+## @knitr
+
+if(save_plot) {
+  ggsave(filename = here("analysis","results",
+                         paste0("M_anomaly_SAR_fit_", strsplit(mod_name, "_")[[1]][2], ".png")), 
+         width=7, height=7, units="in", dpi=300)
+} else {
+  dev.new(width=7,height=7)
+  plot(gg)
+}
+
 #--------------------------------------------------------------------------------
 # Straying matrix: probability of dispersal from each origin to each population
 #--------------------------------------------------------------------------------
@@ -315,50 +335,49 @@ if(save_plot) {
 }
 
 #--------------------------------------------------------------------------------
-# Distributions of observed and fitted fecundity by age
-#--------------------------------------------------------------------------------
-
-mod_name <- "fit_Ricker"
-save_plot <- TRUE
-
-## @knitr plot_fecundity_fit
-gg <- fecundity_plot(get(mod_name), fish_data = fish_data, fecundity_data = fecundity_data)
-## @knitr
-
-if(save_plot) {
-  ggsave(filename = here("analysis","results",
-                         paste0("fecundity_fit_", strsplit(mod_name, "_")[[1]][2], ".png")), 
-         width=7, height=7, units="in", dpi=200, type = "cairo-png")
-} else {
-  dev.new(width=7,height=7)
-  plot(gg)
-}
-
-#--------------------------------------------------------------------------------
 # Time series of observed and fitted total spawners or smolts for each pop
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
 life_stage <- "S"   # "S" = spawners, "M" = smolts
-save_plot <- TRUE
+save_plot <- FALSE
 
-## @knitr plot_spawner_smolt_ts
-gg <- MS_timeseries(mod = get(mod_name), life_stage = life_stage, 
-                    fish_data = switch(head(unlist(strsplit(mod_name, "_")), 1),
-                                       foreH0 = fish_data_foreH0, 
-                                       foreHmax = fish_data_foreHmax,
-                                       fish_data))
+## @knitr smolt_spawner_ts
+gg <- smolt_spawner_ts(mod = get(mod_name), life_stage = life_stage, 
+                       fish_data = switch(head(unlist(strsplit(mod_name, "_")), 1),
+                                          foreH0 = fish_data_foreH0, 
+                                          foreHmax = fish_data_foreHmax,
+                                          fish_data))
 ## @knitr
 
 if(save_plot) {
   ggsave(filename = here("analysis","results",
                          paste0(life_stage, "_fit_", strsplit(mod_name, "_")[[1]][2], ".png")), 
-         width=14, height=7, units="in", dpi=300)
+         width=12, height=7, units="in", dpi=300)
 } else {
-  dev.new(width=14,height=7)
+  dev.new(width=12,height=7)
   plot(gg)
 }
 
+#--------------------------------------------------------------------------------
+# Observed and fitted distributions of "known" smolt and spawner 
+# observation error SDs
+#--------------------------------------------------------------------------------
+
+mod_name <- "fit_Ricker"
+save_plot <- TRUE
+
+if(save_plot) {
+  png(filename = here("analysis","results",
+                      paste0("tau_fit_", strsplit(mod_name, "_")[[1]][2], ".png")), 
+      width=10, height=5, units="in", res=200, type = "cairo-png")
+} else dev.new(width=10,height=5)
+
+## @knitr plot_obs_error_fit
+obs_error_plot(get(mod_name), fish_data = fish_data)
+## @knitr
+
+if(save_plot) dev.off()
 
 #--------------------------------------------------------------------------------
 # Time series of observed and fitted spawner age structure for each pop
@@ -387,8 +406,8 @@ if(save_plot) {
 mod_name <- "fit_Ricker"
 save_plot <- TRUE
 
-## @knitr plot_sex_ratio_ts
-gg <- sex_timeseries(mod = get(mod_name), fish_data = fish_data)
+## @knitr plot_sex_ratio
+gg <- plot_sex_ratio(mod = get(mod_name), fish_data = fish_data)
 ## @knitr
 
 if(save_plot) {
@@ -407,7 +426,7 @@ if(save_plot) {
 mod_name <- "fit_Ricker"
 save_plot <- TRUE
 
-## @knitr plot_p_HOS_ts
+## @knitr plot_p_HOS
 gg <- p_HOS_timeseries(mod = get(mod_name), fish_data = fish_data)
 ## @knitr
 
@@ -419,26 +438,6 @@ if(save_plot) {
   dev.new(width=11, height=7)
   plot(gg)
 }
-
-#--------------------------------------------------------------------------------
-# Observed and fitted distributions of "known" smolt and spawner 
-# observation error SDs
-#--------------------------------------------------------------------------------
-
-mod_name <- "fit_Ricker"
-save_plot <- TRUE
-
-if(save_plot) {
-  png(filename = here("analysis","results",
-                      paste0("tau_fit_", strsplit(mod_name, "_")[[1]][2], ".png")), 
-      width=10, height=5, units="in", res=200, type = "cairo-png")
-} else dev.new(width=10,height=5)
-
-## @knitr plot_obs_error_fit
-obs_error_plot(get(mod_name), fish_data = fish_data)
-## @knitr
-
-if(save_plot) dev.off()
 
 #--------------------------------------------------------------------------------
 # Conditioning forecast trajectories on time-averaged SAR anomalies
@@ -532,30 +531,6 @@ if(save_plot) {
 }
 
 #--------------------------------------------------------------------------------
-# Probability of recovery under alternative scenarios
-#--------------------------------------------------------------------------------
-
-modH0_name <- "foreH0_Ricker"
-modHmax_name <- "foreHmax_Ricker"
-save_plot <- FALSE
-
-## @knitr plot_Precovery_fore
-gg <- Precovery_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
-                     fish_data_foreH0 = fish_data_foreH0, 
-                     fish_data_foreHmax = fish_data_foreHmax,
-                     pop_names = pop_names, recovery_targets = recovery_targets)
-## @knitr
-
-if(save_plot) {
-  ggsave(filename = here("analysis","results",
-                         paste0("Precovery_", strsplit(modH0_name, "_")[[1]][2], ".png")), 
-         width=12, height=4, units="in", dpi=300)
-} else {
-  dev.new(width=12, height=4)
-  plot(gg)
-}
-
-#--------------------------------------------------------------------------------
 # Probability of quasi-extinction under alternative scenarios
 #--------------------------------------------------------------------------------
 
@@ -573,6 +548,30 @@ gg <- PQE_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name),
 if(save_plot) {
   ggsave(filename = here("analysis","results",
                          paste0("PQE_", strsplit(modH0_name, "_")[[1]][2], ".png")), 
+         width=12, height=4, units="in", dpi=300)
+} else {
+  dev.new(width=12, height=4)
+  plot(gg)
+}
+
+#--------------------------------------------------------------------------------
+# Probability of recovery under alternative scenarios
+#--------------------------------------------------------------------------------
+
+modH0_name <- "foreH0_Ricker"
+modHmax_name <- "foreHmax_Ricker"
+save_plot <- FALSE
+
+## @knitr plot_Precovery_fore
+gg <- Precovery_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
+                     fish_data_foreH0 = fish_data_foreH0, 
+                     fish_data_foreHmax = fish_data_foreHmax,
+                     pop_names = pop_names, recovery_targets = recovery_targets)
+## @knitr
+
+if(save_plot) {
+  ggsave(filename = here("analysis","results",
+                         paste0("Precovery_", strsplit(modH0_name, "_")[[1]][2], ".png")), 
          width=12, height=4, units="in", dpi=300)
 } else {
   dev.new(width=12, height=4)
