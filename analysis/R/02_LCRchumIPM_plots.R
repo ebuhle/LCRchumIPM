@@ -330,6 +330,8 @@ M_anomaly_SAR_timeseries <- function(mod, fish_data)
     mutate_variables(zeta_M = as_rvar(stan_mean(mod,"zeta_M")), # not monitored: use mean
                      epsilon_M = sigma_M*zeta_M,
                      error_M = eta_year_M[as.numeric(factor(fish_data$year))] + epsilon_M,
+                     exp_eta_year_M = exp(eta_year_M), 
+                     exp_error_M = exp(error_M),
                      SAR = 100*s_MS,
                      SAR_N_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS),
                      SAR_H_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS + beta_MS))
@@ -337,33 +339,34 @@ M_anomaly_SAR_timeseries <- function(mod, fish_data)
   hyper <- data.frame(year = sort(unique(fish_data$year))) %>% 
     cbind(pars = rep(c("Smolt productivity anomaly","SAR (%)"), times = (1:2)*nrow(.)),
           pop_type = rep(c("natural","hatchery"), times = (2:1)*nrow(.)),
-          .value = c(draws$eta_year_M, draws$SAR_N_ESU, draws$SAR_H_ESU)) %>% 
+          .value = c(draws$exp_eta_year_M, draws$SAR_N_ESU, draws$SAR_H_ESU)) %>% 
     mutate(pars = factor(pars, levels = unique(pars)))
   
   cols <- c(natural = "slategray4", hatchery = "salmon")
   
   gg <- fish_data %>% 
-    cbind(.value = c(draws$error_M, draws$SAR), 
+    cbind(.value = c(draws$exp_error_M, draws$SAR), 
           pars = rep(c("Smolt productivity anomaly","SAR (%)"), each = nrow(.))) %>% 
     mutate(.value = replace(.value, grepl("Smolt", pars) & pop_type == "hatchery", NA),
            pars = factor(pars, levels = unique(pars))) %>% 
-    ggplot(aes(x = year, y = median(.value), group = pop, color = pop_type)) +
+    ggplot(aes(x = year, y = median(.value), group = pop, color = pop_type, fill = pop_type)) +
     geom_line(linewidth = 0.7, alpha = 0.5) + 
     geom_lineribbon(data = hyper, 
-                    aes(x = year, y = median(.value),
+                    aes(x = year, y = median(.value), 
                         ymin = t(quantile(.value, 0.05)), 
                         ymax = t(quantile(.value, 0.95)),
-                        color = pop_type, fill = pop_type),
-                    inherit.aes = FALSE, linewidth = 1.5) +
+                        color = pop_type, fill = pop_type), 
+              inherit.aes = FALSE, linewidth = 1.5) +
     scale_x_continuous(minor_breaks = unique(fish_data$year), expand = expansion(0)) +
-    scale_color_discrete(type = cols) +
+    scale_y_log10() + scale_color_discrete(type = cols) +
     scale_fill_discrete(type = alpha(cols, 0.3), guide = "none") +
     facet_wrap(~ pars, dir = "v", scales = "free_y", strip.position = "left") +
-    labs(x = "Year", y = NULL, color = "Origin") +
+    labs(x = "Year", y = NULL, color = NULL) +
     theme(panel.grid.minor.y = element_blank(), strip.text = element_text(size = 16),
           strip.background = element_blank(), strip.placement = "outer",
-          legend.position = c(0.2, 0.4), legend.box.margin = margin(0,-10,0,-15),
-          legend.background = element_rect(fill = "transparent"))
+          legend.position = c(0.2, 0.46), legend.direction = "horizontal",
+          legend.background = element_rect(fill = "transparent"),
+          legend.key = element_rect(fill = "transparent"))
   
   return(gg)
 }
