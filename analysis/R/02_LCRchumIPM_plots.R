@@ -359,14 +359,13 @@ M_anomaly_SAR_timeseries <- function(mod, fish_data)
               inherit.aes = FALSE, linewidth = 1.5) +
     scale_x_continuous(minor_breaks = unique(fish_data$year), expand = expansion(0)) +
     scale_y_log10() + scale_color_discrete(type = cols) +
-    scale_fill_discrete(type = alpha(cols, 0.3), guide = "none") +
+    scale_fill_discrete(type = alpha(cols, 0.3)) +
     facet_wrap(~ pars, dir = "v", scales = "free_y", strip.position = "left") +
-    labs(x = "Year", y = NULL, color = NULL) +
+    labs(x = "Year", y = NULL, color = NULL, fill = NULL) +
     theme(panel.grid.minor.y = element_blank(), strip.text = element_text(size = 16),
           strip.background = element_blank(), strip.placement = "outer",
-          legend.position = c(0.2, 0.46), legend.direction = "horizontal",
-          legend.background = element_rect(fill = "transparent"),
-          legend.key = element_rect(fill = "transparent"))
+          legend.position = c(0.23, 0.46), legend.direction = "horizontal",
+          legend.background = element_rect(fill = "transparent"))
   
   return(gg)
 }
