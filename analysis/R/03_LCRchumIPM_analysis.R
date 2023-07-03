@@ -322,7 +322,7 @@ mod_name <- "fit_Ricker"
 save_plot <- TRUE
 
 ## @knitr plot_fecundity_fit
-fecundity_plot(get(mod_name), fish_data = fish_data, fecundity_data = fecundity_data)
+gg <- fecundity_plot(get(mod_name), fish_data = fish_data, fecundity_data = fecundity_data)
 ## @knitr
 
 if(save_plot) {

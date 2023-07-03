@@ -427,18 +427,21 @@ fecundity_plot <- function(mod, fish_data, fecundity_data)
                    aes(x = E_obs, y = after_stat(density), fill = age_E), 
                    inherit.aes = FALSE, bins = 40, 
                    alpha = 0.5, color = "white", show.legend = FALSE) +
-    stat_slabinterval(data = pars, 
-                      aes(xdist = mu_E, thickness = after_stat(pdf*0.1), 
-                          color = age_E, fill = age_E),
-                      inherit.aes = FALSE, .width = c(0.5, 0.9), 
-                      normalize = "none", linewidth = 5, point_size = 3, 
-                      slab_alpha = 0.6, show.legend = FALSE) +
-    geom_line(lwd = 1, alpha = 0.8, show.legend = FALSE) +
+    stat_halfeye(data = pars, aes(xdist = mu_E, color = age_E, fill = age_E),
+                 inherit.aes = FALSE, .width = c(0.5, 0.9), normalize = "none",
+                 density = function(v, ...) { # normalize pdf
+                   dv <- density(v)
+                   dv$y <- -0.0005*dv$y/max(dv$y)
+                   return(dv)
+                 },
+                 linewidth = 5, point_size = 3, slab_alpha = 0.7, show.legend = FALSE) +
+    geom_line(lwd = 1, show.legend = FALSE) +
     geom_ribbon(aes(ymin = t(quantile(lik, 0.05)), ymax = t(quantile(lik, 0.95))),
-                color = NA, alpha = 0.3, show.legend = FALSE) +
+                color = NA, alpha = 0.5, show.legend = FALSE) +
     geom_text(data = pars, aes(x = 4500, y = 0.001, label = age_E, color = age_E), 
               inherit.aes = FALSE, parse = TRUE, size = 7, show.legend = FALSE) +
-    scale_y_continuous(labels = NULL) + coord_cartesian(ylim = c(0, 0.0015)) +
+    scale_y_continuous(labels = NULL, expand = expansion(0)) + 
+    coord_cartesian(ylim = c(-0.0005, 0.0015)) +
     scale_color_manual(aesthetics = c("color", "fill"), values = cols) +
     facet_wrap(~ age_E, dir = "v", scales = "free_y", labeller = label_parsed) +
     labs(x = "Fecundity", y = "Probability density") +
