@@ -915,7 +915,8 @@ p_HOS_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax
                      q_MS = quantile(eta_mean_MS, (1:2)/3),
                      qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1,
                      # S_H = S*p_HOS)
-                     S_H = as_rvar(0)) # TEMPORARY KLUDGE!! Figure out WTF is causing nonzero p_HOS in H0
+                     # TEMP: get rid of p_HOS > 0 caused by stan_data() converting M_obs==0 to 1
+                     S_H = as_rvar(0)) 
   drawsHmax <- as_draws_rvars(as.matrix(modHmax, c("eta_year_MS","S","p_HOS"))) %>%
     subset_draws(iter = 1:n_draws) %>% 
     mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
