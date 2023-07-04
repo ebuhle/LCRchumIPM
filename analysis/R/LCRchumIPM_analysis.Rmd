@@ -360,7 +360,7 @@ fish_data %>% filter(pop == "Grays CJ") %>% select(-fit_p_HOS) %>%
   scroll_box(width = "100%")
 ```
 
-<br> Column names generally follow the mathematical notation; `pop_type` is a dummy indicator to distinguish natural and hatchery populations, and `downstream_trap` gives the row index corresponding to the downstream smolt trap that captures outmigrants from the given `pop` and `year`. In this case, `Grays CJ` smolts are also counted at a local trap. The origin-frequency columns are indexed by the numeric values of the factor levels corresponding to hatchery populations; for example, `levels(fish_data$pop)[14]` is `r levels(fish_data$pop)[14]`, while `n_origin0_obs` corresponds to natural spawners of unknown origin.
+<br> Column names generally follow the mathematical notation; `pop_type` is a dummy indicator to distinguish natural and hatchery populations, and `downstream_trap` gives the row index corresponding to the downstream smolt trap that captures outmigrants from the given `pop` and `year`. In this case, `Grays CJ` smolts are also counted at a local trap. The origin-frequency columns are indexed by the numeric values of the factor levels corresponding to hatchery populations; for example, `levels(fish_data$pop)[14]` is `r levels(fish_data$pop)[14]`, while `n_O0_obs` corresponds to natural spawners of unknown origin.
 
 Second, `fecundity_data` contains observations of individual fecundity indexed by hatchery female. Here are the first few rows (as described above, `year` and `ID` are not used in modeling):
 
@@ -384,12 +384,12 @@ We can now call the function `salmonIPM()` to fit models to the historical LCR c
 ```{r printshort_fit_Ricker}
 print(fit_Ricker, prob = c(0.05, 0.5, 0.95),
       pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p",
-               "p_F","p_origin","tau_M","tau_S","B_rate","E_hat","M","S","s_MS",
-               "q","q_F","q_origin","p_HOS","LL","M_downstream"), 
+               "p_F","P_D","tau_M","tau_S","B_rate","E_hat","M","S","s_MS",
+               "q","q_F","q_O","p_HOS","LL","M_downstream"), 
       include = FALSE, use_cache = FALSE)
 ```
 
-This model takes approximately `r round(mean(rowSums(get_elapsed_time(fit_Ricker)))/3600)` hr to fit on a 3-GHz multicore Intel processor. The results (showing only hyperparameters, except `p_origin`, for readability) suggest that the Markov chains mixed adequately, since the Gelman-Rubin $\widehat{R}$ diagnostics are all ≤ 1.02 and effective sample sizes $n_\text{eff}$ are sufficient for computing 90% credible intervals. We may get false-positive warnings that some `Rhat` and `n_eff` estimates are `NaN`, but these are for the fixed diagonal elements of the 2 $\times$ 2 correlation matrices `R_pop_p` and `R_p` parameterized by $\rho_{\mathbf{p}}^\text{pop}$ and $\rho_{\mathbf{p}}$, respectively. We could further explore the chains and HMC diagnostics using interactive visualizations in the [**shinystan**](https://mc-stan.org/users/interfaces/shinystan) package.
+This model takes approximately `r round(mean(rowSums(get_elapsed_time(fit_Ricker)))/3600)` hr to fit on a 3-GHz multicore Intel processor. The results (showing only hyperparameters, except `P_D`, for readability) suggest that the Markov chains mixed adequately, since the Gelman-Rubin $\widehat{R}$ diagnostics are all ≤ 1.02 and effective sample sizes $n_\text{eff}$ are sufficient for computing 90% credible intervals. We may get false-positive warnings that some `Rhat` and `n_eff` estimates are `NaN`, but these are for the fixed diagonal elements of the 2 $\times$ 2 correlation matrices `R_pop_p` and `R_p` parameterized by $\rho_{\mathbf{p}}^\text{pop}$ and $\rho_{\mathbf{p}}$, respectively. We could further explore the chains and HMC diagnostics using interactive visualizations in the [**shinystan**](https://mc-stan.org/users/interfaces/shinystan) package.
 
 
 ## Freshwater Productivity
@@ -470,9 +470,9 @@ plot(gg)
 
 Plotting the posterior distribution of the hatchery straying matrix (posterior medians, 50% and 90% credible intervals) reveals broad overlap between Duncan and Lewis Hatcheries in their spatial distribution of adult recruits, while Grays Hatchery fish returned exclusively to the Grays subbasins. The estimates for Grays Hatchery are much tighter due to the larger number of recoveries for the origin-composition likelihood, especially compared to the sparse observations of Lewis Hatchery fish.
 
-```{r plot_p_origin_Ricker, echo=FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="90%"}
+```{r plot_P_D_Ricker, echo=FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="90%"}
 mod_name <- "fit_Ricker"
-<<plot_p_origin>>
+<<plot_P_D>>
 plot(gg)
 ```
 

@@ -44,7 +44,7 @@ if(file.exists(here("analysis","results","LCRchumIPM.RData")))
 # fit_exp <- salmonIPM(fish_data = fish_data,  fecundity_data = fecundity_data,
 #                      ages = list(M = 1), stan_model = "IPM_LCRchum_pp", SR_fun = "exp",
 #                      pars = c("mu_Emax","sigma_Emax","Emax"),
-#                      include = FALSE, log_lik = TRUE,
+#                      include = FALSE, log_lik = FALSE,
 #                      chains = 4, iter = 1500, warmup = 500,
 #                      control = list(adapt_delta = 0.99, max_treedepth = 14))
 # 
@@ -61,13 +61,13 @@ if(file.exists(here("analysis","results","LCRchumIPM.RData")))
 #                     par_models = list(s_MS ~ pop_type), 
 #                     center = FALSE, scale = FALSE, ages = list(M = 1), 
 #                     fish_data = fish_data, fecundity_data = fecundity_data,
-#                     log_lik = TRUE, chains = 4, iter = 2000, warmup = 1000,
+#                     log_lik = FALSE, chains = 4, iter = 2000, warmup = 1000,
 #                     control = list(adapt_delta = 0.95, max_treedepth = 14))
 # 
 # ## @knitr print_fit_BH
 # print(fit_BH, prob = c(0.05,0.5,0.95),
 #       pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p","p_F",
-#                "tau_M","tau_S","B_rate","E_hat","M","S","s_MS","q","q_F","q_origin","p_HOS","LL"), 
+#                "tau_M","tau_S","B_rate","E_hat","M","S","s_MS","q","q_F","q_O","p_HOS","LL"), 
 #       include = FALSE, use_cache = FALSE)
 # ## @knitr
 
@@ -77,13 +77,13 @@ fit_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
                         par_models = list(s_MS ~ pop_type), 
                         center = FALSE, scale = FALSE, ages = list(M = 1), 
                         fish_data = fish_data, fecundity_data = fecundity_data,
-                        log_lik = TRUE, chains = 4, iter = 2000, warmup = 1000,
+                        log_lik = FALSE, chains = 4, iter = 2000, warmup = 1000,
                         control = list(adapt_delta = 0.95, max_treedepth = 15))
 
 ## @knitr print_fit_Ricker
 print(fit_Ricker, prob = c(0.05,0.5,0.95),
       pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p","p_F",
-               "tau_M","tau_S","B_rate","E_hat","M","S","s_MS","q","q_F","q_origin","p_HOS","LL"),
+               "tau_M","tau_S","B_rate","E_hat","M","S","s_MS","q","q_F","q_O","p_HOS","LL"),
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
@@ -140,7 +140,7 @@ print(fit_Ricker, prob = c(0.05,0.5,0.95),
 # ## @knitr print_foreH0_BH
 # print(foreH0_BH, prob = c(0.05,0.5,0.95),
 #       pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p","p_F",
-#                "tau_M","tau_S","B_rate","E_hat","M","S","s_MS","q","q_F","q_origin","p_HOS","LL"), 
+#                "tau_M","tau_S","B_rate","E_hat","M","S","s_MS","q","q_F","q_O","p_HOS","LL"), 
 #       include = FALSE, use_cache = FALSE)
 # ## @knitr
 # 
@@ -158,7 +158,7 @@ print(fit_Ricker, prob = c(0.05,0.5,0.95),
 # ## @knitr print_foreHmax_BH
 # print(foreHmax_BH, prob = c(0.05,0.5,0.95),
 #       pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p","p_F",
-#                "tau_M","tau_S","B_rate","E_hat","M","S","s_MS","q","q_F","q_origin","p_HOS","LL"), 
+#                "tau_M","tau_S","B_rate","E_hat","M","S","s_MS","q","q_F","q_O","p_HOS","LL"), 
 #       include = FALSE, use_cache = FALSE)
 # ## @knitr
 
@@ -176,7 +176,7 @@ foreH0_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
 ## @knitr print_foreH0_Ricker
 print(foreH0_Ricker, prob = c(0.05,0.5,0.95),
       pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p","p_F",
-               "tau_M","tau_S","B_rate","E_hat","M","S","s_MS","q","q_F","q_origin","p_HOS","LL"), 
+               "tau_M","tau_S","B_rate","E_hat","M","S","s_MS","q","q_F","q_O","p_HOS","LL"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
@@ -194,7 +194,7 @@ foreHmax_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker",
 ## @knitr print_foreHmax_Ricker
 print(foreHmax_Ricker, prob = c(0.05,0.5,0.95),
       pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p","p_F",
-               "tau_M","tau_S","B_rate_all","E_hat","M","S","s_MS","q","q_F","q_origin","p_HOS"), 
+               "tau_M","tau_S","B_rate_all","E_hat","M","S","s_MS","q","q_F","q_O","p_HOS"), 
       include = FALSE, use_cache = FALSE)
 ## @knitr
 
@@ -257,7 +257,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 ## @knitr plot_psi_Mmax
 gg <- psi_Mmax_plot(mod = get(mod_name), fish_data)
@@ -321,13 +321,13 @@ if(save_plot) {
 mod_name <- "fit_Ricker"
 save_plot <- TRUE
 
-## @knitr plot_p_origin
-gg <- p_origin_plot(mod = get(mod_name), fish_data = fish_data)
+## @knitr plot_P_D
+gg <- P_D_plot(mod = get(mod_name), fish_data = fish_data)
 ## @knitr
 
 if(save_plot) {
   ggsave(filename = here("analysis","results",
-                         paste0("p_origin_", strsplit(mod_name, "_")[[1]][2], ".png")), 
+                         paste0("P_D_", strsplit(mod_name, "_")[[1]][2], ".png")), 
          width=11, height=7, units="in", dpi=300)
 } else {
   dev.new(width=11, height=7)

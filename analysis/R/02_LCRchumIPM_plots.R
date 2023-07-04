@@ -468,16 +468,16 @@ smolt_SAR_ts <- function(mod, fish_data)
 # Straying matrix: probability of dispersal from each origin to each population
 #--------------------------------------------------------------------------------
 
-p_origin_plot <- function(mod, fish_data)
+P_D_plot <- function(mod, fish_data)
 {
-  p_origin <- as_draws_rvars(as.array(mod, "p_origin"))
+  P_D <- as_draws_rvars(as.array(mod, "P_D"))
   
-  gg <- data.frame(p_origin = p_origin) %>% 
+  gg <- data.frame(P_D = P_D) %>% 
     setNames(unique(fish_data$pop[fish_data$pop_type == "natural"])) %>% 
     cbind(origin = unique(fish_data$pop[fish_data$pop_type == "hatchery"])) %>% 
-    pivot_longer(cols = -origin, names_to = "pop", values_to = "p_origin") %>% 
+    pivot_longer(cols = -origin, names_to = "pop", values_to = "P_D") %>% 
     mutate(pop = factor(pop, levels = levels(fish_data$pop))) %>% 
-    ggplot(aes(xdist = p_origin, y = pop)) +
+    ggplot(aes(xdist = P_D, y = pop)) +
     stat_eye(.width = c(0.5, 0.9), normalize = "groups", 
              color = "slategray4", fill = alpha("slategray4", 0.5)) + 
     scale_y_discrete(limits = rev) + labs(x = "Dispersal probability", y = "") + 

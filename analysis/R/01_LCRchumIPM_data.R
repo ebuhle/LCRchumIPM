@@ -257,16 +257,16 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
          S_add_obs = replace(S_add_obs, is.na(S_add_obs), 0),
          p_G_obs = replace(p_G_obs, is.na(p_G_obs), 1), fit_p_HOS = 0, F_rate = 0) %>%
   # rename(A = m, n_H_obs = H, n_W_obs = W, n_M_obs = M, n_F_obs= `F`) %>% ## put w/ data sets
-  rename(A = m, n_origin0_obs = `Natural spawner`, n_M_obs = M, n_F_obs= `F`) %>% 
+  rename(A = m, n_O0_obs = `Natural spawner`, n_M_obs = M, n_F_obs= `F`) %>% 
   do({ 
     lev <- levels(.$pop)
     rename_with(., .cols = contains("Hatchery"), 
-                .fn = ~ paste0("n_origin", match(.x, lev), "_obs"))
+                .fn = ~ paste0("n_O", match(.x, lev), "_obs"))
   }) %>% 
   mutate_at(vars(contains("n_")), ~ replace(., is.na(.), 0)) %>%
-  mutate(n_W_obs = n_origin0_obs, 
-         n_H_obs = rowSums(across(contains("origin"))) - n_origin0_obs,
-         .before = n_origin0_obs) %>% 
+  mutate(n_W_obs = n_O0_obs, 
+         n_H_obs = rowSums(across(contains("origin"))) - n_O0_obs,
+         .before = n_O0_obs) %>% 
   select(pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_F_obs, 
          p_G_obs, fit_p_HOS, B_take_obs, S_add_obs, F_rate) %>% 
   arrange(pop, year) 

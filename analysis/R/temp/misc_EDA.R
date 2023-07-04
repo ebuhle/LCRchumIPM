@@ -59,9 +59,9 @@ fish_data %>% group_by(pop) %>% mutate(M0_obs = lead(M_obs), MperS = M0_obs/S_ob
 bdat <- bio_data %>% group_by(location, year, origin) %>% summarize(count = sum(count)) 
 sdat <- spawner_data %>% group_by(location, year) %>% summarize(S_obs = sum(S_obs, na.rm = TRUE))
 dat <- inner_join(bdat, sdat, by = c("location", "year")) %>% 
-  mutate(prop = count/sum(count), S_origin = S_obs*prop) %>% 
+  mutate(prop = count/sum(count), S_O = S_obs*prop) %>% 
   group_by(origin, location) %>% 
-  summarize(count = sum(count), S_location = sum(S_origin, na.rm = TRUE)) %>% 
+  summarize(count = sum(count), S_location = sum(S_O, na.rm = TRUE)) %>% 
   mutate(prop = S_location/sum(S_location)) %>% 
   filter(origin != "Natural spawner") %>% ungroup() %>% 
   mutate(origin = droplevels(factor(origin, levels = c(pop_names$pop, "Big Creek Hatchery"))),
