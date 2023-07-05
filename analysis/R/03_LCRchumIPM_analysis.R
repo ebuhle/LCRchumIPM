@@ -33,7 +33,7 @@ source(here("analysis","R","02_LCRchumIPM_plots.R"))
 if(file.exists(here("analysis","results","LCRchumIPM.RData")))
   load(here("analysis","results","LCRchumIPM.RData"))
 ## @knitr
-test
+
 
 #===========================================================================
 # FIT RETROSPECTIVE MODELS
