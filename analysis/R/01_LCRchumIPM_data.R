@@ -55,7 +55,7 @@ habitat_data <- read.csv(here("data","Data_Habitat_Spawning_Linear.csv"),
 # (1) NAs in hatchery dispositions are really zeros
 # (2) NAs in Duncan Creek and Duncan Channel are really zeros
 # (3) All other NAs are real missing observations
-# (4) When calculating the observation error of log(S_obs), tau_S_obs, assume
+# (4) When calculating tau_S_obs, the observation error SD of log(S_obs), assume
 #     Abund.Mean and Abund.SD are the mean and SD of a lognormal posterior distribution
 #     of spawner abundance based on the sample
 spawner_data <- read.csv(here("data","Data_Abundance_Spawners_Chum.csv"), 
@@ -64,7 +64,7 @@ spawner_data <- read.csv(here("data","Data_Abundance_Spawners_Chum.csv"),
          disposition = Disposition, method = Method, S_obs = Abund.Mean, SD = Abund.SD) %>% 
   mutate(disposition = gsub("I205", "I-205", gsub("_", " ", disposition)),
          location = gsub("I205", "I-205", gsub("_", " ", location)),
-         strata = replace(strata, disposition == "Duncan Channel" & strata != "Gorge", "Gorge"),
+         strata = replace(strata, disposition == "Duncan Channel", "Gorge"),
          S_obs = replace(S_obs, is.na(S_obs) & grepl("Hatchery|Duncan", disposition), 0),
          tau_S_obs = sqrt(log((SD/S_obs)^2 + 1))) %>% 
   select(year:location, disposition, method, S_obs, SD, tau_S_obs) %>% 
@@ -92,7 +92,7 @@ translocation_data <- spawner_data %>% group_by(strata, disposition, year) %>%
 
 # total spawners:
 # all spawners with a given disposition, regardless of original return location
-# (summarized by disposition)
+# (summarized by *disposition*)
 spawner_data_agg <- spawner_data %>% group_by(strata, disposition, year) %>% 
   summarize(S_obs = sum(S_obs), tau_S_obs = unique(tau_S_obs)) %>% 
   rename(pop = disposition) %>% 
@@ -265,7 +265,7 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
   }) %>% 
   mutate_at(vars(contains("n_")), ~ replace(., is.na(.), 0)) %>%
   mutate(n_W_obs = n_O0_obs, 
-         n_H_obs = rowSums(across(contains("origin"))) - n_O0_obs,
+         n_H_obs = rowSums(across(contains("n_O"))) - n_O0_obs,
          .before = n_O0_obs) %>% 
   select(pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_F_obs, 
          p_G_obs, fit_p_HOS, B_take_obs, S_add_obs, F_rate) %>% 

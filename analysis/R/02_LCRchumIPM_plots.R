@@ -434,31 +434,34 @@ smolt_SAR_ts <- function(mod, fish_data)
     cbind(pars = rep(c("Smolt productivity anomaly","SAR (%)"), times = (1:2)*nrow(.)),
           pop_type = rep(c("natural","hatchery"), times = (2:1)*nrow(.)),
           .value = c(draws$exp_eta_year_M, draws$SAR_N_ESU, draws$SAR_H_ESU)) %>% 
-    mutate(pars = factor(pars, levels = unique(pars)))
+      mutate(brood_year = ifelse(grepl("SAR", pars), year - 1, year),
+           pars = factor(pars, levels = unique(pars)), .after = pars) 
   
   cols <- c(natural = "slategray4", hatchery = "salmon")
   
   gg <- fish_data %>% 
     cbind(.value = c(draws$exp_error_M, draws$SAR), 
           pars = rep(c("Smolt productivity anomaly","SAR (%)"), each = nrow(.))) %>% 
-    mutate(.value = replace(.value, grepl("Smolt", pars) & pop_type == "hatchery", NA),
+    mutate(brood_year = ifelse(grepl("SAR", pars), year - 1, year),
+           .value = replace(.value, grepl("Smolt", pars) & pop_type == "hatchery", NA),
            pars = factor(pars, levels = unique(pars))) %>% 
-    ggplot(aes(x = year, y = median(.value), group = pop, color = pop_type, fill = pop_type)) +
+    ggplot(aes(x = brood_year, y = median(.value), group = pop, color = pop_type, fill = pop_type)) +
     geom_line(linewidth = 0.7, alpha = 0.5) + 
     geom_lineribbon(data = hyper, 
-                    aes(x = year, y = median(.value), 
+                    aes(x = brood_year, y = median(.value), 
                         ymin = t(quantile(.value, 0.05)), 
                         ymax = t(quantile(.value, 0.95)),
                         color = pop_type, fill = pop_type), 
                     inherit.aes = FALSE, linewidth = 1.5) +
-    scale_x_continuous(minor_breaks = unique(fish_data$year)) +
+    scale_x_continuous(expand = expansion(0), minor_breaks = unique(fish_data$year)) +
+    coord_cartesian(xlim = c((min(hyper$brood_year) + 1), (max(hyper$brood_year) - 1))) +
     scale_y_log10() + scale_color_discrete(type = cols) +
     scale_fill_discrete(type = alpha(cols, 0.3)) +
     facet_wrap(~ pars, dir = "v", scales = "free_y", strip.position = "left") +
-    labs(x = "Year", y = NULL, color = NULL, fill = NULL) +
+    labs(x = "Brood year", y = NULL, color = NULL, fill = NULL) +
     theme(panel.grid.minor.y = element_blank(), strip.text = element_text(size = 16),
           strip.background = element_blank(), strip.placement = "outer",
-          legend.position = c(0.23, 0.46), legend.direction = "horizontal",
+          legend.position = c(0.2, 0.46), legend.direction = "horizontal",
           legend.background = element_rect(fill = "transparent"))
   
   return(gg)
@@ -500,16 +503,16 @@ smolt_spawner_ts <- function(mod, life_stage = c("M","S"), fish_data)
   
   gg <- fish_data %>% 
     rename(N_obs = !!paste0(life_stage, "_obs"),
-           tau_obs = !!paste0("tau_", life_stage, "_obs")) %>% 
-    mutate(life_stage = life_stage, pch = ifelse(is.na(tau_obs), 1, 16),
-           N = draws$N, M_downstream = draws$M_downstream) %>% 
+           tau_N_obs = !!paste0("tau_", life_stage, "_obs")) %>% 
+    mutate(life_stage = life_stage, N = draws$N, 
+           pch = ifelse(is.na(tau_N_obs), 1, 16), tau_N_obs = replace_na(tau_N_obs, 0)) %>% 
     group_by(downstream_trap) %>% mutate(N_downstream = rvar_sum(N)) %>% ungroup() %>% 
     mutate(N_upstream = replace(as_rvar(rep(0, n())), na.omit(downstream_trap),
                                 N_downstream[!is.na(downstream_trap)]),
            N = replace(N, life_stage == "M", N + N_upstream), 
            tau_N = draws$tau_N, N_ppd = rvar_rng(rlnorm, n(), log(N), tau_N)) %>% 
     filter(pop_type == "natural") %>% 
-    ggplot(aes(x = year, ydist = dist_lognormal(log(N_obs), tau_obs), shape = pch)) +
+    ggplot(aes(x = year, ydist = dist_lognormal(log(N_obs), tau_N_obs), shape = pch)) +
     geom_line(aes(y = median(N)), lwd = 1, col = "slategray4") +
     geom_ribbon(aes(ymin = t(quantile(N, 0.05)), ymax = t(quantile(N, 0.95))), 
                 fill = "slategray4", alpha = 0.5) +

@@ -83,9 +83,17 @@ Here we describe a stage-structured, multi-population LCM for LCR chum formulate
 
 Our LCR chum IPM is developed as part of the R package **salmonIPM** [@buhle_using_2018], which facilitates fitting a variety of age- and stage-structured IPMs tailored to anadromous salmonid life histories. This platform allows a reproducible workflow from data to model-fitting and management scenario analysis, which can be easily updated as new data become available. Models in **salmonIPM** are implemented in [Stan](https://mc-stan.org) [@stan_development_team_stan_2019], a probabilistic programming language for Bayesian estimation that uses the cutting-edge Hamiltonian Monte Carlo (HMC) algorithm to draw samples from the posterior distribution [@monnahan_faster_2017].
 
-Development of the LCR chum IPM is an iterative process, starting with the generic spawner-to-spawner and spawner-smolt-spawner models available in **salmonIPM** and incrementally adding customizations to accommodate the complexity of population and data structures and to enable the model to more directly answer questions of management concern. In previous years these have included, e.g., external sample-based estimates of spawner and smolt observation error; using fecundity and sex structure data to estimate egg-to-smolt survival; and representing adult translocations into artificial spawning channels. In 2023 for the first time we are explicitly modeling the hatchery smolt-to-adult recruitment process, replacing the more flexible but non-mechanistic generic model of hatchery-origin spawner abundance. The new approach provides estimates of smolt-to-adult survival (SAR) for hatchery populations as well as the probabilities of hatchery-origin recruits straying to each natural population. It also allows us to evaluate alternative scenarios of future hatchery operations; we present a preliminary set of such simulations below.
+Development of the LCR chum IPM is an iterative process, starting with the generic spawner-to-spawner and spawner-smolt-spawner models available in **salmonIPM** and incrementally adding customizations to accommodate the complexity of population and data structures and to enable the model to more directly answer questions of management concern. In previous years these have included, e.g., external sample-based estimates of spawner and smolt observation error; using fecundity and sex structure data to estimate egg-to-smolt survival; and representing adult translocations into artificial spawning channels. In 2023 for the first time we are explicitly modeling the hatchery smolt-to-adult recruitment process, replacing the more flexible but non-mechanistic generic model of hatchery-origin spawner abundance. The new approach provides estimates of smolt-to-adult survival (SAR) for hatchery populations as well as the probabilities of hatchery-origin recruits returning to each natural population. It also allows us to evaluate alternative scenarios of future hatchery operations; we present a preliminary set of such simulations below.
 
 This vignette first details the structure of the LCR chum IPM, including the process model (the true underlying population dynamics), the observation model (the likelihood of data arising from field monitoring programs given the unknown true state), and the priors. We then demonstrate how to fit LCR chum models using **salmonIPM** and discuss and interpret the main results, including reporting metrics of interest to managers. We conclude by outlining our plans for further model development. The goal of the vignette is to provide an introduction to both the mathematical structure of the model and the workflow involved in fitting it in R and working with the output. To that end, we display a minimal amount of R code, but all the code used in the examples shown here can be found in the RMarkdown source used to generate this document.
+
+# LCR Chum Overview
+
+[Need to add this section to outline the structure of the ESU, some history, and a brief description of monitoring methods and data structures. Maybe even eventually a map and/or life cycle diagram? Kale, Todd and Thomas will have to do the heavy lifting here; hopefully you have some existing boilerplate as a starting point and reports we can cite for details. 
+
+This would be the place to explain the groups of chum we are modeling. They would be most accurately and historically called stocks, but **salmonIPM** is organized around "populations" so we use the terms interchangeably. In this case it's confusing because the TRT has identified ostensibly independent populations for recovery planning. I propose we change to using primarily "stock" in this document, and explain that they are likely demographically nonindependent subpopulations, but that the **salmonIPM** notation uses $^\text{pop}$ and `fish_data$pop` to index the groups characterized by, e.g., different S-R parameters. We can continue to call the TRT groups "recovery populations", or perhaps "TRT populations"? 
+
+This section would also discuss hatchery operations and the quirks of intensively managed stocks such as Duncan Channel, the topology of the Grays basin as it relates to the Grays MS smolt trap, the nature of broodstock removals and adult translocations, etc.]
 
 # Model Structure
 
@@ -93,7 +101,7 @@ This vignette first details the structure of the LCR chum IPM, including the pro
 
 ### Egg Deposition and Egg-to-Smolt Survival
 
-The chum life cycle in natural populations begins with spawning, egg incubation and fry emergence, and shortly thereafter the downstream migration of juveniles (which we refer to as smolts). In **salmonIPM** we can fit three alternative spawner-recruit functions to describe the expected relationship between spawner abundance $S_{jt}$ and smolt abundance $M_{jt}$ from brood year $t$ in population $j$: density-independent discrete exponential, Beverton-Holt, and Ricker:
+The chum life cycle in natural populations begins with spawning, egg incubation and fry emergence, and shortly thereafter the downstream migration of juveniles (which we refer to as smolts). In **salmonIPM** we can fit three alternative spawner-recruit functions to describe the relationship between spawner abundance in year $t$ and population $j$, $S_{jt}$, and smolt abundance the following spring, $M_{j,t+1}$: density-independent discrete exponential, Beverton-Holt, and Ricker.
 
 $$
 f {\left( S_{jt} | \alpha_{jt}, M_{\text{max},j}, A_{jt} \right)} = 
@@ -107,9 +115,9 @@ f {\left( S_{jt} | \alpha_{jt}, M_{\text{max},j}, A_{jt} \right)} =
 \end{cases}
 $$
 
-We use a nonstandard parameterization of the Ricker by maximum smolt production or "capacity" $M_{\text{max}}$, corresponding to the mode of the function. This facilitates direct comparison with the Beverton-Holt (where $M_{\text{max}}$ is the asymptote) and is better-identified by data than the standard parameterization based on per capita density dependence. $M_{\text{max}}$ has units of density (fish per stream distance or area) and is then expanded to units of abundance based on habitat size $A_{jt}$. In the case of LCR chum, this is km of spawning habitat estimated using GIS.
+We use a nonstandard parameterization of the Ricker by maximum smolt production or "capacity" $M_{\text{max}}$, corresponding to the peak of the dome-shaped function. This facilitates direct comparison with the Beverton-Holt (where $M_{\text{max}}$ is the asymptote) and is better-identified by data than the standard parameterization based on per capita density dependence. $M_{\text{max}}$ has units of density (fish per stream distance or area) and is then expanded to units of abundance based on habitat size $A_{jt}$. In the case of LCR chum, this is km of spawning habitat estimated using GIS.
 
-Spawner-to-smolt intrinsic productivity $\alpha_{jt}$ is the weighted mean of age-specific female fecundity $\mu_{Ea}$, weighted by the spawner age distribution $q_{jta}$, multiplied by the proportion of female spawners $q_{\text{F}jt}$, discounted for the proportion of females that are not "green" (i.e. fully fecund) with discount rate $\delta_\text{NG} \in [0,1]$, and finally multiplied by the density-independent maximum egg-to-smolt survival $\psi_j$:
+Intrinsic productivity is further parameterized by fecundity and egg-to-smolt survival. Specifically, $\alpha_{jt}$ is the weighted mean of age-specific female fecundity $\mu_{Ea}$, weighted by the spawner age distribution $q_{jta}$, multiplied by the proportion of female spawners $q_{\text{F}jt}$, discounted for the proportion of females that are not "green" (i.e. fully fecund) with discount rate $\delta_\text{NG} \in [0,1]$, and finally multiplied by the maximum egg-to-smolt survival in the absence of density dependence $\psi_j$:
 
 $$ 
 \alpha_{jt} = \psi_j q_{Fjt} 
@@ -119,69 +127,70 @@ $$
 
 The discount for partially spawned females is only relevant for one population, Duncan Channel, a constructed spawning channel in which some translocated females are believed to have already deposited eggs elsewhere. We assume the proportion of "green" females $p_{\text{G}jt}$ is known without error since translocated spawners are individually handled and visually assessed.
 
-This formulation implicitly assumes egg deposition is density-independent while egg-to-smolt survival is density-dependent, resulting in realized survival $< \psi_j$ as spawner density increases. Maximum egg-to-smolt survival varies randomly among populations according to the hyperdistribution
+This formulation implicitly assumes egg deposition is density-independent while egg-to-smolt survival is density-dependent, resulting in realized survival $< \psi_j$ as spawner density increases. We can compute expected egg deposition as $E_{jt} = \alpha_{jt}/\psi_j$, i.e. all the factors in the above equation except survival. This is a derived quantity, or a state variable that is a deterministic function of other states and does not account for any spatial or temporal heterogeneity in fecundity. Maximum egg-to-smolt survival varies among populations according to the logistic normal hyperdistribution
 
 $$
 \text{logit}{\left( \psi_j \right)} \sim 
 \text{N}{\left(\mu_\psi + \mathbf{x}_{\psi jt} \boldsymbol{\beta}_\psi, \sigma_\psi \right)}
 $$
 
-and maximum smolt production varies randomly among populations according to the hyperdistribution
+and smolt capacity follows a lognormal hyperdistribution
 
 $$
 \text{log}{\left( M_{\text{max},j} \right)} \sim 
 \text{N}{\left( \mu_{M_\text{max}} + \mathbf{x}_{M_\text{max},jt} \boldsymbol{\beta}_{M_\text{max}}, \sigma_{M_\text{max}} \right)}.
 $$
 
-Covariates can be incorporated into the hierarchical model for each spawner-recruit parameter $\theta$ via a $1 \times K_\theta$ vector of predictors $\mathbf{x}_{\theta jt}$ with corresponding $K_\theta \times 1$ coefficient vector $\boldsymbol{\beta}_\theta$. We do not consider this option further here, but we are exploring the use of covariates to represent freshwater habitat conditions.
+Covariates can be incorporated into the hierarchical model for each spawner-recruit parameter $\theta \in \left\{\psi, M_{\text{max}} \right\}$ via a row vector of predictors $\mathbf{x}_{M_\text{max},jt}$ with corresponding coefficient vector $\boldsymbol{\beta}_\theta$. We do not consider this option further here, but are currently investigating covariates to represent freshwater habitat conditions, e.g. winter stream discharge. Note that intrinsic productivity $\alpha_{jt}$ is time-varying even without covariates because it depends on annual spawner age structure, sex structure and, where applicable, the proportion of green females.
 
 ### Smolt Recruitment Process Error
 
-Given expected smolt production, realized smolt production (the unknown "true state") is lognormally distributed with process errors that include a common ESU-level autoregressive trend $\eta^\text{year}_{Mt}$ with first-order autocorrelation coefficient $\rho_{M}$ and innovation SD $\sigma^\text{year}_{M}$ plus unique independent shocks $\varepsilon_{Mjt}$:
+Given expected smolt production from the spawner-recruit function, realized smolt abundance (the unknown "true state") is lognormally distributed with process errors that include a common ESU-level autoregressive trend $\eta^\text{year}_{Mt}$ with first-order autocorrelation coefficient $\rho_{M}$ and innovation error scale $\sigma^\text{year}_{M}$ plus unique independent shocks $\varepsilon_{Mjt}$:
 
 $$
 \begin{aligned}
-M_{jt} &= f {\left( S_{jt} | \alpha_{jt}, M_{\text{max},j}, A_{jt} \right)} \ 
-\text{exp}{\left(\mathbf{x}_{Mjt} \beta_M + \eta^\text{year}_{Mt} + \varepsilon_{Mjt}\right)}
+M_{j,t+1} &= f {\left( S_{jt} | \alpha_{jt}, M_{\text{max},j}, A_{jt} \right)} \ 
+\text{exp}{\left(\mathbf{x}_{Mjt} \beta_{M} + \eta^\text{year}_{Mt} + \varepsilon_{Mjt}\right)}
 \\
 \eta^\text{year}_{Mt} &\sim 
-\text{N}{\left( \rho_{M} \eta^\text{year}_{M,t-1}, \sigma^\text{year}_{M} \right)}
+\text{N}{\left( \rho_{M} \eta^\text{year}_{M,t-1}, \, \sigma^\text{year}_{M} \right)}
 \\
-\varepsilon_{Mjt} &\sim \text{N}{\left( 0, \sigma_{M} \right)}.
+\varepsilon_{Mjt} &\sim 
+\text{N}{\left( 0, \sigma_{M} \right)}.
 \end{aligned}
 $$
 
-The process model for smolt recruitment can include covariates specified via a row vector of predictors $\mathbf{x}_{Mjt}$ with corresponding regression coefficient vector $\boldsymbol{\beta}_M$. In contrast to the spawner-recruit parameters, covariates of the smolt recruitment process error would represent density-independent effects taking place after density dependence in egg-to-smolt survival.
+The process model for smolt recruitment can include covariates specified via a row vector of predictors $\mathbf{x}_{Mjt}$ with corresponding regression coefficient vector $\boldsymbol{\beta}_{M}$. In contrast to the spawner-recruit parameters, covariates of the smolt recruitment process error would represent density-independent effects taking place after the density dependence in egg-to-smolt survival represented by $f(\cdot|\cdot)$.
 
 ### Smolt-to-Adult Survival
 
-Smolt-to-adult survival (SAR, $s_{MS}$) is assumed to be density-independent. The SAR process model for outmigrant cohort $t$ in population $j$ is logistic normal, including a common ESU-level first-order autoregressive trend $\eta^\text{year}_{MSt}$ with autocorrelation coefficient $\rho_{MS}$ and innovation SD $\sigma^\text{year}_{MS}$ plus unique independent shocks $\varepsilon_{MSjt}$:
+Smolt-to-adult survival ($s_{MS}$, informally written as SAR) is assumed to be density-independent, at least at the population level. The SAR process model for outmigrant cohort $t$ in population $j$ is logistic normal, including a common ESU-level first-order autoregressive trend $\eta^\text{year}_{MSt}$ with autocorrelation coefficient $\rho_{MS}$ and innovation scale $\sigma^\text{year}_{MS}$ plus unique independent shocks $\varepsilon_{MSjt}$:
 
 $$
 \begin{aligned}
-\text{logit}{\left( s_{MSjt} \right)}  &= 
-\text{logit}{\left( \mu_{MS}  + \mathbf{x}_{MSjt} \boldsymbol{\beta}_{MS} +
+\text{logit}{\left( s_{MSjt} \right)}  &= \text{logit}{\left( \mu_{MS}  + 
+\mathbf{x}_{MSjt} \boldsymbol{\beta}_{MS} +
 \eta^\text{year}_{MSt} + \varepsilon_{MSjt} \right)}
 \\
 \eta^\text{year}_{MSt} &\sim 
-\text{N}{\left(\rho_{MS} \eta^\text{year}_{MS,t-1}, \sigma^\text{year}_{MS} \right)}
+\text{N}{\left(\rho_{MS} \, \eta^\text{year}_{MS,t-1}, \sigma^\text{year}_{MS} \right)}
 \\
 \varepsilon_{MSjt} &\sim \text{N}{\left( 0, \sigma_{MS} \right)}.
 \end{aligned}
 $$
 
-As with the smolt recruitment process error, the SAR process model can accommodate spatiotemporally varying covariates $\mathbf{x}_{MSjt}$ with coefficients $\boldsymbol{\beta}_{MS}$. We use this option below to model the difference between average SAR of natural and hatchery populations.
+As with the smolt recruitment process error, the SAR process model can accommodate covariates $\mathbf{x}_{MSjt}$ with coefficients $\boldsymbol{\beta}_{MS}$. We use this option below to model the difference between SAR of natural and hatchery populations.
 
 ### Conditional Age-at-Return
 
-Adult age structure is modeled by defining a vector of conditional probabilities, $\mathbf{p}_{jt} = \begin{bmatrix} p_{3jt} \ p_{4jt} \ p_{5jt} \end{bmatrix} ^ \top$, where $p_{ajt}$ is the probability that an outmigrant in year $t$ in population $j$ returns at age $a$ given that it survives to adulthood. The unconditional age-at-return probability is given by $s_{MSjt} p_{ajt}$. Both SAR and conditional age-at-return can be written as functions of underlying annual marine survival and maturation probabilities that are nonidentifiable without some ancillary data; this parameterization resolves the nonidentifiability.
+Adult age structure is modeled by defining a vector of conditional probabilities $\mathbf{p}_{jt} = \begin{bmatrix} p_{3jt} \ \ p_{4jt} \ \ p_{5jt} \end{bmatrix} ^ \top$, where $p_{ajt}$ is the probability that an outmigrant in year $t$ in population $j$ returns at age $a$ given that it survives to adulthood. The unconditional age-at-return probability is given by $s_{MSjt} \, p_{ajt}$. Both SAR and conditional age-at-return can be written as functions of underlying annual marine survival and maturation probabilities that are not identifiable without some information on age-specific abundance or survival at sea; this parameterization resolves the nonidentifiability.
 
 The conditional age probabilities follow a multivariate logistic normal process model with hierarchical structure across populations and through time within each population. The additive log ratio vector,
 
 $$
 \text{alr}{\left( \mathbf{p}_{jt} \right)}  = 
 \begin{bmatrix} 
-\text{log}{\left( \dfrac{p_{3jt}}{p_{5jt}} \right)}  \ \
+\text{log}{\left( \dfrac{p_{3jt}}{p_{5jt}} \right)}  ~~
 \text{log}{\left( \dfrac{p_{4jt}}{p_{5jt}} \right)} 
 \end{bmatrix} ^ \top
 $$
@@ -203,54 +212,61 @@ $$
 \end{aligned}
 $$
 
-Here the 2 $\times$ 2 covariance matrices $\boldsymbol{\Sigma}^\text{pop}_\mathbf{p}$ and $\boldsymbol{\Sigma}_\mathbf{p}$, parameterized by correlations $\rho^\text{pop}_\mathbf{p}$ and $\rho_\mathbf{p}$ and SD vectors $\boldsymbol{\sigma}^\text{pop}_\mathbf{p}$ and $\boldsymbol{\sigma}_\mathbf{p}$ respectively, allow correlated variation among age classes (on the unconstrained scale, not merely due to the simplex constraint on $\mathbf{p}$) across populations and over time within a population, respectively. For example, populations or cohorts may skew overall younger or older than average.
+Here the 2 $\times$ 2 covariance matrices $\boldsymbol{\Sigma}^\text{pop}_\mathbf{p}$ and $\boldsymbol{\Sigma}_\mathbf{p}$, parameterized by correlations $\rho^\text{pop}_\mathbf{p}$ and $\rho_\mathbf{p}$ and SD vectors $\boldsymbol{\sigma}^\text{pop}_\mathbf{p}$ and $\boldsymbol{\sigma}_\mathbf{p}$ respectively, allow correlated variation among age classes (on the log-ratio scale, not merely due to the simplex constraint on $\mathbf{p}$) across populations and over time within a population, respectively. For example, particular populations or cohorts may skew overall younger or older than average.
 
 ### Sex Structure
 
-Adult sex structure is modeled as the conditional probability $p_{\text{F}jt}$ that an outmigrant from population $j$ in year $t$ is female, given that it survives to adulthood. The proportion of females follows a process model that includes normally distributed population-specific random effects $\eta^\text{pop}_{\text{F}}$ with hyper-SD $\sigma^\text{pop}_\text{F}$ and unique residuals $\varepsilon^\text{pop}_{\text{F}}$ with SD $\sigma_\text{F}$ around the hyper-mean $\mu_\text{F}$:
+Adult sex structure is modeled as the conditional probability $p_{\text{F}jt}$ that an outmigrant from population $j$ in year $t$ is female, given that it survives to adulthood. The proportion of females follows a logistic normal process model that includes population-specific random effects $\eta^\text{pop}_\text{F}$ with hyper-SD $\sigma^\text{pop}_\text{F}$ and unique residuals $\varepsilon^\text{pop}_\text{F}$ with SD $\sigma_\text{F}$ around the population mean $\mu_\text{F}$:
 
 $$
 \begin{aligned}
 \text{logit}{\left( p_{\text{F}jt} \right)} &= 
-\text{logit}{\left( \mu_\text{F} \right)} + \eta^\text{pop}_{\text{F}j} + \varepsilon_{\text{F}jt} 
+\text{logit}{\left( \mu_\text{F} \right)} + 
+\eta^\text{pop}_{\text{F}j} + \varepsilon_{\text{F}jt} 
 \\
 \eta^\text{pop}_{\text{F}j} &\sim 
 \text{N}{\left( 0, \sigma^\text{pop}_\text{F} \right)} 
 \\
-\varepsilon_{\text{F}jt} &\sim \text{N}{\left( 0, \sigma_\text{F} \right)}.
+\varepsilon_{\text{F}jt} &\sim 
+\text{N}{\left( 0, \sigma_\text{F} \right)}.
 \end{aligned}
 $$
 
 ### Hatchery Smolt-to-Adult Survival and Dispersal
 
-In the current version of the IPM, the process model of the hatchery chum life cycle begins with smolts released from (hatchery) population $h$ in year $t$. The reported release size $M^\text{obs}_{ht}$ is taken as known without error since it is relatively precisely estimated, especially compared to smolt abundance in natural populations. The released juveniles are then subject to SAR $s_{MSht}$ and conditional age-at-return probabilities $\mathbf{p}_{ht}$ as described above. Adult recruits from hatchery $h$ return to natural population $j$ with probability $p_{\text{origin},hj}$. Given the relatively sparse annual recoveries of known-origin spawners, we do not attempt to model interannual variation in the straying probabilities; $\mathbf{P}_\text{origin}$ is time-invariant. The probabilities can be written compactly as the straying matrix $\mathbf{P}_\text{origin}$, whose rows corresponding to hatchery sources sum to 1 over destinations in the set of natural or wild populations $\mathcal{W}$:
+In the current version of the IPM, the process model of the hatchery chum life cycle begins with smolts released from (hatchery) population $h$ in year $t$. The reported release size $M^\text{obs}_{ht}$ is taken as known without error since it is relatively precisely estimated, especially compared to smolt abundance in natural populations. The released juveniles are subject to SAR $s_{MSht}$ and conditional age-at-return probabilities $\mathbf{p}_{ht}$ as described above. Adult recruits from hatchery $h$ then return to natural population $j$ with probability $p_{\text{D}hj}$. 
+
+Given the relatively sparse annual recoveries of known-origin spawners, we do not attempt to model interannual variation in the dispersal probabilities; $p_{\text{D}hj}$ is time-invariant. The probabilities can be written compactly as the dispersal matrix $\mathbf{P}_\text{D}$, whose rows corresponding to hatchery sources sum to 1 over destinations in the set of natural or wild populations $\mathcal{W}$:
 
 $$
-\sum_{j \in \mathcal{W}}{p_{\text{origin},hj}} = 1.
+\sum_{j \in \mathcal{W}}{p_{\text{D}hj}} = 1.
 $$
-This implies that all hatchery-origin adults return to populations in the modeled set $\mathcal{W}$. To the extent that fish from hatchery $h$ return to sites outside this set, the effect will be to reduce the corresponding estimates of $s_{MSht}$ (of course, the same is true for the wild populations). In that sense $s_{MS}$ should be regarded as apparent smolt-to-adult survival. The set of modeled hatcheries $\mathcal{H}$ currently includes Duncan Hatchery, Lewis Hatchery and Grays Hatchery. Although Duncan Channel-origin adults are also identifiable, we do not yet model straying from naturally reproducing populations. This will be added in a future iteration of the IPM (see *Next Steps*).
+
+This implies that all hatchery-origin adults return to populations in the modeled set $\mathcal{W}$. To the extent that fish from hatchery $h$ return to sites outside this set, the effect will be to reduce the corresponding estimates of $s_{MSht}$ (of course, the same is true for the wild populations). In that sense, $s_{MS}$ should be regarded as apparent smolt-to-adult survival. The set of modeled hatcheries $\mathcal{H}$ currently includes Duncan Hatchery, Lewis Hatchery and Grays Hatchery. Although Duncan Channel-origin adults are also identifiable, we do not yet model dispersal from naturally reproducing populations. This will be added in a future iteration of the IPM (see *Next Steps*).
 
 ### Adult Recruitment and Composition
 
-Recruitment of wild-origin adult spawners $S_\text{W}$ is calculated by summing over the corresponding outmigrant cohorts and subtracting the number of spawners removed for hatchery broodstock or to spawning channels ($B_{jt}$, assumed known without error). Fishery mortality of LCR chum is believed to be negligible.
+Recruitment of natural-origin ("wild") adult spawners $S_\text{W}$ is calculated by summing over the corresponding outmigrant cohorts and subtracting the number of spawners removed for hatchery broodstock or to spawning channels ($B_{jt}$, assumed known without error). Fishery mortality of LCR chum is believed to be negligible.
+
+<!-- NOTE that this is not how broodstock actually works in the model. This issue will become more acute with the broodstock-to-smolt model -->
 
 $$
 S_{\text{W}jt} = \left(\sum_{a=3}^{5} 
-M_{j,t-a} \ s_{MSj,t-a} \ p_{aj,t-a} \right) - B_{jt} =
+M_{j,t-a} ~ s_{MSj,t-a} ~ p_{aj,t-a} \right) - B_{jt} =
 \left(\sum_{a=3}^{5} \tilde{S}_{\text{W}ajt} \right) - B_{jt}.
 $$
 
-Natural spawner age structure is given by $\mathbf{q}_{jt} = \begin{bmatrix} q_{3jt} \ q_{4jt} \ q_{5jt} \end{bmatrix} ^ \top$, where $q_{ajt} = \tilde{S}_{\text{W}ajt} / \sum_a{\tilde{S}_{\text{W}ajt}}$. Natural spawner sex structure is given by the age-weighted average of female proportions from the respective outmigrant cohorts: $q_{\text{F}jt} = \sum_{a} {q_{ajt} \hspace{0.1cm} p_{\text{F}j,t-a}}$. The abundance of hatchery-origin spawners $S_\text{H}$ is the sum over $h \in \mathcal{H}$ of the number of adult recruits from hatchery $h$ that returned to population $j$:
+Natural spawner age structure is given by $\mathbf{q}_{jt} = \begin{bmatrix} q_{3jt} ~~ q_{4jt} ~~ q_{5jt} \end{bmatrix} ^ \top$, where $q_{ajt} = \tilde{S}_{\text{W}ajt} / \sum_a{\tilde{S}_{\text{W}ajt}}$. Natural spawner sex structure is given by the age-weighted average of female proportions from the respective outmigrant cohorts: $q_{\text{F}jt} = \sum_{a} {q_{ajt} \hspace{0.1cm} p_{\text{F}j,t-a}}$. The abundance of hatchery-origin spawners $S_\text{H}$ is the sum over $h \in \mathcal{H}$ of the number of adult recruits from hatchery $h$ that returned to population $j$:
 
 $$
 S_{\text{H}jt} = 
 \sum_{h \in \mathcal{H}}
 {\sum_{a=3}^{5}
-{M^\text{obs}_{h,t-a} \ s_{MSh,t-a} \ p_{ah,t-a} \ p_{\text{origin},hj}}} =
+{M^\text{obs}_{h,t-a} \ s_{MSh,t-a} \ p_{ah,t-a} \ p_{\text{D}hj}}} =
 \sum_{h \in \mathcal{H}}{\tilde{S}_{\text{H}hjt}}.
 $$
 
-Spawner origin-composition is given by $\mathbf{q}_{\text{origin},jt} = \begin{bmatrix}  q_{\text{W}jt} \ q_{\text{H}1jt} \ q_{\text{H}2jt} \ q_{\text{H}3jt} \end{bmatrix} ^ \top$, where $q_{\text{W}jt} = S_{\text{W}jt} / (S_{\text{W}jt} + S_{\text{H}jt})$ and $q_{\text{H}hjt} = \tilde{S}_{\text{H}hjt} / (S_{\text{W}jt} + S_{\text{H}jt})$. The total proportion of hatchery-origin spawners is $\sum_{h \in \mathcal{H}}{q_{\text{H}hjt}}$. Total spawner abundance is then
+Spawner origin-composition is given by $\mathbf{q}_{\text{O}jt} = \begin{bmatrix}  q_\text{Wjt} ~~ q_{\text{H}1jt} ~~ q_{\text{H}2jt} ~~ q_{\text{H}3jt} \end{bmatrix} ^ \top$, where $q_{\text{W}jt} = S_{\text{W}jt} / (S_{\text{W}jt} + S_{\text{H}jt})$ and $q_{\text{H}hjt} = \tilde{S}_{\text{H}hjt} / (S_{\text{W}jt} + S_{\text{H}jt})$. The total proportion of hatchery-origin spawners is $p_{\text{HOS},jt} = \sum_{h \in \mathcal{H}}{q_{\text{H}hjt}}$. Total spawner abundance is then
 
 $$
 S_{jt} = S_{\text{W}jt} + S_{\text{H}jt} + S^\text{add}_{jt}
@@ -258,12 +274,11 @@ $$
 
 where $S^\text{add}_{jt}$ is the number of spawners that returned to populations $i \neq j$ and were translocated into population $j$. This is only nonzero in the case of Duncan Channel, and is assumed to be known without error.
 
-
 ## Observation Model
 
 ### Fecundity
 
-We modeled observations of fecundity from individual female chum salmon collected at hatcheries. The observation likelihood for the fecundity of female $i$ of age $a$ is a zero-truncated normal with age-specific mean and SD:
+We modeled observations of fecundity from female chum salmon used as broodstock at hatcheries. The observation likelihood for the fecundity of female $i$ of age $a$ is a zero-truncated normal with age-specific mean and SD:
 
 $$
 E_{ai}^\text{obs} \sim \text{N}_+ {\left( \mu_{Ea}, \sigma_{Ea} \right)}.
@@ -271,9 +286,9 @@ $$
 
 ### Smolt and Spawner Abundance
 
-Empirical estimates of smolt and spawner abundance come from monitoring programs that use various sampling methods (e.g., rotary screw traps for outmigrants and weirs or mark-recapture for adults) and statistical models (e.g., the **BTSPAS** R package or other Bayesian time-series models) to produce a posterior distribution of the abundance of a given life-history stage in each population and year. These methods have previously been applied and their output summarized by the posterior mean and SD. We used the posterior moments of abundance to compute the log-mean $\mu_{Ljt}$ and log-SD $\tau_{Ljt}$ for each life stage $L$ assuming the posterior is lognormal, which appears to be reasonable in general. We then used the observation-model posteriors as informative priors on the corresponding state variables in the IPM.
+Empirical estimates of smolt and spawner abundance come from monitoring programs that use various sampling methods (e.g., rotary screw traps for outmigrants and live or carcass mark-recapture for adults) and statistical models (e.g., the **BTSPAS** R package or other Bayesian time-series models) to produce a posterior distribution of the abundance of a given life-history stage in each population and year. These methods are applied prior to fitting the IPM and their output summarized by the posterior mean and SD. We used the posterior moments of abundance to compute the log-mean $\mu_{Ljt}$ and log-SD $\tau_{Ljt}$ for each life stage $L$ assuming the posterior is lognormal, which appears to be reasonable in general. We then used the observation-model posteriors as informative priors on the corresponding state variables in the IPM.
 
-One complication is that outmigrant monitoring sites do not always have a one-to-one correspondence with independent populations. Specifically, the smolt trap in the mainstem Grays River intercepts juveniles produced in the mainstem population itself as well as the upstream West Fork Grays River and Crazy Johnson Creek populations, the latter of which is also sampled with its own trap. To make the states comparable to the observations, we defined a derived state $\tilde{M}_{jt}$ that is the sum of smolts produced in population $j$ and all upstream populations, assuming similar mortality en route to the trap.
+One complication is that outmigrant monitoring sites do not always have a one-to-one correspondence with modeled populations. Specifically, the smolt trap in the mainstem Grays River intercepts juveniles produced in the mainstem population itself as well as the upstream West Fork Grays River and Crazy Johnson Creek populations, the latter of which is also sampled with its own trap. To make the states comparable to the observations, we defined a derived state $\tilde{M}_{jt}$ that is the sum of smolts produced in population $j$ and all upstream populations, assuming no additional mortality en route to the downstream trap.
 
 $$
 \begin{aligned}
@@ -299,11 +314,12 @@ $$
 
 ### Spawner Age Composition
 
-Spawner age-composition data are collected from scale samples in each population and year (the IPM framework naturally handles cases in which no age samples are available). Age frequencies of wild spawners $\mathbf{n}_{ajt}^\text{obs} = \begin{bmatrix} n_{3jt}^\text{obs} \ n_{4jt}^\text{obs} \ n_{5jt}^\text{obs} \end{bmatrix} ^\top$ are assumed to follow a multinomial observation likelihood with expected probabilities given by the true state:
+Spawner age-composition data are collected from scale samples in each population and year (the IPM framework naturally handles cases in which no age samples are available). Age frequencies of wild spawners $\mathbf{n}_{\text{age},jt}^\text{obs} = \begin{bmatrix} n_{3jt}^\text{obs} ~~ n_{4jt}^\text{obs} ~~ n_{5jt}^\text{obs} \end{bmatrix} ^\top$ are assumed to follow a multinomial observation likelihood with expected probabilities given by the true state:
 
 $$
-\mathbf{n}_{ajt}^\text{obs} \sim 
-\text{Multinomial}{\left(  \sum_{a=3}^5 n_{ajt}^\text{obs}, \mathbf{q}_{jt} \right)}.
+\mathbf{n}_{\text{age},jt}^\text{obs} \sim 
+\text{Multinomial}{\left(  \sum \mathbf{n}_{\text{age},jt}^\text{obs}, 
+\mathbf{q}_{jt} \right)}.
 $$
 
 ### Spawner Sex Ratio
@@ -313,29 +329,29 @@ The observed frequency of female spawners is modeled with a binomial observation
 $$
 n_{\text{F}jt}^\text{obs} \sim 
 \text{Bin}{\left( n_{\text{M}jt}^\text{obs} + n_{\text{F}jt}^\text{obs},
-q_{\text{F},jt} \right)}.
+q_{\text{F}jt} \right)}.
 $$
 
 ### Spawner Origin Composition
 
-Frequencies of hatchery-origin spawners from each program are estimated based on otolith marking or genetic parentage-based tagging (PBT). Together with the frequency of unknown natural-origin spawners, they are assumed to follow a multinomial observation likelihood with expected probabilities given by the true origin distribution:
+Frequencies of hatchery-origin spawners from each program are estimated based on otolith marking or genetic parentage-based tagging (PBT). The origin-frequency vector $\mathbf{n}^\text{obs}_{\text{O}jt}$, where the first element is the count of unknown natural-origin spawners, follows a multinomial observation likelihood with expected probabilities given by the true origin distribution:
 
 $$
-\mathbf{n}_{\text{origin},jt}^\text{obs} \sim 
-\text{Multinomial}{\left(  \sum \mathbf{n}_{\text{origin},jt}^\text{obs},
-\mathbf{q}_{\text{origin},jt} \right)}.
+\mathbf{n}_{\text{O}jt}^\text{obs} \sim 
+\text{Multinomial}{\left(  \sum \mathbf{n}_{\text{O}jt}^\text{obs},
+\mathbf{q}_{\text{O}jt} \right)}.
 $$
 
 ## Priors
 
-To complete the model specification, we need priors on all top-level or hyperparameters as well as initial states that are not generated by the process model. In the list of parameter priors below, the power-exponential (also known as generalized normal or Subbotin) density
+To complete the model specification, we need priors on all top-level or hyperparameters as well as initial states that are not generated by the process model. In the table below, the power-exponential (also known as generalized normal or Subbotin) density
 
 $$
 \text{PowerExp}(x | u,s,r) = \dfrac{r}{2 s \Gamma(1/r)} 
 \text{exp}{\left[ - \left( \dfrac{|x - u|}{s} \right)^r \right]}
 $$
 
-is used to regularize autocorrelation coefficients away from the computationally problematic boundaries [-1,1]. Autocorrelations are declared to have support on the stationary region, so Stan truncates the distribution. The prior mean and SD of log-mean smolt capacity, $m_{M_\text{max}}$ and $s_{M_\text{max}}$, are the sample maximum and SD of observed log smolt density, respectively. While this data-aware prior technically uses the data twice, it is broad and weakly informative and merely serves to find a reasonable scale for overall population size, similar to [widely used Bayesian inference packages](https://cran.r-project.org/web/packages/rstanarm/vignettes/priors.html).
+is used to regularize autocorrelation coefficients away from the computationally problematic boundaries $[-1,1]$. Autocorrelations are declared to have support on the stationary region, so Stan automatically truncates the distribution. The prior mean and SD of log-mean smolt capacity, $m_{M_\text{max}}$ and $s_{M_\text{max}}$, are the sample maximum and SD of observed log smolt density, respectively. While this data-aware prior technically uses the data twice, it is broad and weakly informative and merely serves to find a reasonable scale based on the overall marginal distribution of population size, similar to [widely used Bayesian inference packages](https://cran.r-project.org/web/packages/rstanarm/vignettes/priors.html).
 
 ```{r prior_table, results="asis", echo=FALSE}
 prior_table <- read.csv(here("analysis","R","prior_table.csv"), check.names = FALSE)
@@ -375,7 +391,7 @@ fecundity_data %>% select(-strata) %>% head(10) #%>% kable() %>%
 
 ## Model Fitting
 
-We can now call the function `salmonIPM()` to fit models to the historical LCR chum monitoring data. In principle we could fit all three spawner-recruit functions, or models with alternative covariate specifications, and compare them based on estimated out-of-sample predictive performance using the approximate leave-one-out cross-validation score ([LOO](http://mc-stan.org/loo/); Vehtari et al. 2017). In practice we find that LOO estimates for IPMs fitted to the LCR chum data are too unstable to be usable (excessive Pareto *k*-values indicating that some observations are highly influential on the posterior), requiring brute-force cross-validation or customized methods. These are under development, but in the meantime we proceed to use the Ricker model for inference since it is biologically plausible and fits the data reasonably well. We allow a fixed difference between the average SAR of natural and hatchery populations using the `par_models` formula interface. The `center = FALSE` and `scale = FALSE` arguments prevent the default behavior of centering and standardizing covariates since `pop_type` is a factor. As with all multi-stage **salmonIPM** models, we need to specify the age in years of fixed juvenile life stages, in this case smolts (`M`). The help page `?salmonIPM` provides much more detail on available arguments.
+We can now call the function `salmonIPM()` to fit models to the historical LCR chum monitoring data. In principle we could fit all three spawner-recruit functions, or models with alternative covariate specifications, and compare them based on estimated out-of-sample predictive performance using the approximate leave-one-out cross-validation score ([LOO](http://mc-stan.org/loo/); Vehtari et al. 2017). In practice we find that LOO estimates for IPMs fitted to the LCR chum data are too unstable to be usable (excessive Pareto *k*-values indicating that some observations are highly influential on the posterior), requiring brute-force cross-validation or customized methods. These are under development, but in the meantime we proceed to use the Ricker model for inference since it is biologically plausible and fits the data reasonably well. We allow a fixed difference between the average SAR of natural and hatchery populations using the `par_models` formula interface. The `center = FALSE` and `scale = FALSE` arguments prevent the default behavior of centering and standardizing covariates since `pop_type` is a factor. As with all multi-stage **salmonIPM** models, we need to specify the age in years of fixed juvenile life stages, in this case smolts (`M`). The help page accessed by `?salmonIPM` provides much more detail on available arguments.
 
 
 ```{r fit_Ricker, eval = FALSE}
@@ -385,24 +401,17 @@ We can now call the function `salmonIPM()` to fit models to the historical LCR c
 print(fit_Ricker, prob = c(0.05, 0.5, 0.95),
       pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p",
                "p_F","P_D","tau_M","tau_S","B_rate","E_hat","M","S","s_MS",
-               "q","q_F","q_O","p_HOS","LL","M_downstream"), 
+               "q","q_F","q_O","p_HOS","LL"), 
       include = FALSE, use_cache = FALSE)
 ```
 
 This model takes approximately `r round(mean(rowSums(get_elapsed_time(fit_Ricker)))/3600)` hr to fit on a 3-GHz multicore Intel processor. The results (showing only hyperparameters, except `P_D`, for readability) suggest that the Markov chains mixed adequately, since the Gelman-Rubin $\widehat{R}$ diagnostics are all ≤ 1.02 and effective sample sizes $n_\text{eff}$ are sufficient for computing 90% credible intervals. We may get false-positive warnings that some `Rhat` and `n_eff` estimates are `NaN`, but these are for the fixed diagonal elements of the 2 $\times$ 2 correlation matrices `R_pop_p` and `R_p` parameterized by $\rho_{\mathbf{p}}^\text{pop}$ and $\rho_{\mathbf{p}}$, respectively. We could further explore the chains and HMC diagnostics using interactive visualizations in the [**shinystan**](https://mc-stan.org/users/interfaces/shinystan) package.
 
-
 ## Freshwater Productivity
 
-[OLD multiplot TEXT NEEDS TO BE MERGED]
+### Egg Deposition and Egg-to-Smolt Survival
 
-<!-- The plot below summarizes posterior distributions of the main hyperparameters and states across the life cycle. In panels C-H, thick lines and shading correspond to the hyper-mean or ESU level and thin lines correspond to each of the 12 natural populations in the data set. In panels E-H, lines indicate posterior medians and shading indicates 90% posterior credible intervals at the ESU level (uncertainty around population-level curves is omitted for clarity). -->
-
-<!-- There is clear evidence of density dependence, with more among-population heterogeneity in smolt capacity (converted to millions of smolts per km of spawning habitat) than in maximum egg-to-smolt survival, but most populations exhibit little if any overcompensation over the range of observed spawner densities (shown by the *x*-axis rug in E-F). Both freshwater productivity (total smolt process error, G) and SAR are strongly synchronous across populations at the ESU scale. Freshwater productivity is relatively stable except for the sharp drop in 2019. Smolt-to-adult survival, by contrast, shows strong and quasiperiodic fluctuations consistent with large-scale oceanographic or other environmental drivers. Because of this large and as-yet-unexplained process stochasticity, the SAR estimates in the initial 3 years (when no $S_{jt}^\text{obs}$ are available) and final 4 years (corresponding to cohorts that have not yet fully returned as adults), which are informed more by the process model than by data, are very uncertain. -->
-
-### Fecundity
-
-Fecundity was higher for 4- and 5-year old females than for the youngest age class. Here the histograms show observations and the lines and shading show the posterior median and 90% credible interval, respectively, of the estimated zero-truncated normal density, which fits the data reasonably well.
+Fecundity was higher for 4- and 5-year old females than for the youngest age class. Here the histograms show observations and the lines and shading show the posterior median and 90% credible interval, respectively, of the estimated normal density (the zero-truncation is negligible), which fits the data reasonably well. Posterior distributions of age-specific mean fecundity are shown below the data. The estimates are precise given the large sample (`r nrow(fecundity_data)` observations of fecundity), but note that we have not modeled observation error or hierarchical structure in time or space. 
 
 ```{r plot_fecundity_Ricker, echo=FALSE, fig.width=7, fig.height=7}
 mod_name <- "fit_Ricker"
@@ -410,9 +419,15 @@ mod_name <- "fit_Ricker"
 plot(gg)
 ```
 
-### Egg-to-Smolt Survival and Capacity
+```{r delta_NG_summary, echo=FALSE}
+delta_NG <- as.matrix(fit_Ricker, c("delta_NG")) %>% 
+  as_draws_rvars() %>% summarize_draws() %>% 
+  mutate(mci = paste0(round(median,2), " [", round(q5,2), "%, ", round(q95,2), "]"))
+```
 
-Spawner-recruit parameters at population and ESU level, showing populations that have direct or indirect smolt abundance observations...
+As we saw in the posterior summary output, the non-green female discount is not estimated very precisely ($\delta_\text{NG}$ = `r delta_NG$mci`) but is consistent with rough estimates of the proportion of eggs remaining in the body cavity of these so-called partial spawners translocated into Duncan Channel.
+
+Maximum egg-to-smolt survival and capacity at the population and ESU level are shown below. Capacity is more uncertain, with very long upper tails even on the log scale indicating that the data cannot rule out values two orders of magnitude above the median, and is also more heterogeneous among populations (compare the estimates of $\sigma_\psi$ and $\sigma_{M_\text{max}}$ in the posterior summary). The light shading highlights estimates that are informed by local smolt abundance observations, either directly at the population level or indirectly in combination with other populations upstream of a trap. Interestingly, smolt data does not necessarily improve the precision of the estimates compared to unmonitored populations, although in several cases (including Grays MS and Grays WF, which are only sampled indirectly) it does clearly inform $M_\text{max}$ but not $\psi$; the reverse is true, albeit less dramatically, for Duncan Channel. Moreover, capacity estimates in some unmonitored populations such as I-205 are as precise as those in some monitored ones. This does not suggest smolt monitoring is unnecessary, but it does illustrate the power of integrated modeling, in which multiple data types can jointly inform the parameters and states both within and among groups.
 
 ```{r plot_psi_Mmax_Ricker, echo=FALSE, fig.width=8, fig.height=7, out.width="70%"}
 mod_name <- "fit_Ricker"
@@ -432,11 +447,13 @@ plot(gg)
 
 [S-R PLOT UNDER CONSTRUCTION]
 
-The data are sparse, but overall the Ricker appears to be an adequate fit. The states with noticeably higher uncertainty generally correspond to cases with missing spawner observations and/or missing observation error estimates, as we will see in the time series plots below.
+There is clear evidence of density dependence, with more among-population heterogeneity in smolt capacity (converted to millions of smolts per km of spawning habitat) than in maximum egg-to-smolt survival, but most populations exhibit little if any overcompensation over the range of observed spawner densities (shown by the *x*-axis rug in E-F). The data are sparse, but overall the Ricker appears to be an adequate fit. The states with noticeably higher uncertainty generally correspond to cases with missing spawner observations and/or missing observation error estimates, as we will see in the time series plots below.
 
 ### Smolt Abundance
 
-Fits to the smolt abundance data, following the same conventions as for spawner abundance, immediately show how much sparser the juvenile sampling is. Only six populations are monitored with smolt traps (including `Grays WF`, which along with `Grays CJ` is incorporated into the summed smolt observations and estimates for the downstream `Grays MS` trap) and several of those time series are incomplete. For that reason, a greater share of the information about the underlying state comes from the process model, which induces synchronous fluctuations.
+Next we consider the fit of the estimated states $M_{jt}$ to the observed $M^\text{obs}_{jt}$ and for each natural population. Points are "data", i.e. posterior medians from the observation models fitted to trapping data, with associated 90% credible intervals (sometimes too narrow to be visible). Filled points indicate observations whose error SD is known, while the SD for open points is imputed. The solid gray line is the posterior median of the estimated true state from the IPM. Posterior 90% credible intervals indicate process (dark shading) and observation uncertainty (light shading), i.e. the posterior predictive distribution (PPD) of hypothetical replicate data under the model. 
+
+[Say something about the correlated dynamics, especially the dip seen everywhere in 2020.]
 
 ```{r smolt_ts_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7*11/12, out.width="100%"}
 life_stage <- "M"
@@ -446,19 +463,7 @@ plot(gg)
 
 ## Marine Survival
 
-```{r hyper_mean_SAR_summary, echo=FALSE}
-logit <- rfun(qlogis)
-ilogit <- rfun(plogis)
-SARout <- as_draws_rvars(as.matrix(fit_Ricker, c("mu_MS","beta_MS"))) %>% 
-  mutate_variables(mu_SAR_W = mu_MS*100, mu_SAR_H = ilogit(logit(mu_MS) + beta_MS)*100) %>%
-  subset_draws(variable = c("mu_SAR_W","mu_SAR_H")) %>% 
-  summarize_draws() %>% 
-  mutate(mci = paste0(round(median,3), "% [", round(q5,3), "%, ", round(q95,3), "%]"))
-```
-
-The posterior of the regression coefficient `beta_MS[1]` is strongly negative. Since the levels of `pop_type` are ordered `c("natural", "hatchery")`, this indicates that hatchery SAR was lower on average for the 3 hatcheries than for the 12 wild populations. The respective ESU-level hyper-means of smolt-to-adult survival, summarized by posterior median and 90% credible interval, are `r SARout$mci[2]` for the wild populations and (`r SARout$mci[1]`) for the hatcheries. 
-
-To visualize this difference, we can compare the time series of ESU-level (posterior medians and 90% credible intervals) and population-level (posterior medians only) SAR for natural and hatchery populations. The two groups are highly correlated, because variation in SAR is dominated by the common trend `eta_year_MS`. This also allows information to be shared between the groups via the hyperparameters of the SAR process model, so the inclusion of the hatcheries in the model improves the estimates for wild populations. As mentioned previously, the lower apparent survival of hatchery smolts could reflect a greater tendency to stray outside the modeled set $\mathcal{W}$ in addition to biological differences due to hatchery rearing [@naish_evaluation_2008].
+The plot below shows ESU-level (posterior medians and 90% credible intervals) and population-level (posterior medians only) freshwater and marine process errors, aligned by brood year. Note that the population time series start in different years, corresponding to the first available observations of any data type. Freshwater productivity anomalies (representing interannual variability in smolt production not explained by the spawner-recruit function) are relatively stable except for the sharp drop in 2019. Smolt-to-adult survival, by contrast, shows strong and quasiperiodic fluctuations consistent with large-scale oceanographic drivers. 
 
 ```{r plot_M_SAR_Ricker, echo=FALSE, warning=FALSE, fig.width=7, fig.height=7, out.width="60%"}
 mod_name <- "fit_Ricker"
@@ -466,9 +471,30 @@ mod_name <- "fit_Ricker"
 plot(gg)
 ```
 
+```{r SAR_WvsH, echo=FALSE}
+logit <- rfun(qlogis)
+ilogit <- rfun(plogis)
+SARout <- as_draws_rvars(as.matrix(fit_Ricker, c("mu_MS","beta_MS"))) %>% 
+  mutate_variables(mu_SAR_W = mu_MS*100, mu_SAR_H = ilogit(logit(mu_MS) + beta_MS)*100) %>%
+  subset_draws(variable = c("mu_SAR_W","mu_SAR_H")) %>% 
+  summarize_draws() %>% 
+  mutate(mci = paste0(round(median,3), "% (", round(q5,3), "%, ", round(q95,3), "%)"))
+```
+
+As the posterior summary showed, the regression coefficient $\beta_{MS}$ is strongly negative. Since the levels of `pop_type` are ordered `c("natural", "hatchery")`, this indicates hatchery smolts have clearly lower smolt-to-adult survival than their wild counterparts. The respective ESU-level hyper-means of SAR, summarized by posterior median and 90% credible interval, are `r SARout$mci[2]` for the wild populations and `r SARout$mci[1]` for the hatcheries. The two groups are highly correlated, however, because variation in SAR is dominated by the common trend $\eta^\text{year}_{MS}$. This also allows information to be shared between the groups via the hyperparameters of the SAR process model, so the inclusion of the hatcheries improves the estimates for wild populations and vice versa. As mentioned previously, the lower apparent survival of hatchery smolts could reflect a greater tendency to stray outside the set of modeled stocks $\mathcal{W}$ in addition to biological differences due to hatchery rearing [@naish_evaluation_2008].
+
+```{r FW_SAR_varcomp, echo=FALSE}
+sigmas <- as.matrix(fit_Ricker, c("sigma_year_MS","sigma_MS", "sigma_year_M","sigma_M")) %>% as_draws_rvars() %>% summarize_draws() %>% 
+  mutate(mci = paste0(round(median,2), " [", round(q5,2), ", ", round(q95,2), "]"))
+```
+
+Both the freshwater productivity anomalies and SAR are strongly synchronous across populations. The synchrony as well as the overall volatility are higher for SAR ($\sigma^\text{year}_{MS}$ = `r sigmas$mci[1]`, $\sigma_{MS}$ = `r sigmas$mci[2]`) than for freshwater productivity ($\sigma^\text{year}_M$ = `r sigmas$mci[3]`, $\sigma_M$ = `r sigmas$mci[4]`). The common trend and residual errors in freshwater productivity have similar scales, whereas for SAR the shared component dominates. Although the smolt process errors are on the log scale and SAR errors on the logit scale, the two transformations are nearly identical over the range of SAR (i.e., close to zero) and both are simply multiplicative factors affecting adult recruitment, so their variance components are directly comparable. The latter are over twice the former, meaning marine survival is responsible for most of the interannual fluctuations in recruitment. The data cannot rule out very large volatility in the shared component of SAR, which has implications for forecasting. This can be seen in the initial 3 years (corresponding to "orphan" cohorts) and final 4 years (corresponding to cohorts that have not yet fully returned as adults), which are informed more by the process model than by data and are very uncertain. 
+
+[TO ADD: Report actual estimates of synchrony and variance components w/in and b/w smolt and SAR. Cite our Idaho snorkel survey paper w/ Thorson.]
+
 ## Hatchery Adult Dispersal
 
-Plotting the posterior distribution of the hatchery straying matrix (posterior medians, 50% and 90% credible intervals) reveals broad overlap between Duncan and Lewis Hatcheries in their spatial distribution of adult recruits, while Grays Hatchery fish returned exclusively to the Grays subbasins. The estimates for Grays Hatchery are much tighter due to the larger number of recoveries for the origin-composition likelihood, especially compared to the sparse observations of Lewis Hatchery fish.
+Plotting the posterior distribution of the hatchery dispersal matrix (posterior medians, 50% and 90% credible intervals) reveals broad overlap between Duncan and Lewis Hatcheries in their spatial distribution of adult recruits, while Grays Hatchery fish returned exclusively to the Grays subbasins. The estimates for Grays Hatchery are much tighter due to the larger number of recoveries for the origin-composition likelihood, especially compared to the sparse observations of Lewis Hatchery fish.
 
 ```{r plot_P_D_Ricker, echo=FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="90%"}
 mod_name <- "fit_Ricker"
@@ -476,9 +502,11 @@ mod_name <- "fit_Ricker"
 plot(gg)
 ```
 
+[TO ADD: Compute stray rates for each hatchery, defined either at the population level (which "population", if any, goes with which hatchery?) or at the TRT population / strata level.]
+
 ## Spawner Abundance and Composition
 
-The next plot shows observed and estimated total spawner abundance for each natural population. Points are "data", i.e. posterior medians from the sample-based observation models, with associated 90% credible intervals (sometimes too narrow to be visible). Filled points indicate observations whose error SD is known, while the SD for open points is imputed. The solid gray line is the posterior median of the estimated true state from the IPM. Posterior 90% credible intervals indicate process (dark shading) and observation (light shading) uncertainty, i.e. the posterior predictive distribution (PPD) of hypothetical replicate data under the model. Leading or trailing years without spawner abundance estimates are included if smolt abundance is available.
+The next plot shows observed and estimated total spawner abundance for each natural population, using the same conventions as for smolts. Leading or trailing years without spawner abundance estimates are included if smolt abundance is available.
 
 ```{r spawner_ts_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7*11/12, out.width="100%"}
 life_stage <- "S"
@@ -514,7 +542,9 @@ plot(gg)
 
 ### Proportion of Hatchery-Origin Spawners
 
-The plot below shows the estimated true states and PPD of $p_\text{HOS}$, summed across hatchery programs, with corresponding sample proportions and binomial 90% confidence intervals. The proportion of hatchery-origin spawners was generally low, with some very small origin-frequency sample sizes that cannot definitively rule out higher values. There is some noticeable lack of fit, especially in Crazy Johnson Creek, due to the relatively parsimonious model of hatchery adult dispersal (e.g., time-invariant straying probabilities), but overall the PPD based on the hatchery smolt-to-adult process model closely matches the observed data. 
+The plot below shows the estimated true states and PPD of $p_\text{HOS}$ summed across hatchery programs, with corresponding sample proportions and binomial 90% confidence intervals. The proportion of hatchery-origin spawners was generally low, with some very small origin-frequency sample sizes that cannot definitively rule out higher values. There is some noticeable lack of fit due to the relatively parsimonious (e.g., time-invariant) model of hatchery adult dispersal, but overall the PPD based on the hatchery smolt-to-adult process model closely matches the observed data. 
+
+[TO ADD: Figure out what's going on w/ Grays CJ, in general and specifically how the 2019 anomaly affects `p_HOS`.]
 
 ```{r plot_p_HOS_Ricker, echo = FALSE, warning=FALSE, fig.width=11, fig.height=7, out.width="100%"}
 <<plot_p_HOS>>
