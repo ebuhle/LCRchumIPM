@@ -18,8 +18,8 @@ library(matrixStats)
 library(yarrr)
 library(zoo)
 library(ggplot2)
-library(ggdist)
 theme_set(theme_bw(base_size = 16))
+library(ggdist)
 library(scales)
 library(magicaxis)
 library(viridis)
@@ -48,10 +48,8 @@ fit_exp <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "exp", ages = list(
                      control = list(max_treedepth = 15))
 
 ## @knitr print_fit_exp
-print(fit_exp, prob = c(0.05,0.5,0.95),
-      pars = c("eta_pop_EM","eta_year_EM","eta_year_MS","eta_pop_p","p",
-               "p_D","tau_M","tau_S","p_HOS","B_rate","S","M","s_EM","s_MS","q"),
-      include = FALSE, use_cache = FALSE)
+print(fit_exp, prob = c(0.05,0.5,0.95), pars = stan_pars("IPM_LCRchum_pp","hyper"), 
+      use_cache = FALSE)
 ## @knitr
 
 # Beverton-Holt
@@ -63,10 +61,8 @@ fit_BH <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "BH", ages = list(M 
                     control = list(max_treedepth = 15))
 
 ## @knitr print_fit_BH
-print(fit_BH, prob = c(0.05,0.5,0.95),
-      pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p","p_F",
-               "p_D","tau_M","tau_S","B_rate","M","S","s_MS","q","q_F","q_O","p_HOS"),
-      include = FALSE, use_cache = FALSE)
+print(fit_BH, prob = c(0.05,0.5,0.95), pars = stan_pars("IPM_LCRchum_pp","hyper"), 
+      use_cache = FALSE)
 ## @knitr
 
 # Ricker
@@ -78,10 +74,8 @@ fit_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", ages =
                         control = list(max_treedepth = 15))
 
 ## @knitr print_fit_Ricker
-print(fit_Ricker, prob = c(0.05,0.5,0.95),
-      pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p","p_F",
-               "p_D","tau_M","tau_S","B_rate","M","S","s_MS","q","q_F","q_O","p_HOS"),
-      include = FALSE, use_cache = FALSE)
+print(fit_Ricker, prob = c(0.05,0.5,0.95), pars = stan_pars("IPM_LCRchum_pp","hyper"), 
+      use_cache = FALSE)
 ## @knitr
 
 
@@ -133,10 +127,8 @@ foreH0_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", age
                            control = list(max_treedepth = 15))
 
 ## @knitr print_foreH0_Ricker
-print(foreH0_Ricker, prob = c(0.05,0.5,0.95),
-      pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p","p_F",
-               "p_D","tau_M","tau_S","B_rate","M","S","s_MS","q","q_F","q_O","p_HOS"), 
-      include = FALSE, use_cache = FALSE)
+print(foreH0_Ricker, prob = c(0.05,0.5,0.95), pars = stan_pars("IPM_LCRchum_pp","hyper"),
+      use_cache = FALSE)
 ## @knitr
 
 # Ricker
@@ -149,10 +141,8 @@ foreHmax_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", a
                              control = list(max_treedepth = 15))
 
 ## @knitr print_foreHmax_Ricker
-print(foreHmax_Ricker, prob = c(0.05,0.5,0.95),
-      pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p","p_F",
-               "p_D","tau_M","tau_S","B_rate_all","M","S","s_MS","q","q_F","q_O","p_HOS"), 
-      include = FALSE, use_cache = FALSE)
+print(foreHmax_Ricker, prob = c(0.05,0.5,0.95), pars = stan_pars("IPM_LCRchum_pp","hyper"),
+      use_cache = FALSE)
 ## @knitr
 
 #--------------------------------------------------------------
