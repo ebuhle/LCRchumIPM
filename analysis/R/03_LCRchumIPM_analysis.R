@@ -219,27 +219,27 @@ if(save_plot) {
   plot(gg)
 }
 
-# #--------------------------------------------------------------------
-# # Spawner-recruit curves for each pop with data and states
-# #--------------------------------------------------------------------
-# 
-# mod_name <- "fit_Ricker"
-# life_stage <- "M"   # "M" = smolts, "R" = adult recruits
-# save_plot <- FALSE
-# 
-# ## @knitr SR_plot
-# gg <- SR_plot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2],
-#                          life_stage = life_stage, fish_data = fish_data)
-# ## @knitr
-# 
-# if(save_plot) {
-#   ggsave(filename=here("analysis","results",
-#                        paste0("SR_", strsplit(mod_name, "_")[[1]][2], ".png")),
-#          width=11, height=7, units="in", dpi=300)
-# } else {
-#   dev.new(width=11,height=7)
-#   plot(gg)
-# }
+#--------------------------------------------------------------------
+# Spawner-recruit curves for each pop with data and states
+#--------------------------------------------------------------------
+
+mod_name <- "fit_Ricker"
+life_stage <- "M"   # "M" = smolts, "R" = adult recruits
+save_plot <- FALSE
+
+## @knitr SR_plot
+gg <- SR_plot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2],
+                         life_stage = life_stage, fish_data = fish_data)
+## @knitr
+
+if(save_plot) {
+  ggsave(filename=here("analysis","results",
+                       paste0("SR_", strsplit(mod_name, "_")[[1]][2], ".png")),
+         width=11, height=7, units="in", dpi=300)
+} else {
+  dev.new(width=11,height=7)
+  plot(gg)
+}
 
 #-------------------------------------------------------------------------
 # Time series of smolt productivity anomaly and natural and hatchery SAR
