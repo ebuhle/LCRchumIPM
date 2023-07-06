@@ -266,7 +266,7 @@ S_{\text{H}jt} =
 \sum_{h \in \mathcal{H}}{\tilde{S}_{\text{H}hjt}}.
 $$
 
-Spawner origin-composition is given by $\mathbf{q}_{\text{O}jt} = \begin{bmatrix}  q_\text{Wjt} ~~ q_{\text{H}1jt} ~~ q_{\text{H}2jt} ~~ q_{\text{H}3jt} \end{bmatrix} ^ \top$, where $q_{\text{W}jt} = S_{\text{W}jt} / (S_{\text{W}jt} + S_{\text{H}jt})$ and $q_{\text{H}hjt} = \tilde{S}_{\text{H}hjt} / (S_{\text{W}jt} + S_{\text{H}jt})$. The total proportion of hatchery-origin spawners is $p_{\text{HOS},jt} = \sum_{h \in \mathcal{H}}{q_{\text{H}hjt}}$. Total spawner abundance is then
+Spawner origin-composition is given by $\mathbf{q}_{\text{O}jt} = \begin{bmatrix}  q_\text{Wjt} ~~ q_{\text{H}1jt} ~~ q_{\text{H}2jt} ~~ q_{\text{H}3jt} \end{bmatrix} ^ \top$, where $q_{\text{W}jt} = S_{\text{W}jt} / (S_{\text{W}jt} + S_{\text{H}jt})$ and $q_{\text{H}hjt} = \tilde{S}_{\text{H}hjt} / (S_{\text{W}jt} + S_{\text{H}jt})$. The total proportion of hatchery-origin spawners is $p_{\text{HOS}jt} = \sum_{h \in \mathcal{H}}{q_{\text{H}hjt}}$. Total spawner abundance is then
 
 $$
 S_{jt} = S_{\text{W}jt} + S_{\text{H}jt} + S^\text{add}_{jt}
@@ -399,10 +399,7 @@ We can now call the function `salmonIPM()` to fit models to the historical LCR c
 
 ```{r printshort_fit_Ricker}
 print(fit_Ricker, prob = c(0.05, 0.5, 0.95),
-      pars = c("psi","Mmax","eta_year_M","eta_year_MS","eta_pop_p","mu_pop_alr_p","p",
-               "p_F","P_D","tau_M","tau_S","B_rate","E_hat","M","S","s_MS",
-               "q","q_F","q_O","p_HOS","LL"), 
-      include = FALSE, use_cache = FALSE)
+      pars = setdiff(stan_pars("IPM_LCRchum_pp","hyper"), "P_D"), use_cache = FALSE)
 ```
 
 This model takes approximately `r round(mean(rowSums(get_elapsed_time(fit_Ricker)))/3600)` hr to fit on a 3-GHz multicore Intel processor. The results (showing only hyperparameters, except `P_D`, for readability) suggest that the Markov chains mixed adequately, since the Gelman-Rubin $\widehat{R}$ diagnostics are all ≤ 1.02 and effective sample sizes $n_\text{eff}$ are sufficient for computing 90% credible intervals. We may get false-positive warnings that some `Rhat` and `n_eff` estimates are `NaN`, but these are for the fixed diagonal elements of the 2 $\times$ 2 correlation matrices `R_pop_p` and `R_p` parameterized by $\rho_{\mathbf{p}}^\text{pop}$ and $\rho_{\mathbf{p}}$, respectively. We could further explore the chains and HMC diagnostics using interactive visualizations in the [**shinystan**](https://mc-stan.org/users/interfaces/shinystan) package.
@@ -586,7 +583,7 @@ We fit the IPM to each augmented data set. Posterior summaries are not shown, bu
 
 In addition to summarizing quantities of management interest across the full posterior, we present estimates conditional on future environmental conditions. Specifically, we use time-averaged SAR anomalies at the ESU level as a proxy for large-scale (likely oceanographic) factors that drive the majority of process error in population dynamics. The figure below illustrates this procedure. For each trajectory sampled from the posterior (a subsample of 100 draws is shown) we compute the future mean of the shared SAR anomalies $\eta^\text{year}_{MSt}$. The posterior distribution of the means $\overline{\eta^\text{year}_{MS}}$ is shown on the right margin of the top panel, divided into tertiles representing relatively low, medium or high SAR anomalies over the forecast period; trajectories in each tertile are likewise color-coded. The bottom panel shows trajectories of spawner abundance $S_{jt}$ for one population, Hardy Creek (the observations are as shown above for the retrospective fit), with the forecast period color-coded according to the corresponding tertile of mean SAR anomaly. The posterior distributions of geometric mean abundance for trajectories in each level of SAR are on the right margin. Other quantities, such as quasi-extinction risk, can be similarly conditioned on categories of average future SAR.
 
-```{r plot_SAR_fore_Ricker, echo=FALSE, fig.width=7, fig.height=7, out.width="70%", eval=FALSE}
+```{r plot_SAR_fore_Ricker, echo=FALSE, fig.width=7, fig.height=7, out.width="70%"}
 mod_name <- "foreH0_Ricker"
 set.seed(123)
 <<plot_SAR_fore>>
@@ -596,7 +593,7 @@ set.seed(123)
 
 Geometric mean spawner abundance (points are posterior medians; lines are 50% and 90% credible intervals) responds as expected to variation in the average future SAR anomaly, but there is little if any difference between the H~0~ and H~max~ scenarios. This suggests that losses due to broodstock collection are balanced by the addition of hatchery-origin spawners There are, however, some differences in the tails; in I-205 / Washougal, for example, the lower tails are thinner under H~max~. The reasons for and implications of these subtle hatchery effects will become apparent when we consider the probability of quasi-extinction.
 
-```{r plot_S_fore_Ricker, echo=FALSE, message=FALSE, fig.width=12, fig.height=4, out.width="100%", eval=FALSE}
+```{r plot_S_fore_Ricker, echo=FALSE, message=FALSE, fig.width=12, fig.height=4, out.width="100%"}
 modH0_name <- "foreH0_Ricker"
 modHmax_name <- "foreHmax_Ricker"
 <<plot_S_fore>>
@@ -607,7 +604,7 @@ plot(gg)
 
 Under the H~max~ scenario, time-averaged future $p_\text{HOS}$ is highest under low-SAR conditions, which elevate the probability of a decline in natural spawners while hatchery smolt releases are assumed to remain constant. Average future $p_\text{HOS}$ in the I-205 population (the only one in the I-205 / Washougal recovery population) is higher than has been observed historically; compare the plots of the data and retrospectively estimated states. This reflects the relatively large influx of Lewis Hatchery-origin adults in tandem with a potential decline in natural spawners. Predicted future $p_\text{HOS}$ in the other two recovery populations is broadly consistent with past observations.
 
-```{r plot_p_HOS_fore_Ricker, echo=FALSE, message=FALSE, fig.width=12, fig.height=4, out.width="100%", eval=FALSE}
+```{r plot_p_HOS_fore_Ricker, echo=FALSE, message=FALSE, fig.width=12, fig.height=4, out.width="100%"}
 <<plot_p_HOS_fore>>
 plot(gg)
 ```
@@ -617,7 +614,7 @@ plot(gg)
 
 We computed quasi-extinction risk as the probability that the 4-year (approximately one generation) running geometric mean spawner abundance falls below the quasi-extinction threshold (QET = 50) at least once during the forecast period [@mcelhany_viable_2000; @lower_columbia_fish_recovery_board_washington_2010 Table E12-2]. The probability of quasi-extinction (PQE) is shown below, with 90% credible intervals based on the binomial sample of `TRUE` / `FALSE` outcomes. Simulated hatchery supplementation generally reduces PQE, with the possible exception of the Lower Gorge recovery population under low-SAR conditions. The absolute reduction is most dramatic in the I-205 population, especially when average SAR is low, although the relative difference (≈ 50%) is similar in the Grays / Chinook group. 
 
-```{r plot_PQE_fore_Ricker, echo=FALSE, message=FALSE, fig.width=12, fig.height=4, out.width="100%", eval=FALSE}
+```{r plot_PQE_fore_Ricker, echo=FALSE, message=FALSE, fig.width=12, fig.height=4, out.width="100%"}
 <<plot_PQE_fore>>
 plot(gg)
 ```
@@ -634,7 +631,7 @@ We can easily generate short-term run forecasts using the same approach of augme
 
 This table shows pre-season forecasts of total spawners for `r year(Sys.Date())` along with current habitat size and estimated freshwater productivity parameters for each population (posteriors are summarized by median and 90% credible intervals).
 
-```{r spawner_forecast_table, echo = FALSE, message=FALSE, eval=FALSE}
+```{r spawner_forecast_table, echo = FALSE, message=FALSE}
 <<forecast_df>>
 knitr::kable(forecast_df, escape = FALSE, align = "l") %>% 
   # column_spec(column = 4:5, width = "130px") %>%
