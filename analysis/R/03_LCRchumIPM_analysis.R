@@ -286,14 +286,14 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-life_stage <- "M"   # "S" = spawners, "M" = smolts
-save_plot <- TRUE
+life_stage <- "S"   # "S" = spawners, "M" = smolts
+save_plot <- FALSE
 
 ## @knitr smolt_spawner_ts
 gg <- smolt_spawner_ts(mod = get(mod_name), life_stage = life_stage, 
-                       fish_data = switch(head(unlist(strsplit(mod_name, "_")), 1),
-                                          foreH0 = fish_data_foreH0, 
-                                          foreHmax = fish_data_foreHmax,
+                       fish_data = switch(strsplit(mod_name, "_")[[1]][1],
+                                          foreH0 = fish_data_fore, 
+                                          foreHmax = fish_data_fore,
                                           fish_data))
 ## @knitr
 
@@ -391,7 +391,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "foreH0_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 if(save_plot) {
   png(filename = here("analysis","results",

@@ -280,7 +280,7 @@ psi_Mmax_plot <- function(mod, fish_data)
                      mu_Mmax = mu_Mmax * log10(exp(1)) - 3,  # convert to base 10, mil/km
                      .value = c(psi, mu_psi, log10_Mmax, mu_Mmax))
   
-  gg <- fish_data %>% group_by(pop) %>% 
+  dat <- fish_data %>% group_by(pop) %>% 
     summarize(has_M_obs = any(!is.na(M_obs) | !is.na(downstream_trap))) %>% 
     add_row(pop = "ESU hyper-mean", has_M_obs = FALSE) %>% rbind(., .) %>% 
     mutate(pop = factor(pop, levels = unique(pop)),
@@ -289,7 +289,9 @@ psi_Mmax_plot <- function(mod, fish_data)
                       each = length(levels(pop))),
            fill = ifelse(pop == "ESU hyper-mean", "dark", ifelse(has_M_obs, "light", "none")),
            .value = draws$.value) %>% 
-    filter(!grepl("Hatchery", pop)) %>% 
+    filter(!grepl("Hatchery", pop))
+  
+  gg <- dat %>% 
     ggplot(aes(xdist = .value, y = pop, fill = fill)) +
     stat_eye(.width = c(0.5, 0.9), normalize = "groups", 
              color = "slategray4", slab_color = "slategray4", slab_linewidth = 0.5,
@@ -437,13 +439,13 @@ smolt_SAR_ts <- function(mod, fish_data)
                      exp_eta_year_M = exp(eta_year_M), 
                      exp_error_M = exp(error_M),
                      SAR = 100*s_MS,
-                     SAR_N_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS),
+                     SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS),
                      SAR_H_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS + beta_MS))
   
   hyper <- data.frame(year = sort(unique(fish_data$year))) %>% 
     cbind(pars = rep(c("Smolt productivity anomaly","SAR (%)"), times = (1:2)*nrow(.)),
           pop_type = rep(c("natural","hatchery"), times = (2:1)*nrow(.)),
-          .value = c(draws$exp_eta_year_M, draws$SAR_N_ESU, draws$SAR_H_ESU)) %>% 
+          .value = c(draws$exp_eta_year_M, draws$SAR_W_ESU, draws$SAR_H_ESU)) %>% 
     mutate(brood_year = ifelse(grepl("SAR", pars), year - 1, year),
            pars = factor(pars, levels = unique(pars)), .after = pars) 
   
@@ -485,11 +487,13 @@ P_D_plot <- function(mod, fish_data)
 {
   P_D <- as_draws_rvars(as.array(mod, "P_D"))
   
-  gg <- data.frame(P_D = P_D) %>% 
+  dat <- data.frame(P_D = P_D) %>% 
     setNames(unique(fish_data$pop[fish_data$pop_type == "natural"])) %>% 
     cbind(origin = unique(fish_data$pop[fish_data$pop_type == "hatchery"])) %>% 
     pivot_longer(cols = -origin, names_to = "pop", values_to = "P_D") %>% 
-    mutate(pop = factor(pop, levels = levels(fish_data$pop))) %>% 
+    mutate(pop = factor(pop, levels = levels(fish_data$pop)))
+    
+  gg <- dat %>% 
     ggplot(aes(xdist = P_D, y = pop)) +
     stat_eye(.width = c(0.5, 0.9), normalize = "groups", 
              color = "slategray4", fill = alpha("slategray4", 0.5)) + 
@@ -511,30 +515,36 @@ smolt_spawner_ts <- function(mod, life_stage = c("M","S"), fish_data)
   draws <- as_draws_rvars(as.matrix(fit_Ricker, c(life_stage, paste0("tau_", life_stage)))) %>% 
     rename_variables(N = !!life_stage, tau_N = !!paste0("tau_", life_stage))
   
-  gg <- fish_data %>% 
+  dat <- fish_data %>% 
     rename(N_obs = !!paste0(life_stage, "_obs"),
            tau_N_obs = !!paste0("tau_", life_stage, "_obs")) %>% 
-    mutate(life_stage = life_stage, N = draws$N, 
-           pch = ifelse(is.na(tau_N_obs), 1, 16), tau_N_obs = replace_na(tau_N_obs, 0)) %>% 
+    mutate(N = draws$N) %>% 
     group_by(downstream_trap) %>% mutate(N_downstream = rvar_sum(N)) %>% ungroup() %>% 
     mutate(N_upstream = replace(as_rvar(rep(0, n())), na.omit(downstream_trap),
                                 N_downstream[!is.na(downstream_trap)]),
-           N = replace(N, life_stage == "M", N + N_upstream), 
-           tau_N = draws$tau_N, N_ppd = rvar_rng(rlnorm, n(), log(N), tau_N)) %>% 
-    filter(pop_type == "natural") %>% 
-    ggplot(aes(x = year, ydist = dist_lognormal(log(N_obs), tau_N_obs), shape = pch)) +
+           N = if(life_stage == "M") N + N_upstream else N,
+           tau_N = draws$tau_N, N_ppd = rvar_rng(rlnorm, n(), log(N), tau_N),
+           N_obs_prior = dist_lognormal(
+             log(N_obs), ifelse(is.na(tau_N_obs), mean(tau_N), tau_N_obs))
+           ) %>% 
+    filter(pop_type == "natural")
+  
+  gg <- dat %>% 
+    ggplot(aes(x = year, ydist = N_obs_prior)) +
     geom_line(aes(y = median(N)), lwd = 1, col = "slategray4") +
     geom_ribbon(aes(ymin = t(quantile(N, 0.05)), ymax = t(quantile(N, 0.95))), 
                 fill = "slategray4", alpha = 0.5) +
     geom_ribbon(aes(ymin = t(quantile(N_ppd, 0.05)), ymax = t(quantile(N_ppd, 0.95))),
                 fill = "slategray4", alpha = 0.3) +
-    stat_pointinterval(.width = 0.9, point_size = 2.5, linewidth = 1) + scale_shape_identity() +
+    stat_pointinterval(aes(fill = is.na(tau_N_obs)), .width = 0.9, 
+                       pch = 21, point_size = 2.5, linewidth = 1) + 
+    scale_fill_manual(values = c(`TRUE` = "white", `FALSE` = "black"), guide = "none") +
     labs(x = "Year", y = switch(life_stage, M = "Smolts", S = "Spawners")) + 
     scale_x_continuous(minor_breaks = unique(fish_data$year), expand = expansion(0.01)) +
     scale_y_log10(breaks = function(l) maglab(na.omit(l), log = TRUE)$tickat,
                   labels = label_log()) +
     facet_wrap(vars(pop), ncol = 4, scales = "free_y") + 
-    theme(panel.grid.minor.y = element_blank(), 
+    theme(panel.grid.minor = element_blank(), 
           strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
   
@@ -706,11 +716,13 @@ SAR_fore_plot <- function(mod, fish_data_fore, example_pop)
     mutate(yr = as.numeric(factor(year))) %>% subset(pop == example_pop)
   
   rfindInterval <- rfun(findInterval)
-  draws <- as_draws_rvars(as.matrix(mod, c("eta_year_MS", "S"))) %>% 
+  draws <- as_draws_rvars(as.matrix(mod, c("eta_year_MS", "mu_MS", "S"))) %>% 
     mutate_variables(S = S[as.numeric(rownames(dat))], 
                      gmean_S = exp(rvar_mean(log(S[dat$forecast]))),
                      eta_year_MS = eta_year_MS[dat$yr], 
-                     eta_mean_MS = rvar_mean(eta_year_MS[dat$forecast]),
+                     # eta_mean_MS = rvar_mean(eta_year_MS[dat$forecast]),
+                     logit_SAR = mu_MS + eta_year_MS,  # ESU-level *wild* SAR
+                     eta_mean_MS = rvar_mean(logit_SAR[dat$forecast]),  # TEMP
                      q_MS = quantile(eta_mean_MS, (1:2)/3),
                      qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
   rdraws <- draws %>% resample_draws(ndraws = 100)
@@ -793,23 +805,25 @@ S_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, po
   year <- as.numeric(factor(fish_data_foreH0$year))
   fore_years <- sort(unique(year[fish_data_foreH0$forecast]))
   n_draws <- (sum(modH0@sim$n_save - modH0@sim$warmup) %/% 3) * 3
-  
   rfindInterval <- rfun(findInterval)
+  
   drawsH0 <- as_draws_rvars(as.matrix(modH0, c("eta_year_MS","S"))) %>% 
-    subset_draws(iter = 1:n_draws) %>% 
-    mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
-                     q_MS = quantile(eta_mean_MS, (1:2)/3),
-                     qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
-  drawsHmax <- as_draws_rvars(as.matrix(modHmax, c("eta_year_MS","S"))) %>% 
     subset_draws(iter = 1:n_draws) %>% 
     mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
                      q_MS = quantile(eta_mean_MS, (1:2)/3),
                      qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
   
   datH0 <- fish_data_foreH0 %>% 
-    mutate(scenario = "No", qnt_MS = drawsH0$qnt_MS, S = drawsH0$S)
+    mutate(scenario = "H0", qnt_MS = drawsH0$qnt_MS, S = drawsH0$S)
+  
+  drawsHmax <- as_draws_rvars(as.matrix(modHmax, c("eta_year_MS","S"))) %>% 
+    subset_draws(iter = 1:n_draws) %>% 
+    mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
+                     q_MS = quantile(eta_mean_MS, (1:2)/3),
+                     qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
+  
   datHmax <- fish_data_foreHmax %>% 
-    mutate(scenario = "Yes", qnt_MS = drawsHmax$qnt_MS, S = drawsHmax$S)
+    mutate(scenario = "Hmax", qnt_MS = drawsHmax$qnt_MS, S = drawsHmax$S)
   
   dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
     filter(pop_type == "natural" & forecast) %>% 
@@ -827,12 +841,12 @@ S_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, po
     group_by(scenario, pop, SAR) %>% summarize(gmean_S = exp(rvar_mean(log(S))))
   
   cols <- c(all = "slategray4", low = "firebrick1", med = "gold", high = "darkgreen")
-  
+
   gg <- dat %>% 
     ggplot(aes(x = scenario, ydist = gmean_S, color = SAR, fill = SAR)) +
     stat_eye(.width = c(0.5, 0.9), normalize = "groups", position = "dodge",
-             point_size = 2, slab_alpha = 0.5, slab_color = NA) +
-    scale_x_discrete(labels = c(quote(H[0]), quote(H[max]))) + 
+             point_size = 2, slab_alpha = 0.5) +
+    scale_x_discrete(labels = c(quote(H[0]), quote(H[max]))) +
     scale_y_log10(labels = function(y) y) + 
     coord_cartesian(ylim = range(quantile(dat$gmean_S, c(0.05, 0.95)))) +
     scale_color_manual(values = cols) + scale_fill_manual(values = cols) +
@@ -856,23 +870,25 @@ StS0_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
   year <- as.numeric(factor(fish_data_foreH0$year))
   fore_years <- sort(unique(year[fish_data_foreH0$forecast]))
   n_draws <- (sum(modH0@sim$n_save - modH0@sim$warmup) %/% 3) * 3
-  
   rfindInterval <- rfun(findInterval)
+  
   drawsH0 <- as_draws_rvars(as.matrix(modH0, c("eta_year_MS","S"))) %>% 
-    subset_draws(iter = 1:n_draws) %>% 
-    mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
-                     q_MS = quantile(eta_mean_MS, (1:2)/3),
-                     qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
-  drawsHmax <- as_draws_rvars(as.matrix(modHmax, c("eta_year_MS","S"))) %>% 
     subset_draws(iter = 1:n_draws) %>% 
     mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
                      q_MS = quantile(eta_mean_MS, (1:2)/3),
                      qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
   
   datH0 <- fish_data_foreH0 %>% 
-    mutate(scenario = "No", qnt_MS = drawsH0$qnt_MS, S = drawsH0$S)
+    mutate(scenario = "H0", qnt_MS = drawsH0$qnt_MS, S = drawsH0$S)
+  
+  drawsHmax <- as_draws_rvars(as.matrix(modHmax, c("eta_year_MS","S"))) %>% 
+    subset_draws(iter = 1:n_draws) %>% 
+    mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
+                     q_MS = quantile(eta_mean_MS, (1:2)/3),
+                     qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
+  
   datHmax <- fish_data_foreHmax %>% 
-    mutate(scenario = "Yes", qnt_MS = drawsHmax$qnt_MS, S = drawsHmax$S)
+    mutate(scenario = "Hmax", qnt_MS = drawsHmax$qnt_MS, S = drawsHmax$S)
   
   dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
     filter(pop_type == "natural") %>% 
@@ -920,8 +936,8 @@ p_HOS_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax
   year <- as.numeric(factor(fish_data_foreH0$year))
   fore_years <- sort(unique(year[fish_data_foreH0$forecast]))
   n_draws <- (sum(modH0@sim$n_save - modH0@sim$warmup) %/% 3) * 3
-  
   rfindInterval <- rfun(findInterval)
+  
   drawsH0 <- as_draws_rvars(as.matrix(modH0, c("eta_year_MS","S","p_HOS"))) %>%
     subset_draws(iter = 1:n_draws) %>% 
     mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
@@ -930,6 +946,10 @@ p_HOS_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax
                      # S_H = S*p_HOS)
                      # TEMP: get rid of p_HOS > 0 caused by stan_data() converting M_obs==0 to 1
                      S_H = as_rvar(0)) 
+  
+  datH0 <- fish_data_foreH0 %>% 
+    mutate(scenario = "H0", qnt_MS = drawsH0$qnt_MS, S = drawsH0$S, S_H = drawsH0$S_H)
+  
   drawsHmax <- as_draws_rvars(as.matrix(modHmax, c("eta_year_MS","S","p_HOS"))) %>%
     subset_draws(iter = 1:n_draws) %>% 
     mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
@@ -937,10 +957,8 @@ p_HOS_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax
                      qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1,
                      S_H = S*p_HOS)
   
-  datH0 <- fish_data_foreH0 %>% 
-    mutate(scenario = "No", qnt_MS = drawsH0$qnt_MS, S = drawsH0$S, S_H = drawsH0$S_H)
   datHmax <- fish_data_foreHmax %>% 
-    mutate(scenario = "Yes", qnt_MS = drawsHmax$qnt_MS, S = drawsHmax$S, S_H = drawsHmax$S_H)
+    mutate(scenario = "Hmax", qnt_MS = drawsHmax$qnt_MS, S = drawsHmax$S, S_H = drawsHmax$S_H)
   
   dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
     group_by(year) %>% mutate(all_forecast = all(forecast)) %>% ungroup() %>% 
@@ -989,23 +1007,25 @@ Precovery_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
   year <- as.numeric(factor(fish_data_foreH0$year))
   fore_years <- sort(unique(year[fish_data_foreH0$forecast]))
   n_draws <- (sum(modH0@sim$n_save - modH0@sim$warmup) %/% 3) * 3
-  
   rfindInterval <- rfun(findInterval)
+  
   drawsH0 <- as_draws_rvars(as.matrix(modH0, c("eta_year_MS","S"))) %>% 
-    subset_draws(iter = 1:n_draws) %>% 
-    mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
-                     q_MS = quantile(eta_mean_MS, (1:2)/3),
-                     qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
-  drawsHmax <- as_draws_rvars(as.matrix(modHmax,  c("eta_year_MS","S"))) %>% 
     subset_draws(iter = 1:n_draws) %>% 
     mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
                      q_MS = quantile(eta_mean_MS, (1:2)/3),
                      qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
   
   datH0 <- fish_data_foreH0 %>% 
-    mutate(scenario = "No", qnt_MS = drawsH0$qnt_MS, S = drawsH0$S)
+    mutate(scenario = "H0", qnt_MS = drawsH0$qnt_MS, S = drawsH0$S)
+  
+  drawsHmax <- as_draws_rvars(as.matrix(modHmax,  c("eta_year_MS","S"))) %>% 
+    subset_draws(iter = 1:n_draws) %>% 
+    mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
+                     q_MS = quantile(eta_mean_MS, (1:2)/3),
+                     qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
+  
   datHmax <- fish_data_foreHmax %>% 
-    mutate(scenario = "Yes", qnt_MS = drawsHmax$qnt_MS, S = drawsHmax$S)
+    mutate(scenario = "Hmax", qnt_MS = drawsHmax$qnt_MS, S = drawsHmax$S)
   
   dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
     filter(pop_type == "natural" & forecast) %>% 
@@ -1061,23 +1081,25 @@ PQE_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
   year <- as.numeric(factor(fish_data_foreH0$year))
   fore_years <- sort(unique(year[fish_data_foreH0$forecast]))
   n_draws <- (sum(modH0@sim$n_save - modH0@sim$warmup) %/% 3) * 3
-  
   rfindInterval <- rfun(findInterval)
+  
   drawsH0 <- as_draws_rvars(as.matrix(modH0, c("eta_year_MS","S"))) %>% 
-    subset_draws(iter = 1:n_draws) %>% 
-    mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
-                     q_MS = quantile(eta_mean_MS, (1:2)/3),
-                     qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
-  drawsHmax <- as_draws_rvars(as.matrix(modHmax,  c("eta_year_MS","S"))) %>% 
     subset_draws(iter = 1:n_draws) %>% 
     mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
                      q_MS = quantile(eta_mean_MS, (1:2)/3),
                      qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
   
   datH0 <- fish_data_foreH0 %>% 
-    mutate(scenario = "No", qnt_MS = drawsH0$qnt_MS, S = drawsH0$S)
+    mutate(scenario = "H0", qnt_MS = drawsH0$qnt_MS, S = drawsH0$S)
+  
+  drawsHmax <- as_draws_rvars(as.matrix(modHmax,  c("eta_year_MS","S"))) %>% 
+    subset_draws(iter = 1:n_draws) %>% 
+    mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
+                     q_MS = quantile(eta_mean_MS, (1:2)/3),
+                     qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
+  
   datHmax <- fish_data_foreHmax %>% 
-    mutate(scenario = "Yes", qnt_MS = drawsHmax$qnt_MS, S = drawsHmax$S)
+    mutate(scenario = "Hmax", qnt_MS = drawsHmax$qnt_MS, S = drawsHmax$S)
   
   dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
     filter(pop_type == "natural" & forecast) %>% 
