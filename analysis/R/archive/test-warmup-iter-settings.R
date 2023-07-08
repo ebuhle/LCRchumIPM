@@ -99,6 +99,7 @@ ess_hr_long <- ess_hr %>% select(-c(ess_bulk, ess_tail)) %>%
 # boxplots of ess / hr
 # (note "rows containing non-finite values" are constants such as
 #  diagonals of R_pop_p and R_p, hatchery S-R params and M states, etc.)
+windows()
 ess_hr_long %>% 
   ggplot(aes(x = type, y = ess_hr, color = settings)) + 
   geom_boxplot(lwd = 0.8) + 
@@ -113,6 +114,7 @@ low_ess <- ess_hr %>% group_by(variable) %>%
   arrange(ess_draw_bulk)
 
 # histograms of ess / draw: is there a distinct "bad" group?
+windows()
 low_ess %>% select(variable, ess_draw_bulk, ess_draw_tail) %>% 
   pivot_longer(cols = starts_with('ess_draw'), names_to = 'type', 
                names_pattern = 'ess_draw_(.*)', values_to = 'ess_draw') %>% 
