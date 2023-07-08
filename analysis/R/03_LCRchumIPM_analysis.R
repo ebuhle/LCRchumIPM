@@ -44,7 +44,7 @@ if(file.exists(here("analysis","results","LCRchumIPM.RData")))
 fit_exp <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "exp", ages = list(M = 1), 
                      par_models = list(s_MS ~ pop_type), center = FALSE, scale = FALSE, 
                      fish_data = fish_data, fecundity_data = fecundity_data,
-                     chains = 4, iter = 2000, warmup = 1000,
+                     chains = 4, iter = 1500, warmup = 500,
                      control = list(max_treedepth = 15))
 
 ## @knitr print_fit_exp
@@ -57,7 +57,7 @@ print(fit_exp, prob = c(0.05,0.5,0.95), pars = stan_pars("IPM_LCRchum_pp","hyper
 fit_BH <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "BH", ages = list(M = 1), 
                     par_models = list(s_MS ~ pop_type), center = FALSE, scale = FALSE, 
                     fish_data = fish_data, fecundity_data = fecundity_data,
-                    chains = 4, iter = 2000, warmup = 1000,
+                    chains = 4, iter = 1500, warmup = 500,
                     control = list(max_treedepth = 15))
 
 ## @knitr print_fit_BH
@@ -70,7 +70,7 @@ print(fit_BH, prob = c(0.05,0.5,0.95), pars = stan_pars("IPM_LCRchum_pp","hyper"
 fit_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", ages = list(M = 1), 
                         par_models = list(s_MS ~ pop_type), center = FALSE, scale = FALSE, 
                         fish_data = fish_data, fecundity_data = fecundity_data,
-                        chains = 4, iter = 2000, warmup = 1000,
+                        chains = 4, iter = 1500, warmup = 500,
                         control = list(max_treedepth = 15))
 
 ## @knitr print_fit_Ricker
@@ -123,7 +123,7 @@ print(fit_Ricker, prob = c(0.05,0.5,0.95), pars = stan_pars("IPM_LCRchum_pp","hy
 foreH0_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", ages = list(M = 1), 
                            par_models = list(s_MS ~ pop_type), center = FALSE, scale = FALSE, 
                            fish_data = fish_data_foreH0, fecundity_data = fecundity_data,
-                           chains = 4, iter = 2000, warmup = 1000,
+                           chains = 4, iter = 1500, warmup = 500,
                            control = list(max_treedepth = 15))
 
 ## @knitr print_foreH0_Ricker
@@ -137,7 +137,7 @@ print(foreH0_Ricker, prob = c(0.05,0.5,0.95), pars = stan_pars("IPM_LCRchum_pp",
 foreHmax_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", ages = list(M = 1), 
                              par_models = list(s_MS ~ pop_type), center = FALSE, scale = FALSE, 
                              fish_data = fish_data_foreHmax, fecundity_data = fecundity_data,
-                             chains = 4, iter = 2000, warmup = 1000,
+                             chains = 4, iter = 1500, warmup = 500,
                              control = list(max_treedepth = 15))
 
 ## @knitr print_foreHmax_Ricker

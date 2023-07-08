@@ -313,8 +313,7 @@ psi_Mmax_plot <- function(mod, fish_data)
                          } else return(x)
                        }) +
     scale_y_discrete(limits = rev) + labs(x = NULL, y = NULL) + 
-    scale_fill_manual(values = alpha(c(dark = "slategray4", light = "slategray4", none = "white"),
-                                     c(0.7, 0.15, 0)),
+    scale_fill_manual(values = alpha("slategray4", c(dark = 0.7, light = 0.15, none = 0)),
                       guide = "none") +
     facet_wrap(~ pars, scales = "free_x", strip.position = "bottom", labeller = label_parsed) + 
     theme(panel.grid.minor = element_blank(), strip.background = element_blank(),
