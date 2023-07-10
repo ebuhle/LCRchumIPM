@@ -171,8 +171,6 @@ green_female_data <- read.csv(here("data","Data_Duncan_Females_by_Condition.csv"
 #     distribution of smolt abundance based on the sample
 # (3) If Abund_SD == 0 (when Analysis=="Census": some years in Duncan_Channel and 
 #     Hamilton_Channel) treat as NA
-# (4) TEMPORARY KLUDGE 2023-06-26: 
-#     change tau_M_obs for Duncan Channel 2022 to NA instead of 2.4e-6
 juv_data <- read.csv(here("data","Data_Abundance_Juveniles_Chum.csv"), 
                      header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(brood_year = Brood.Year, year = Outmigration.Year, strata = Strata, 
@@ -183,8 +181,7 @@ juv_data <- read.csv(here("data","Data_Abundance_Juveniles_Chum.csv"),
   mutate(location = gsub("I205", "I-205", gsub("_", " ", location)),
          origin = sapply(gsub("_", " ", origin), function(x)
            paste(rev(strsplit(x, " ")[[1]]), collapse = " ")), # names inconsistent w/ bio_data 
-         tau_M_obs = replace(sqrt(log((SD/mean)^2 + 1)), SD==0, NA),
-         tau_M_obs = replace(tau_M_obs, location == "Duncan Channel" & year == 2022, NA)) %>% # TEMP 
+         tau_M_obs = replace(sqrt(log((SD/mean)^2 + 1)), SD==0, NA)) %>% 
   select(strata, location, year, brood_year, origin:CV, tau_M_obs, comments) %>% 
   arrange(strata, location, year)
 
