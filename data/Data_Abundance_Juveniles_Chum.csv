@@ -47,7 +47,7 @@ Chum,Fry.Smolt,2017,2018,Gorge,Duncan_Channel,Wild,Weir,Census,Y,41369,41369,413
 Chum,Fry.Smolt,2018,2019,Gorge,Duncan_Channel,Wild,Weir,P-Spline,Y,48496,60697,59560,5960.884651,52618,75347.025,0.098206468,
 Chum,Fry.Smolt,2019,2020,Gorge,Duncan_Channel,Wild,Weir,multi_yr_ARIMA,N,2248,20441,10010,38695,3055,103494,1.89,Only fished North trap; essentially no fish placed in South channel due to low water in fall of 2019
 Chum,Fry.Smolt,2020,2021,Gorge,Duncan_Channel,Wild,Weir,P-Spline,Y,59251,59454,59401,2533,54644,64571,0.04,
-Chum,Fry.Smolt,2021,2022,Gorge,Duncan_Channel,Wild,Weir,Census,Y,216608,216608,216608,0.52,216608,216608,0.000001,Only ran one trap in 2022 at the Duncan North site; double check if partial spawners were put into Duncan North channel 
+Chum,Fry.Smolt,2021,2022,Gorge,Duncan_Channel,Wild,Weir,Census,Y,216608,216608,216608,0,216608,216608,0,Only ran one trap in 2022 at the Duncan North site; double check if partial spawners were put into Duncan North channel 
 Chum,Fry.Smolt,2013,2014,Gorge,Duncan_North,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,South box side panel failed in-season and box was removed on 3/31.  after that North got all fry
 Chum,Fry.Smolt,2002,2003,Gorge,Duncan_North,Wild,Weir,Census,N,15915,15915,15915,0,15915,15915,0,
 Chum,Fry.Smolt,2003,2004,Gorge,Duncan_North,Wild,Weir,Census,N,28375,28375,28375,0,28375,28375,0,
@@ -67,7 +67,7 @@ Chum,Fry.Smolt,2017,2018,Gorge,Duncan_North,Wild,Weir,Census,Y,24850,24850,24850
 Chum,Fry.Smolt,2018,2019,Gorge,Duncan_North,Wild,Weir,P-Spline,NA,21419,28716,27885,4224.976023,23338,39019.29996,0.147131554,
 Chum,Fry.Smolt,2019,2020,Gorge,Duncan_North,Wild,Weir,P-Spline,N,2248,20441,10010,38695,3055,103494,1.89,
 Chum,Fry.Smolt,2020,2021,Gorge,Duncan_North,Wild,Weir,Census,N,31706,31706,31706,0,31706,31706,0,
-Chum,Fry.Smolt,2021,2022,Gorge,Duncan_North,Wild,Weir,Census,Y,216608,216608,216608,0.52,216608,216608,0.000001,Only ran one trap in 2022 at the Duncan North site; double check if partial spawners were put into Duncan North channel 
+Chum,Fry.Smolt,2021,2022,Gorge,Duncan_North,Wild,Weir,Census,Y,216608,216608,216608,0,216608,216608,0,Only ran one trap in 2022 at the Duncan North site; double check if partial spawners were put into Duncan North channel 
 Chum,Fry.Smolt,2013,2014,Gorge,Duncan_South,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,South box side panel failed in-season and box was removed on 3/31.  after that North got all fry
 Chum,Fry.Smolt,2002,2003,Gorge,Duncan_South,Wild,Weir,Census,N,9023,9023,9023,0,9023,9023,0,
 Chum,Fry.Smolt,2003,2004,Gorge,Duncan_South,Wild,Weir,Census,N,15016,15016,15016,0,15016,15016,0,
