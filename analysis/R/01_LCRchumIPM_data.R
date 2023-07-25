@@ -2,8 +2,6 @@
 # SETUP
 #===========================================================================
 
-options(device = ifelse(.Platform$OS.type == "windows", "windows", "quartz"))
-
 library(matrixStats)
 library(Hmisc)
 library(tibble)
