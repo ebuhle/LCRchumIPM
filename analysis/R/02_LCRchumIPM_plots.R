@@ -714,44 +714,50 @@ SAR_fore_plot <- function(mod, fish_data_fore, example_pop)
   dat <- fish_data_fore %>% 
     mutate(yr = as.numeric(factor(year))) %>% subset(pop == example_pop)
   
+  
+  logit <- function(x) log(x) - log(1 - x)
+  ilogit <- function(x) exp(x) / (1 + exp(x))
   rfindInterval <- rfun(findInterval)
-  draws <- as_draws_rvars(as.matrix(mod, c("eta_year_MS", "mu_MS", "S"))) %>% 
+  
+  draws <- as_draws_rvars(as.matrix(mod, c("mu_MS", "eta_year_MS", "S"))) %>% 
     mutate_variables(S = S[as.numeric(rownames(dat))], 
                      gmean_S = exp(rvar_mean(log(S[dat$forecast]))),
                      eta_year_MS = eta_year_MS[dat$yr], 
-                     # eta_mean_MS = rvar_mean(eta_year_MS[dat$forecast]),
-                     logit_SAR = mu_MS + eta_year_MS,  # ESU-level *wild* SAR
-                     eta_mean_MS = rvar_mean(logit_SAR[dat$forecast]),  # TEMP
-                     q_MS = quantile(eta_mean_MS, (1:2)/3),
-                     qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
+                     SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
+                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[dat$forecast]),  
+                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1)
   rdraws <- draws %>% resample_draws(ndraws = 100)
   
   layout(matrix(c(1:4), nrow = 2, byrow = TRUE), widths = c(7, 1, 7, 1))
   par(oma = c(2, 0, 0, 0))
   cols <- c(low = "firebrick1", med = "gold", high = "darkgreen")
   
-  # eta_year_MS time series
+  # ESU-level wild SAR time series
   par(mar = c(2, 5, 1, 0.1))
   with(dat, {
-    plot(min(year), 0, type = "n", 
-         xlim = range(year), ylim = range(range(rdraws$eta_year_MS)),
-         xlab = NA, ylab = quote("SAR anomaly" ~ (eta[italic(MS)]^year)), 
-         xaxs = "i", las = 1, cex.axis = 1.2, cex.lab = 1.5)
+    plot(min(year), 0, type = "n",
+         xlim = range(year), ylim = range(range(log10(rdraws$SAR_W_ESU))),
+         xlab = NA, ylab = quote("ESU-level natural SAR (%)"), 
+         xaxs = "i", yaxt = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5)
+    tck <- maglab(10^par("usr")[3:4], log = TRUE)
+    axis(2, at = log10(tck$labat), labels = tck$exp, las = 1, cex.axis = 1.2)
     rug(year[year %% 10 != 0], ticksize = -0.01)
     for_each_draw(rdraws, 
-                  segments(year[-nrow(dat)], eta_year_MS[-nrow(dat)], year[-1], eta_year_MS[-1],
-                           col = alpha(ifelse(forecast, cols[qnt_MS], "slategray4"), 0.3)))
-    legend("topleft", title = "Mean future SAR anomaly", legend = "", cex = 1.2, bty = "n")
+                  segments(year[-nrow(dat)], log10(SAR_W_ESU[-nrow(dat)]), 
+                           year[-1], log10(SAR_W_ESU[-1]),
+                           col = alpha(ifelse(forecast, cols[qnt_SAR], "slategray4"), 0.3)))
+    legend("topleft", title = "Mean future SAR", legend = "", cex = 1.2, bty = "n")
     legend("topleft", title = "", legend = rev(names(cols)),
            cex = 1.2, fill = alpha(rev(cols), 0.5), border = NA, bty = "n")
   })
   
-  # distribution of eta_mean_MS
-  d <- density(draws_of(draws$eta_mean_MS))
-  q_MS <- mean(draws$q_MS)
-  xout <- sort(c(d$x, q_MS))
+  # distribution of mean future ESU-level wild SAR
+  d <- density(draws_of(log10(draws$mean_SAR_W_ESU)))
+  q_SAR <- mean(log10(draws$q_SAR))
+  xout <- sort(c(d$x, q_SAR))
   d <- approx(d$x, d$y, xout = xout)
-  xqnt <- findInterval(d$x, q_MS) + 1
+  xqnt <- findInterval(d$x, q_SAR) + 1
   
   par(mar = c(2, 0, 1, 0.5))
   plot(d$y, d$x, type = "n", ylim = par("usr")[3:4],
@@ -764,7 +770,7 @@ SAR_fore_plot <- function(mod, fish_data_fore, example_pop)
   # S time series for example_pop
   par(mar = c(3, 5, 1, 0.1))
   with(dat, {
-    plot(year, log10(S_obs), type = "n", ylim = c(0, log10(max(range(rdraws$S)))),
+    plot(year, log10(S_obs), type = "n", ylim = c(0, max(range(log10(rdraws$S)))),
          xaxs = "i", yaxt = "n", las = 1, cex.axis = 1.2, cex.lab = 1.5,
          xlab = NA, ylab = "Spawners")
     mtext("Year", side = 1, outer = TRUE, cex = par("cex")*1.5)
@@ -773,7 +779,7 @@ SAR_fore_plot <- function(mod, fish_data_fore, example_pop)
     rug(year[year %% 10 != 0], ticksize = -0.01)
     for_each_draw(rdraws,
                   segments(year[-nrow(dat)], log10(S[-nrow(dat)]), year[-1], log10(S[-1]),
-                           col = alpha(ifelse(forecast, cols[qnt_MS], "slategray4"), 0.3)))
+                           col = alpha(ifelse(forecast, cols[qnt_SAR], "slategray4"), 0.3)))
     points(year, log10(S_obs), pch = ifelse(is.na(tau_S_obs), 1, 16), cex = 1.5)
     segments(year, log10(qlnorm(0.05, log(S_obs), tau_S_obs)),
              year, log10(qlnorm(0.95, log(S_obs), tau_S_obs)))
@@ -781,7 +787,7 @@ SAR_fore_plot <- function(mod, fish_data_fore, example_pop)
   
   # distributions of geometric mean S
   dens <- lapply(1:3, function(q) {
-    log10_gmean_S <- draws %>% subset_draws(iter = which(draws_of(.$qnt_MS) == q)) %>% 
+    log10_gmean_S <- draws %>% subset_draws(iter = which(draws_of(.$qnt_SAR) == q)) %>% 
       .$gmean_S %>% log10()
     return(density(draws_of(log10_gmean_S)))
   })
@@ -804,35 +810,39 @@ S_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, po
   year <- as.numeric(factor(fish_data_foreH0$year))
   fore_years <- sort(unique(year[fish_data_foreH0$forecast]))
   n_draws <- (sum(modH0@sim$n_save - modH0@sim$warmup) %/% 3) * 3
+  logit <- function(x) log(x) - log(1 - x)
+  ilogit <- function(x) exp(x) / (1 + exp(x))
   rfindInterval <- rfun(findInterval)
   
-  drawsH0 <- as_draws_rvars(as.matrix(modH0, c("eta_year_MS","S"))) %>% 
+  drawsH0 <- as_draws_rvars(as.matrix(modH0, c("mu_MS", "eta_year_MS", "S"))) %>% 
     subset_draws(iter = 1:n_draws) %>% 
-    mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
-                     q_MS = quantile(eta_mean_MS, (1:2)/3),
-                     qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
+    mutate_variables(SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
+                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[fore_years]),  
+                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1)
   
   datH0 <- fish_data_foreH0 %>% 
-    mutate(scenario = "H0", qnt_MS = drawsH0$qnt_MS, S = drawsH0$S)
+    mutate(scenario = "H0", qnt_SAR = drawsH0$qnt_SAR, S = drawsH0$S)
   
-  drawsHmax <- as_draws_rvars(as.matrix(modHmax, c("eta_year_MS","S"))) %>% 
+  drawsHmax <- as_draws_rvars(as.matrix(modHmax, c("mu_MS", "eta_year_MS", "S"))) %>% 
     subset_draws(iter = 1:n_draws) %>% 
-    mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
-                     q_MS = quantile(eta_mean_MS, (1:2)/3),
-                     qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
+    mutate_variables(SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
+                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[fore_years]),  
+                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1)
   
   datHmax <- fish_data_foreHmax %>% 
-    mutate(scenario = "Hmax", qnt_MS = drawsHmax$qnt_MS, S = drawsHmax$S)
+    mutate(scenario = "Hmax", qnt_SAR = drawsHmax$qnt_SAR, S = drawsHmax$S)
   
   dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
     filter(pop_type == "natural" & forecast) %>% 
     left_join(pop_names) %>% mutate(pop = recovery_pop) %>% # comment out to use model pops instead of recovery pops #
-    select(scenario, pop, year, qnt_MS, S) %>% 
+    select(scenario, pop, year, qnt_SAR, S) %>% 
     group_by(scenario, pop, year) %>% 
-    summarize(qnt_MS = unique(qnt_MS), S = rvar_sum(S)) %>% 
-    mutate(S_low = subset_draws(S, iter = which(draws_of(qnt_MS[1]) == 1)),
-           S_med = subset_draws(S, iter = which(draws_of(qnt_MS[1]) == 2)),
-           S_high = subset_draws(S, iter = which(draws_of(qnt_MS[1]) == 3)),
+    summarize(qnt_SAR = unique(qnt_SAR), S = rvar_sum(S)) %>% 
+    mutate(S_low = subset_draws(S, iter = which(draws_of(qnt_SAR[1]) == 1)),
+           S_med = subset_draws(S, iter = which(draws_of(qnt_SAR[1]) == 2)),
+           S_high = subset_draws(S, iter = which(draws_of(qnt_SAR[1]) == 3)),
            S = subset_draws(S, iter = 1:(n_draws/3))) %>%
     rename(S_all = S) %>% 
     pivot_longer(cols = contains("S_"), names_to = "SAR", names_prefix = "S_", values_to = "S") %>%
@@ -869,35 +879,39 @@ StS0_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
   year <- as.numeric(factor(fish_data_foreH0$year))
   fore_years <- sort(unique(year[fish_data_foreH0$forecast]))
   n_draws <- (sum(modH0@sim$n_save - modH0@sim$warmup) %/% 3) * 3
+  logit <- function(x) log(x) - log(1 - x)
+  ilogit <- function(x) exp(x) / (1 + exp(x))
   rfindInterval <- rfun(findInterval)
   
-  drawsH0 <- as_draws_rvars(as.matrix(modH0, c("eta_year_MS","S"))) %>% 
+  drawsH0 <- as_draws_rvars(as.matrix(modH0, c("mu_MS", "eta_year_MS", "S"))) %>% 
     subset_draws(iter = 1:n_draws) %>% 
-    mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
-                     q_MS = quantile(eta_mean_MS, (1:2)/3),
-                     qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
+    mutate_variables(SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
+                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[fore_years]),  
+                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1)
   
   datH0 <- fish_data_foreH0 %>% 
-    mutate(scenario = "H0", qnt_MS = drawsH0$qnt_MS, S = drawsH0$S)
+    mutate(scenario = "H0", qnt_SAR = drawsH0$qnt_SAR, S = drawsH0$S)
   
-  drawsHmax <- as_draws_rvars(as.matrix(modHmax, c("eta_year_MS","S"))) %>% 
+  drawsHmax <- as_draws_rvars(as.matrix(modHmax, c("mu_MS", "eta_year_MS", "S"))) %>% 
     subset_draws(iter = 1:n_draws) %>% 
-    mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
-                     q_MS = quantile(eta_mean_MS, (1:2)/3),
-                     qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
+    mutate_variables(SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
+                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[fore_years]),  
+                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1)
   
   datHmax <- fish_data_foreHmax %>% 
-    mutate(scenario = "Hmax", qnt_MS = drawsHmax$qnt_MS, S = drawsHmax$S)
+    mutate(scenario = "Hmax", qnt_SAR = drawsHmax$qnt_SAR, S = drawsHmax$S)
   
   dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
     filter(pop_type == "natural") %>% 
     left_join(pop_names) %>% mutate(pop = recovery_pop) %>% # comment out to use model pops instead of recovery pops #
-    select(scenario, pop, year, forecast, qnt_MS, S) %>% 
+    select(scenario, pop, year, forecast, qnt_SAR, S) %>% 
     group_by(scenario, pop, year) %>% 
-    summarize(forecast = any(forecast), qnt_MS = qnt_MS[1], S = rvar_sum(S)) %>% 
-    mutate(S_low = subset_draws(S, iter = which(draws_of(qnt_MS[1]) == 1)),
-           S_med = subset_draws(S, iter = which(draws_of(qnt_MS[1]) == 2)),
-           S_high = subset_draws(S, iter = which(draws_of(qnt_MS[1]) == 3)),
+    summarize(forecast = any(forecast), qnt_SAR = qnt_SAR[1], S = rvar_sum(S)) %>% 
+    mutate(S_low = subset_draws(S, iter = which(draws_of(qnt_SAR[1]) == 1)),
+           S_med = subset_draws(S, iter = which(draws_of(qnt_SAR[1]) == 2)),
+           S_high = subset_draws(S, iter = which(draws_of(qnt_SAR[1]) == 3)),
            S = subset_draws(S, iter = 1:(n_draws/3))) %>%
     rename(S_all = S) %>% 
     pivot_longer(cols = contains("S_"), names_to = "SAR", names_prefix = "S_", values_to = "S") %>%
@@ -935,40 +949,44 @@ p_HOS_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax
   year <- as.numeric(factor(fish_data_foreH0$year))
   fore_years <- sort(unique(year[fish_data_foreH0$forecast]))
   n_draws <- (sum(modH0@sim$n_save - modH0@sim$warmup) %/% 3) * 3
+  logit <- function(x) log(x) - log(1 - x)
+  ilogit <- function(x) exp(x) / (1 + exp(x))
   rfindInterval <- rfun(findInterval)
   
-  drawsH0 <- as_draws_rvars(as.matrix(modH0, c("eta_year_MS","S","p_HOS"))) %>%
+  drawsH0 <- as_draws_rvars(as.matrix(modH0, c("mu_MS", "eta_year_MS", "S", "p_HOS"))) %>%
     subset_draws(iter = 1:n_draws) %>% 
-    mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
-                     q_MS = quantile(eta_mean_MS, (1:2)/3),
-                     qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1,
+    mutate_variables(SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
+                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[fore_years]),  
+                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1,
                      # S_H = S*p_HOS)
                      # TEMP: get rid of p_HOS > 0 caused by stan_data() converting M_obs==0 to 1
                      S_H = as_rvar(0)) 
   
   datH0 <- fish_data_foreH0 %>% 
-    mutate(scenario = "H0", qnt_MS = drawsH0$qnt_MS, S = drawsH0$S, S_H = drawsH0$S_H)
+    mutate(scenario = "H0", qnt_SAR = drawsH0$qnt_SAR, S = drawsH0$S, S_H = drawsH0$S_H)
   
-  drawsHmax <- as_draws_rvars(as.matrix(modHmax, c("eta_year_MS","S","p_HOS"))) %>%
+  drawsHmax <- as_draws_rvars(as.matrix(modHmax, c("mu_MS", "eta_year_MS", "S", "p_HOS"))) %>%
     subset_draws(iter = 1:n_draws) %>% 
-    mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
-                     q_MS = quantile(eta_mean_MS, (1:2)/3),
-                     qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1,
+    mutate_variables(SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
+                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[fore_years]),  
+                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1,
                      S_H = S*p_HOS)
   
   datHmax <- fish_data_foreHmax %>% 
-    mutate(scenario = "Hmax", qnt_MS = drawsHmax$qnt_MS, S = drawsHmax$S, S_H = drawsHmax$S_H)
+    mutate(scenario = "Hmax", qnt_SAR = drawsHmax$qnt_SAR, S = drawsHmax$S, S_H = drawsHmax$S_H)
   
   dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
     group_by(year) %>% mutate(all_forecast = all(forecast)) %>% ungroup() %>% 
     filter(pop_type == "natural" & year >= min(year[all_forecast]) + 5) %>% # after last H spawners return in H0
     left_join(pop_names) %>% mutate(pop = recovery_pop) %>% # comment out to use model pops instead of recovery pops #
-    select(scenario, pop, year, qnt_MS, S, S_H) %>% 
+    select(scenario, pop, year, qnt_SAR, S, S_H) %>% 
     group_by(scenario, pop, year) %>% 
-    summarize(qnt_MS = unique(qnt_MS), p_HOS = rvar_sum(S_H)/rvar_sum(S)) %>% 
-    mutate(p_HOS_low = subset_draws(p_HOS, iter = which(draws_of(qnt_MS[1]) == 1)),
-           p_HOS_med = subset_draws(p_HOS, iter = which(draws_of(qnt_MS[1]) == 2)),
-           p_HOS_high = subset_draws(p_HOS, iter = which(draws_of(qnt_MS[1]) == 3)),
+    summarize(qnt_SAR = unique(qnt_SAR), p_HOS = rvar_sum(S_H)/rvar_sum(S)) %>% 
+    mutate(p_HOS_low = subset_draws(p_HOS, iter = which(draws_of(qnt_SAR[1]) == 1)),
+           p_HOS_med = subset_draws(p_HOS, iter = which(draws_of(qnt_SAR[1]) == 2)),
+           p_HOS_high = subset_draws(p_HOS, iter = which(draws_of(qnt_SAR[1]) == 3)),
            p_HOS = subset_draws(p_HOS, iter = 1:(n_draws/3))) %>%
     rename(p_HOS_all = p_HOS) %>% 
     pivot_longer(cols = contains("p_HOS_"), names_to = "SAR", names_prefix = "p_HOS_", 
@@ -1006,35 +1024,39 @@ Precovery_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
   year <- as.numeric(factor(fish_data_foreH0$year))
   fore_years <- sort(unique(year[fish_data_foreH0$forecast]))
   n_draws <- (sum(modH0@sim$n_save - modH0@sim$warmup) %/% 3) * 3
+  logit <- function(x) log(x) - log(1 - x)
+  ilogit <- function(x) exp(x) / (1 + exp(x))
   rfindInterval <- rfun(findInterval)
   
-  drawsH0 <- as_draws_rvars(as.matrix(modH0, c("eta_year_MS","S"))) %>% 
+  drawsH0 <- as_draws_rvars(as.matrix(modH0, c("mu_MS","eta_year_MS","S"))) %>% 
     subset_draws(iter = 1:n_draws) %>% 
-    mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
-                     q_MS = quantile(eta_mean_MS, (1:2)/3),
-                     qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
+    mutate_variables(SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
+                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[fore_years]),  
+                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1)
   
   datH0 <- fish_data_foreH0 %>% 
-    mutate(scenario = "H0", qnt_MS = drawsH0$qnt_MS, S = drawsH0$S)
+    mutate(scenario = "H0", qnt_SAR = drawsH0$qnt_SAR, S = drawsH0$S)
   
-  drawsHmax <- as_draws_rvars(as.matrix(modHmax,  c("eta_year_MS","S"))) %>% 
+  drawsHmax <- as_draws_rvars(as.matrix(modHmax,  c("mu_MS","eta_year_MS","S"))) %>% 
     subset_draws(iter = 1:n_draws) %>% 
-    mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
-                     q_MS = quantile(eta_mean_MS, (1:2)/3),
-                     qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
+    mutate_variables(SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
+                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[fore_years]),  
+                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1)
   
   datHmax <- fish_data_foreHmax %>% 
-    mutate(scenario = "Hmax", qnt_MS = drawsHmax$qnt_MS, S = drawsHmax$S)
+    mutate(scenario = "Hmax", qnt_SAR = drawsHmax$qnt_SAR, S = drawsHmax$S)
   
   dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
     filter(pop_type == "natural" & forecast) %>% 
     left_join(pop_names) %>% 
-    select(scenario, recovery_pop, year, qnt_MS, S) %>% 
+    select(scenario, recovery_pop, year, qnt_SAR, S) %>% 
     group_by(scenario, recovery_pop, year) %>% 
-    summarize(qnt_MS = unique(qnt_MS), S = rvar_sum(S)) %>% 
-    mutate(S_low = subset_draws(S, iter = which(draws_of(qnt_MS[1]) == 1)),
-           S_med = subset_draws(S, iter = which(draws_of(qnt_MS[1]) == 2)),
-           S_high = subset_draws(S, iter = which(draws_of(qnt_MS[1]) == 3)),
+    summarize(qnt_SAR = unique(qnt_SAR), S = rvar_sum(S)) %>% 
+    mutate(S_low = subset_draws(S, iter = which(draws_of(qnt_SAR[1]) == 1)),
+           S_med = subset_draws(S, iter = which(draws_of(qnt_SAR[1]) == 2)),
+           S_high = subset_draws(S, iter = which(draws_of(qnt_SAR[1]) == 3)),
            S = subset_draws(S, iter = 1:(n_draws/3))) %>%
     rename(S_all = S) %>% 
     pivot_longer(cols = contains("S_"), names_to = "SAR", names_prefix = "S_", values_to = "S") %>%
@@ -1080,35 +1102,39 @@ PQE_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
   year <- as.numeric(factor(fish_data_foreH0$year))
   fore_years <- sort(unique(year[fish_data_foreH0$forecast]))
   n_draws <- (sum(modH0@sim$n_save - modH0@sim$warmup) %/% 3) * 3
+  logit <- function(x) log(x) - log(1 - x)
+  ilogit <- function(x) exp(x) / (1 + exp(x))
   rfindInterval <- rfun(findInterval)
   
-  drawsH0 <- as_draws_rvars(as.matrix(modH0, c("eta_year_MS","S"))) %>% 
+  drawsH0 <- as_draws_rvars(as.matrix(modH0, c("mu_MS","eta_year_MS","S"))) %>% 
     subset_draws(iter = 1:n_draws) %>% 
-    mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
-                     q_MS = quantile(eta_mean_MS, (1:2)/3),
-                     qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
+    mutate_variables(SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
+                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[fore_years]),  
+                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1)
   
   datH0 <- fish_data_foreH0 %>% 
-    mutate(scenario = "H0", qnt_MS = drawsH0$qnt_MS, S = drawsH0$S)
+    mutate(scenario = "H0", qnt_SAR = drawsH0$qnt_SAR, S = drawsH0$S)
   
-  drawsHmax <- as_draws_rvars(as.matrix(modHmax,  c("eta_year_MS","S"))) %>% 
+  drawsHmax <- as_draws_rvars(as.matrix(modHmax,  c("mu_MS","eta_year_MS","S"))) %>% 
     subset_draws(iter = 1:n_draws) %>% 
-    mutate_variables(eta_mean_MS = rvar_mean(eta_year_MS[fore_years]),
-                     q_MS = quantile(eta_mean_MS, (1:2)/3),
-                     qnt_MS = rfindInterval(eta_mean_MS, q_MS) + 1)
+    mutate_variables(SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
+                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[fore_years]),  
+                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1)
   
   datHmax <- fish_data_foreHmax %>% 
-    mutate(scenario = "Hmax", qnt_MS = drawsHmax$qnt_MS, S = drawsHmax$S)
+    mutate(scenario = "Hmax", qnt_SAR = drawsHmax$qnt_SAR, S = drawsHmax$S)
   
   dat <- rbind(datH0, datHmax) %>% arrange(scenario, pop, year) %>% 
     filter(pop_type == "natural" & forecast) %>% 
     left_join(pop_names) %>% 
-    select(scenario, recovery_pop, year, qnt_MS, S) %>% 
+    select(scenario, recovery_pop, year, qnt_SAR, S) %>% 
     group_by(scenario, recovery_pop, year) %>% 
-    summarize(qnt_MS = unique(qnt_MS), S = rvar_sum(S)) %>% 
-    mutate(S_low = subset_draws(S, iter = which(draws_of(qnt_MS[1]) == 1)),
-           S_med = subset_draws(S, iter = which(draws_of(qnt_MS[1]) == 2)),
-           S_high = subset_draws(S, iter = which(draws_of(qnt_MS[1]) == 3)),
+    summarize(qnt_SAR = unique(qnt_SAR), S = rvar_sum(S)) %>% 
+    mutate(S_low = subset_draws(S, iter = which(draws_of(qnt_SAR[1]) == 1)),
+           S_med = subset_draws(S, iter = which(draws_of(qnt_SAR[1]) == 2)),
+           S_high = subset_draws(S, iter = which(draws_of(qnt_SAR[1]) == 3)),
            S = subset_draws(S, iter = 1:(n_draws/3))) %>%
     rename(S_all = S) %>% 
     pivot_longer(cols = contains("S_"), names_to = "SAR", names_prefix = "S_", values_to = "S") %>%

@@ -400,6 +400,7 @@ if(save_plot) {
 } else dev.new(width=7,height=7)
 
 ## @knitr plot_SAR_fore
+set.seed(321)
 SAR_fore_plot(mod = get(mod_name), fish_data_fore = fish_data_fore, example_pop = "Hardy Creek")
 ## @knitr
 
@@ -411,7 +412,7 @@ if(save_plot) dev.off()
 
 modH0_name <- "foreH0_Ricker"
 modHmax_name <- "foreHmax_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_S_fore
 gg <- S_fore_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
@@ -435,7 +436,7 @@ if(save_plot) {
 
 modH0_name <- "foreH0_Ricker"
 modHmax_name <- "foreHmax_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_StS0_fore
 gg <- StS0_fore_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name),
@@ -459,7 +460,7 @@ if(save_plot) {
 
 modH0_name <- "foreH0_Ricker"
 modHmax_name <- "foreHmax_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_p_HOS_fore
 gg <- p_HOS_fore_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
@@ -483,7 +484,7 @@ if(save_plot) {
 
 modH0_name <- "foreH0_Ricker"
 modHmax_name <- "foreHmax_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_PQE_fore
 gg <- PQE_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
@@ -507,7 +508,7 @@ if(save_plot) {
 
 modH0_name <- "foreH0_Ricker"
 modHmax_name <- "foreHmax_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_Precovery_fore
 gg <- Precovery_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
