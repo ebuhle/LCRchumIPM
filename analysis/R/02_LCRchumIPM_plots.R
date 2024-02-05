@@ -706,7 +706,7 @@ p_HOS_timeseries <- function(mod, fish_data)
 }
 
 #--------------------------------------------------------------------------------
-# Conditioning forecast trajectories on time-averaged SAR anomalies
+# Conditioning forecast trajectories on time-averaged ESU-level natural SAR
 #--------------------------------------------------------------------------------
 
 SAR_fore_plot <- function(mod, fish_data_fore, example_pop)
@@ -724,9 +724,9 @@ SAR_fore_plot <- function(mod, fish_data_fore, example_pop)
                      gmean_S = exp(rvar_mean(log(S[dat$forecast]))),
                      eta_year_MS = eta_year_MS[dat$yr], 
                      SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
-                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[dat$forecast]),  
-                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
-                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1)
+                     gmean_SAR_W_ESU = exp(rvar_mean(log(SAR_W_ESU[dat$forecast]))),  
+                     q_SAR = quantile(gmean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(gmean_SAR_W_ESU, q_SAR) + 1)
   rdraws <- draws %>% resample_draws(ndraws = 100)
   
   layout(matrix(c(1:4), nrow = 2, byrow = TRUE), widths = c(7, 1, 7, 1))
@@ -752,8 +752,8 @@ SAR_fore_plot <- function(mod, fish_data_fore, example_pop)
            cex = 1.2, fill = alpha(rev(cols), 0.5), border = NA, bty = "n")
   })
   
-  # distribution of mean future ESU-level wild SAR
-  d <- density(draws_of(log10(draws$mean_SAR_W_ESU)))
+  # distribution of future geometric mean ESU-level natural SAR
+  d <- density(draws_of(log10(draws$gmean_SAR_W_ESU)))
   q_SAR <- mean(log10(draws$q_SAR))
   xout <- sort(c(d$x, q_SAR))
   d <- approx(d$x, d$y, xout = xout)
@@ -817,9 +817,9 @@ S_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, po
   drawsH0 <- as_draws_rvars(as.matrix(modH0, c("mu_MS", "eta_year_MS", "S"))) %>% 
     subset_draws(iter = 1:n_draws) %>% 
     mutate_variables(SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
-                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[fore_years]),  
-                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
-                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1)
+                     gmean_SAR_W_ESU = exp(rvar_mean(log(SAR_W_ESU[fore_years]))),  
+                     q_SAR = quantile(gmean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(gmean_SAR_W_ESU, q_SAR) + 1)
   
   datH0 <- fish_data_foreH0 %>% 
     mutate(scenario = "H0", qnt_SAR = drawsH0$qnt_SAR, S = drawsH0$S)
@@ -827,9 +827,9 @@ S_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, po
   drawsHmax <- as_draws_rvars(as.matrix(modHmax, c("mu_MS", "eta_year_MS", "S"))) %>% 
     subset_draws(iter = 1:n_draws) %>% 
     mutate_variables(SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
-                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[fore_years]),  
-                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
-                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1)
+                     gmean_SAR_W_ESU = exp(rvar_mean(log(SAR_W_ESU[fore_years]))),  
+                     q_SAR = quantile(gmean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(gmean_SAR_W_ESU, q_SAR) + 1)
   
   datHmax <- fish_data_foreHmax %>% 
     mutate(scenario = "Hmax", qnt_SAR = drawsHmax$qnt_SAR, S = drawsHmax$S)
@@ -886,9 +886,9 @@ StS0_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
   drawsH0 <- as_draws_rvars(as.matrix(modH0, c("mu_MS", "eta_year_MS", "S"))) %>% 
     subset_draws(iter = 1:n_draws) %>% 
     mutate_variables(SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
-                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[fore_years]),  
-                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
-                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1)
+                     gmean_SAR_W_ESU = exp(rvar_mean(log(SAR_W_ESU[fore_years]))),  
+                     q_SAR = quantile(gmean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(gmean_SAR_W_ESU, q_SAR) + 1)
   
   datH0 <- fish_data_foreH0 %>% 
     mutate(scenario = "H0", qnt_SAR = drawsH0$qnt_SAR, S = drawsH0$S)
@@ -896,9 +896,9 @@ StS0_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
   drawsHmax <- as_draws_rvars(as.matrix(modHmax, c("mu_MS", "eta_year_MS", "S"))) %>% 
     subset_draws(iter = 1:n_draws) %>% 
     mutate_variables(SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
-                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[fore_years]),  
-                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
-                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1)
+                     gmean_SAR_W_ESU = exp(rvar_mean(log(SAR_W_ESU[fore_years]))),  
+                     q_SAR = quantile(gmean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(gmean_SAR_W_ESU, q_SAR) + 1)
   
   datHmax <- fish_data_foreHmax %>% 
     mutate(scenario = "Hmax", qnt_SAR = drawsHmax$qnt_SAR, S = drawsHmax$S)
@@ -956,9 +956,9 @@ p_HOS_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax
   drawsH0 <- as_draws_rvars(as.matrix(modH0, c("mu_MS", "eta_year_MS", "S", "p_HOS"))) %>%
     subset_draws(iter = 1:n_draws) %>% 
     mutate_variables(SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
-                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[fore_years]),  
-                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
-                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1,
+                     gmean_SAR_W_ESU = exp(rvar_mean(log(SAR_W_ESU[fore_years]))),  
+                     q_SAR = quantile(gmean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(gmean_SAR_W_ESU, q_SAR) + 1,
                      # S_H = S*p_HOS)
                      # TEMP: get rid of p_HOS > 0 caused by stan_data() converting M_obs==0 to 1
                      S_H = as_rvar(0)) 
@@ -969,9 +969,9 @@ p_HOS_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax
   drawsHmax <- as_draws_rvars(as.matrix(modHmax, c("mu_MS", "eta_year_MS", "S", "p_HOS"))) %>%
     subset_draws(iter = 1:n_draws) %>% 
     mutate_variables(SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
-                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[fore_years]),  
-                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
-                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1,
+                     gmean_SAR_W_ESU = exp(rvar_mean(log(SAR_W_ESU[fore_years]))),  
+                     q_SAR = quantile(gmean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(gmean_SAR_W_ESU, q_SAR) + 1,
                      S_H = S*p_HOS)
   
   datHmax <- fish_data_foreHmax %>% 
@@ -1031,9 +1031,9 @@ Precovery_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
   drawsH0 <- as_draws_rvars(as.matrix(modH0, c("mu_MS","eta_year_MS","S"))) %>% 
     subset_draws(iter = 1:n_draws) %>% 
     mutate_variables(SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
-                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[fore_years]),  
-                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
-                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1)
+                     gmean_SAR_W_ESU = exp(rvar_mean(log(SAR_W_ESU[fore_years]))),  
+                     q_SAR = quantile(gmean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(gmean_SAR_W_ESU, q_SAR) + 1)
   
   datH0 <- fish_data_foreH0 %>% 
     mutate(scenario = "H0", qnt_SAR = drawsH0$qnt_SAR, S = drawsH0$S)
@@ -1041,9 +1041,9 @@ Precovery_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
   drawsHmax <- as_draws_rvars(as.matrix(modHmax,  c("mu_MS","eta_year_MS","S"))) %>% 
     subset_draws(iter = 1:n_draws) %>% 
     mutate_variables(SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
-                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[fore_years]),  
-                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
-                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1)
+                     gmean_SAR_W_ESU = exp(rvar_mean(log(SAR_W_ESU[fore_years]))),  
+                     q_SAR = quantile(gmean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(gmean_SAR_W_ESU, q_SAR) + 1)
   
   datHmax <- fish_data_foreHmax %>% 
     mutate(scenario = "Hmax", qnt_SAR = drawsHmax$qnt_SAR, S = drawsHmax$S)
@@ -1109,9 +1109,9 @@ PQE_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
   drawsH0 <- as_draws_rvars(as.matrix(modH0, c("mu_MS","eta_year_MS","S"))) %>% 
     subset_draws(iter = 1:n_draws) %>% 
     mutate_variables(SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
-                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[fore_years]),  
-                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
-                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1)
+                     gmean_SAR_W_ESU = exp(rvar_mean(log(SAR_W_ESU[fore_years]))),  
+                     q_SAR = quantile(gmean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(gmean_SAR_W_ESU, q_SAR) + 1)
   
   datH0 <- fish_data_foreH0 %>% 
     mutate(scenario = "H0", qnt_SAR = drawsH0$qnt_SAR, S = drawsH0$S)
@@ -1119,9 +1119,9 @@ PQE_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
   drawsHmax <- as_draws_rvars(as.matrix(modHmax,  c("mu_MS","eta_year_MS","S"))) %>% 
     subset_draws(iter = 1:n_draws) %>% 
     mutate_variables(SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS), 
-                     mean_SAR_W_ESU = rvar_mean(SAR_W_ESU[fore_years]),  
-                     q_SAR = quantile(mean_SAR_W_ESU, (1:2)/3),
-                     qnt_SAR = rfindInterval(mean_SAR_W_ESU, q_SAR) + 1)
+                     gmean_SAR_W_ESU = exp(rvar_mean(log(SAR_W_ESU[fore_years]))),  
+                     q_SAR = quantile(gmean_SAR_W_ESU, (1:2)/3),
+                     qnt_SAR = rfindInterval(gmean_SAR_W_ESU, q_SAR) + 1)
   
   datHmax <- fish_data_foreHmax %>% 
     mutate(scenario = "Hmax", qnt_SAR = drawsHmax$qnt_SAR, S = drawsHmax$S)

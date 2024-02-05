@@ -391,7 +391,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "foreH0_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 if(save_plot) {
   png(filename = here("analysis","results",
