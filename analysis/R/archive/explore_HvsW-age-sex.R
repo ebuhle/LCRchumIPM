@@ -1,3 +1,9 @@
+options(device = windows)
+library(ggplot2)
+theme_set(theme_bw(base_size = 16))
+library(here)
+source(here("analysis","R","01_LCRchumIPM_data.R"))
+
 agedat <- bio_data %>% 
   mutate(pop = factor(replace(location, location == "Duncan Creek", "Duncan Channel"),
                       levels = levels(fish_data$pop))) %>%
