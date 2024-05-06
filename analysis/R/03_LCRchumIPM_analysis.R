@@ -583,8 +583,8 @@ metrics <- foreH0_Ricker %>%
                    `M/E_hat` = M0/E_hat, q_3 = q[,1], q_4 = q[,2], q_5 = q[,3],
                    R0 = unsplit(sapply(split(M*s_MS, fish_data_fore$pop), lead), fish_data_fore$pop),
                    `R/S` = R0/S) %>% 
-  subset_draws(variable = c("S","p_local","E_hat","M","M/E_hat",
-                            "q_3","q_4","q_5","p_HOS","q_F","s_MS","R/S")) %>%
+  subset_draws(variable = c("S","E_hat","M","M/E_hat","q_3","q_4","q_5",
+                            "p_HOS","p_local","q_F","s_MS","R/S")) %>%
   summarize_draws(.med = median, "quantile2") %>% rename(`.05` = q5, `.95` = q95) %>%
   cbind(select(fish_data_fore, c(pop, year, forecast)), .) %>%
   filter(!forecast) %>%  select(-forecast) %>% 
