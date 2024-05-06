@@ -560,3 +560,45 @@ forecast_df <- fish_data_fore %>%
          `Smolt capacity <br> ($M_\\text{max}$ 10^6^ km^-1^)` = Mmax_mci)
 ## @knitr
 
+#--------------------------------------------------------------------------------
+# Posterior summaries of retrospective reporting metrics
+#   - S
+#   - E_hat
+#   - M
+#   - M/E_hat
+#   - q
+#   - p_HOS
+#   - q_F
+#   - B_rate (skip for now b/c not monitored by default)
+#   - s_MS
+#   - R/S
+#--------------------------------------------------------------------------------
+
+metrics <- foreH0_Ricker %>% 
+  as.matrix(c("S","M","mu_E","delta_NG","q","p_HOS","q_F","s_MS")) %>% as_draws_rvars() %>% 
+  mutate_variables(S_add_obs = fish_data_fore$S_add_obs, p_local = 1 - S_add_obs/S, 
+                   p_G_obs = fish_data_fore$p_G_obs, p_NG_obs = 1 - p_G_obs,
+                   E_hat = as.vector((q %**% mu_E) * q_F * (p_G_obs + delta_NG * p_NG_obs) * S),
+                   M0 = unsplit(sapply(split(M, fish_data_fore$pop), lead), fish_data_fore$pop),
+                   `M/E_hat` = M0/E_hat, q_3 = q[,1], q_4 = q[,2], q_5 = q[,3],
+                   R0 = unsplit(sapply(split(M*s_MS, fish_data_fore$pop), lead), fish_data_fore$pop),
+                   `R/S` = R0/S) %>% 
+  subset_draws(variable = c("S","p_local","E_hat","M","M/E_hat",
+                            "q_3","q_4","q_5","p_HOS","q_F","s_MS","R/S")) %>%
+  summarize_draws(.med = median, "quantile2") %>% rename(`.05` = q5, `.95` = q95) %>%
+  cbind(select(fish_data_fore, c(pop, year, forecast)), .) %>%
+  filter(!forecast) %>%  select(-forecast) %>% 
+  mutate(variable = gsub("\\[.*\\]", "", variable)) %>%
+  pivot_longer(cols = c(.med, `.05`, `.95`), names_to = "summary", values_to = "value") %>%
+  mutate(value = replace(value, grepl("Hatchery", pop) & variable != "s_MS", NA),
+         value = replace(value, !grepl("Duncan Channel", pop) & variable == "p_local", NA),
+         variable.summary = paste0(variable, summary)) %>% 
+  select(-c(variable, summary)) %>%  
+  pivot_wider(id_cols = c(pop, year), names_from = variable.summary, values_from = value) %>% 
+  as.data.frame()
+
+write.csv(metrics, file = here("analysis", "results", "reporting_metrics.csv"), row.names = FALSE)
+
+
+
+
