@@ -26,8 +26,8 @@ Chum,Fry.Smolt,2017,2018,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,N,NA,105986,
 Chum,Fry.Smolt,2018,2019,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,N,NA,105452,105452,NA,NA,NA,NA,
 Chum,Fry.Smolt,2019,2020,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,NA,NA,110471,110471,NA,NA,NA,NA,
 Chum,Fry.Smolt,2020,2021,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,NA,NA,103250,103250,NA,NA,NA,NA,
-Chum,Fry.Smolt,2021,2022,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,NA,NA,117572,117572,NA,NA,NA,NA,
-Chum,Fry.Smolt,2022,2023,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,NA,NA,94015,94015,NA,NA,NA,NA,
+Chum,Fry.Smolt,2020,2021,Gorge,Duncan_Channel,Wild,Weir,P-Spline,Y,59251,59454,59401,2533,54644,64571,0.04,
+Chum,Fry.Smolt,2020,2021,Gorge,Duncan_North,Wild,Weir,Census,N,31706,31706,31706,0,31706,31706,0,
 Chum,Fry.Smolt,2002,2003,Gorge,Duncan_Channel,Wild,Weir,Census,N,25478,25478,25478,0,25478,25478,0,
 Chum,Fry.Smolt,2003,2004,Gorge,Duncan_Channel,Wild,Weir,Census,N,45450,45450,45450,0,45450,45450,0,
 Chum,Fry.Smolt,2004,2005,Gorge,Duncan_Channel,Wild,Weir,Census,N,27814,27814,27814,0,27814,27814,0,
@@ -46,8 +46,8 @@ Chum,Fry.Smolt,2016,2017,Gorge,Duncan_Channel,Wild,Weir,NA,Y,29269,NA,NA,NA,NA,N
 Chum,Fry.Smolt,2017,2018,Gorge,Duncan_Channel,Wild,Weir,Census,Y,41369,41369,41369,0,41369,41369,0,
 Chum,Fry.Smolt,2018,2019,Gorge,Duncan_Channel,Wild,Weir,P-Spline,Y,48496,60697,59560,5960.884651,52618,75347.025,0.098206468,
 Chum,Fry.Smolt,2019,2020,Gorge,Duncan_Channel,Wild,Weir,multi_yr_ARIMA,N,2248,20441,10010,38695,3055,103494,1.89,Only fished North trap; essentially no fish placed in South channel due to low water in fall of 2019
-Chum,Fry.Smolt,2020,2021,Gorge,Duncan_Channel,Wild,Weir,P-Spline,Y,59251,59454,59401,2533,54644,64571,0.04,
-Chum,Fry.Smolt,2021,2022,Gorge,Duncan_Channel,Wild,Weir,Census,Y,216608,216608,216608,0,216608,216608,0,Only ran one trap in 2022 at the Duncan North site; double check if partial spawners were put into Duncan North channel 
+Chum,Fry.Smolt,2020,2021,Gorge,Duncan_South,Wild,Weir,P-Spline,N,,27748.442,27422,2532.74,23653.875,33613.05,0.091,
+Chum,Fry.Smolt,2020,2021,Coastal,Grays_CJ,Wild,Rotary Screw,BTSPAS,NA,509581,1242560,1236534,71086,1119384,1396464,0.057,
 Chum,Fry.Smolt,2013,2014,Gorge,Duncan_North,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,South box side panel failed in-season and box was removed on 3/31.  after that North got all fry
 Chum,Fry.Smolt,2002,2003,Gorge,Duncan_North,Wild,Weir,Census,N,15915,15915,15915,0,15915,15915,0,
 Chum,Fry.Smolt,2003,2004,Gorge,Duncan_North,Wild,Weir,Census,N,28375,28375,28375,0,28375,28375,0,
@@ -66,8 +66,8 @@ Chum,Fry.Smolt,2016,2017,Gorge,Duncan_North,Wild,Weir,NA,NA,1490,NA,NA,NA,NA,NA,
 Chum,Fry.Smolt,2017,2018,Gorge,Duncan_North,Wild,Weir,Census,Y,24850,24850,24850,0,24850,24850,0,
 Chum,Fry.Smolt,2018,2019,Gorge,Duncan_North,Wild,Weir,P-Spline,NA,21419,28716,27885,4224.976023,23338,39019.29996,0.147131554,
 Chum,Fry.Smolt,2019,2020,Gorge,Duncan_North,Wild,Weir,P-Spline,N,2248,20441,10010,38695,3055,103494,1.89,
-Chum,Fry.Smolt,2020,2021,Gorge,Duncan_North,Wild,Weir,Census,N,31706,31706,31706,0,31706,31706,0,
-Chum,Fry.Smolt,2021,2022,Gorge,Duncan_North,Wild,Weir,Census,Y,216608,216608,216608,0,216608,216608,0,Only ran one trap in 2022 at the Duncan North site; double check if partial spawners were put into Duncan North channel 
+Chum,Fry.Smolt,2020,2021,Coastal,Grays_MS,Hatchery_Grays,NA,NA,N,NA,187063,187063,NA,NA,NA,NA,
+Chum,Fry.Smolt,2020,2021,Coastal,Grays_MS,Wild,Rotary Screw,BTSPAS,NA,111164,2974717,2946175,313336,2759167,3672974,0.105,
 Chum,Fry.Smolt,2013,2014,Gorge,Duncan_South,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,South box side panel failed in-season and box was removed on 3/31.  after that North got all fry
 Chum,Fry.Smolt,2002,2003,Gorge,Duncan_South,Wild,Weir,Census,N,9023,9023,9023,0,9023,9023,0,
 Chum,Fry.Smolt,2003,2004,Gorge,Duncan_South,Wild,Weir,Census,N,15016,15016,15016,0,15016,15016,0,
@@ -86,8 +86,8 @@ Chum,Fry.Smolt,2016,2017,Gorge,Duncan_South,Wild,Weir,P-Spline,Y,27779,NA,NA,NA,
 Chum,Fry.Smolt,2017,2018,Gorge,Duncan_South,Wild,Weir,Census,N,16519,16519,16519,0,16519,16519,0,
 Chum,Fry.Smolt,2018,2019,Gorge,Duncan_South,Wild,Weir,P-Spline,Y,27077,29938,29515,1820.254463,27957.975,34480.14999,0.060801288,
 Chum,Fry.Smolt,2019,2020,Gorge,Duncan_South,Wild,Weir,NA,NA,NA,NA,NA,NA,NA,NA,NA,Only fished North trap; essentially no fish placed in South channel due to low water in fall of 2019
-Chum,Fry.Smolt,2020,2021,Gorge,Duncan_South,Wild,Weir,P-Spline,N,,27748.442,27422,2532.74,23653.875,33613.05,0.091,
-Chum,Fry.Smolt,2021,2022,Gorge,Duncan_South,Wild,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,Only ran one trap in 2022 at the Duncan North site
+Chum,Fry.Smolt,2020,2021,Gorge,Hamilton_Channel,Wild,Weir,P-Spline,N,252319,422226,420755,21079,385575,467263,0.05,
+Chum,Fry.Smolt,2020,2021,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,NA,NA,101430,101430,NA,NA,NA,NA,
 Chum,Fry.Smolt,2011,2012,Coastal,Grays_CJ,Wild,Weir,P-Spline,N,204612,608835,576450,149698,407390,994207,0.26,
 Chum,Fry.Smolt,2012,2013,Coastal,Grays_CJ,Wild,Rotary Screw,BTSPAS,N,443424,1472921,1466141,57179,1383048,1603192,0.039,
 Chum,Fry.Smolt,2013,2014,Coastal,Grays_CJ,Wild,Rotary Screw,BTSPAS,N,334887,1118705,1101634,115683,950172,1388438,0.103,
@@ -97,8 +97,8 @@ Chum,Fry.Smolt,2016,2017,Coastal,Grays_CJ,Wild,Rotary Screw,BTSPAS,N,103956,5472
 Chum,Fry.Smolt,2017,2018,Coastal,Grays_CJ,Wild,Rotary Screw,BTSPAS,N,232804,1268239,1259033,90977,1114980,1473254,0.072,
 Chum,Fry.Smolt,2018,2019,Coastal,Grays_CJ,Wild,Rotary Screw,BTSPAS,N,77363,303939,276500,114715,208909,563947,0.377,
 Chum,Fry.Smolt,2019,2020,Coastal,Grays_CJ,Wild,Rotary Screw,BTSPAS,NA,4595,8254.735,8189,822.776,6832,10123.15,0.1,
-Chum,Fry.Smolt,2020,2021,Coastal,Grays_CJ,Wild,Rotary Screw,BTSPAS,NA,509581,1242560,1236534,71086,1119384,1396464,0.057,
-Chum,Fry.Smolt,2021,2022,Coastal,Grays_CJ,Wild,Rotary Screw,BTSPAS,NA,136650,767655,753589,103173,606333,1007257,0.134,
+Chum,Fry.Smolt,2020,2021,Coastal,Peterson_RSI,Hatchery_Grays,NA,NA,N,NA,52845,52845,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries); not listed in FishBooks under plants
+Chum,Fry.Smolt,2021,2022,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,NA,NA,117572,117572,NA,NA,NA,NA,
 Chum,Fry.Smolt,1998,1999,Coastal,Grays_MS,Hatchery_Grays,NA,NA,N,NA,102901,102901,NA,NA,NA,NA,
 Chum,Fry.Smolt,1999,2000,Coastal,Grays_MS,Hatchery_Grays,NA,NA,N,NA,134661,134661,NA,NA,NA,NA,
 Chum,Fry.Smolt,2000,2001,Coastal,Grays_MS,Hatchery_Grays,NA,NA,N,NA,202833,202833,NA,NA,NA,NA,
@@ -121,9 +121,9 @@ Chum,Fry.Smolt,2016,2017,Coastal,Grays_MS,Hatchery_Grays,NA,NA,N,NA,131353,13135
 Chum,Fry.Smolt,2017,2018,Coastal,Grays_MS,Hatchery_Grays,NA,NA,N,NA,131289,131289,NA,NA,NA,NA,
 Chum,Fry.Smolt,2018,2019,Coastal,Grays_MS,Hatchery_Grays,NA,NA,N,NA,130956,130956,NA,NA,NA,NA,
 Chum,Fry.Smolt,2019,2020,Coastal,Grays_MS,Hatchery_Grays,NA,NA,N,NA,195482,195482,NA,NA,NA,NA,
-Chum,Fry.Smolt,2020,2021,Coastal,Grays_MS,Hatchery_Grays,NA,NA,N,NA,187063,187063,NA,NA,NA,NA,
-Chum,Fry.Smolt,2021,2022,Coastal,Grays_MS,Hatchery_Grays,NA,NA,N,NA,166562,166562,NA,NA,NA,NA,
-Chum,Fry.Smolt,2022,2023,Coastal,Grays_MS,Hatchery_Grays,NA,NA,N,NA,154754,154754,NA,NA,NA,NA,
+Chum,Fry.Smolt,2021,2022,Gorge,Duncan_Channel,Wild,Weir,Census,Y,216608,216608,216608,0,216608,216608,0,Only ran one trap in 2022 at the Duncan North site; double check if partial spawners were put into Duncan North channel 
+Chum,Fry.Smolt,2021,2022,Gorge,Duncan_North,Wild,Weir,Census,Y,216608,216608,216608,0,216608,216608,0,Only ran one trap in 2022 at the Duncan North site; double check if partial spawners were put into Duncan North channel 
+Chum,Fry.Smolt,2021,2022,Gorge,Duncan_South,Wild,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,Only ran one trap in 2022 at the Duncan North site
 Chum,Fry.Smolt,2007,2008,Coastal,Grays_MS,Wild,Rotary Screw,BTSPAS,N,36700,1921866,1866291,441146,1564362,2594287,0.23,
 Chum,Fry.Smolt,2008,2009,Coastal,Grays_MS,Wild,Rotary Screw,BTSPAS,N,72448,1291038,1288376,60136,1181625,1413801,0.05,
 Chum,Fry.Smolt,2009,2010,Coastal,Grays_MS,Wild,Rotary Screw,BTSPAS,N,121192,2895723,2882565,140147,2660208,3213390,0.05,
@@ -137,8 +137,8 @@ Chum,Fry.Smolt,2016,2017,Coastal,Grays_MS,Wild,Rotary Screw,BTSPAS,N,58738,31195
 Chum,Fry.Smolt,2017,2018,Coastal,Grays_MS,Wild,Rotary Screw,BTSPAS,N,203752,3534684,3519678,175811,3239115,3921177,0.05,
 Chum,Fry.Smolt,2018,2019,Coastal,Grays_MS,Wild,Rotary Screw,BTSPAS,N,396822,5319280,5278182.5,352495.863,4755460.35,6124124.425,0.066,
 Chum,Fry.Smolt,2019,2020,Coastal,Grays_MS,Wild,Rotary Screw,BTSPAS,NA,69708,954560.528,940323.5,103218.003,795597.05,1199892.05,0.108,
-Chum,Fry.Smolt,2020,2021,Coastal,Grays_MS,Wild,Rotary Screw,BTSPAS,NA,111164,2974717,2946175,313336,2759167,3672974,0.105,
-Chum,Fry.Smolt,2021,2022,Coastal,Grays_MS,Wild,Rotary Screw,BTSPAS,NA,106639,1691077,1472903,878317,984475,3858281,0.519,
+Chum,Fry.Smolt,2021,2022,Coastal,Grays_CJ,Wild,Rotary Screw,BTSPAS,NA,136650,767655,753589,103173,606333,1007257,0.134,
+Chum,Fry.Smolt,2021,2022,Coastal,Grays_MS,Hatchery_Grays,NA,NA,N,NA,166562,166562,NA,NA,NA,NA,
 Chum,Fry.Smolt,2006,2007,Gorge,Hamilton_Channel,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,
 Chum,Fry.Smolt,2007,2008,Gorge,Hamilton_Channel,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,
 Chum,Fry.Smolt,2008,2009,Gorge,Hamilton_Channel,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,
@@ -159,7 +159,7 @@ Chum,Fry.Smolt,2016,2017,Gorge,Hamilton_Channel,Wild,Weir,multi_yr_ARIMA,NA,1586
 Chum,Fry.Smolt,2017,2018,Gorge,Hamilton_Channel,Wild,Weir,P-Spline,N,365798,372790.4653,372197,4268.387779,366232.975,382456.1,0.011449831,
 Chum,Fry.Smolt,2018,2019,Gorge,Hamilton_Channel,Wild,Weir,P-Spline,N,492010,595506,587812,41591.40358,540676.6749,694066.2997,0.069842099,
 Chum,Fry.Smolt,2019,2020,Gorge,Hamilton_Channel,Wild,Weir,multi_yr_ARIMA,NA,33082,103095,88490,55250,50245,244972,0.53,
-Chum,Fry.Smolt,2020,2021,Gorge,Hamilton_Channel,Wild,Weir,P-Spline,N,252319,422226,420755,21079,385575,467263,0.05,
+Chum,Fry.Smolt,2021,2022,Coastal,Grays_MS,Wild,Rotary Screw,BTSPAS,NA,106639,1691077,1472903,878317,984475,3858281,0.519,
 Chum,Fry.Smolt,2021,2022,Gorge,Hamilton_Channel,Wild,Weir,P-Spline,,503823,1446684,1423796,183169,1157524,1871030,0.127,
 Chum,Fry.Smolt,2000,2001,Gorge,Hardy_Creek,Wild,Fyke,SPAS,N,NA,127416,127416,7650.510204,112421,142411,0.06004356,
 Chum,Fry.Smolt,2001,2002,Gorge,Hardy_Creek,Wild,Fyke,SPAS,N,NA,450195,450195,11118.87755,428402,471988,0.024697914,
@@ -177,10 +177,18 @@ Chum,Fry.Smolt,2016,2017,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,N,NA,10229
 Chum,Fry.Smolt,2017,2018,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,N,NA,83181,83181,NA,NA,NA,NA,
 Chum,Fry.Smolt,2018,2019,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,N,NA,103722,103722,NA,NA,NA,NA,
 Chum,Fry.Smolt,2019,2020,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,NA,NA,101379,101379,NA,NA,NA,NA,
-Chum,Fry.Smolt,2020,2021,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,NA,NA,101430,101430,NA,NA,NA,NA,
 Chum,Fry.Smolt,2021,2022,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,NA,NA,110502,110502,NA,NA,NA,NA,
-Chum,Fry.Smolt,2022,2023,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,NA,NA,116387,116387,NA,NA,NA,NA,
+Chum,Fry.Smolt,2022,2023,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,NA,NA,94015,94015,NA,NA,NA,NA,
+Chum,Fry.Smolt,2022,2023,Coastal,Grays_MS,Hatchery_Grays,NA,NA,N,NA,154754,154754,NA,NA,NA,NA,
 Chum,Fry.Smolt,2018,2019,Coastal,Peterson_RSI,Hatchery_Grays,NA,NA,N,NA,41739,41739,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries)
 Chum,Fry.Smolt,2019,2020,Coastal,Peterson_RSI,Hatchery_Grays,NA,NA,N,NA,40580,40580,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries)
-Chum,Fry.Smolt,2020,2021,Coastal,Peterson_RSI,Hatchery_Grays,NA,NA,N,NA,52845,52845,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries); not listed in FishBooks under plants
+Chum,Fry.Smolt,2022,2023,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,NA,NA,116387,116387,NA,NA,NA,NA,
 Chum,Fry.Smolt,2019,2020,Coastal,Skamokawa,Hatchery_Grays,NA,NA,N,NA,48462,48462,NA,NA,NA,NA,
+Chum,Fry.Smolt,2022,2023,Gorge,Duncan_Channel,Wild,Weir,P-Spline,Y,49614,49776.671,49732,155.823,49622,50185,0.003,only generated a combined estimate
+Chum,Fry.Smolt,2022,2023,Gorge,Duncan_North,Wild,Weir,NA,not sure,20324,NA,NA,NA,NA,NA,NA,
+Chum,Fry.Smolt,2022,2023,Gorge,Duncan_South,Wild,Weir,NA,Y,29290,NA,NA,NA,NA,NA,NA,
+Chum,Fry.Smolt,2022,2023,Coastal,Grays_CJ,Wild,Rotary Screw,BTSPAS,NA,175967,1247713.988,1243692,84378.936,1091773.4,1423021.575,0.068,
+Chum,Fry.Smolt,2022,2023,Coastal,Grays_MS,Wild,Rotary Screw,BTSPAS,NA,71123,1694483.18,1688603,102034.129,1510252.049,1910821.25,0.06,
+Chum,Fry.Smolt,2022,2023,Gorge,Hamilton_Channel,Wild,Weir,P-Spline,NA,522986,1043702.491,1040764.5,47348.032,958747.625,1146147.15,0.045,
+Chum,Fry.Smolt,2022,2023,Coastal,Peterson_RSI,Hatchery_Grays,NA,NA,N,NA,,,,,,,These numbers represent egg transfers (NOT fry releases like all other entries); not listed in FishBooks under plants
+Chum,Fry.Smolt,2023,2024,Coastal,Grays_MS,Hatchery_Grays,NA,NA,N,NA,117898,NA,NA,NA,NA,NA,four different release groups listed in fishbooks; accessed 5/13/2024
