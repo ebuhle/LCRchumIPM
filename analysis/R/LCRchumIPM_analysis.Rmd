@@ -56,7 +56,7 @@ if(!require(captioner))
   devtools::install_github("adletaw/captioner")
 library(captioner)
 fig_nums <- captioner("Figure ", suffix = ": ", auto_space = FALSE, style = "b", style_prefix = TRUE)
-library(kableExtra)
+# library(kableExtra)
 ```
 
 ```{r width, include=FALSE}
@@ -83,13 +83,13 @@ Here we describe a stage-structured, multi-population LCM for LCR chum formulate
 
 Our LCR chum IPM is developed as part of the R package **salmonIPM** [@buhle_using_2018], which facilitates fitting a variety of age- and stage-structured IPMs tailored to anadromous salmonid life histories. This platform allows a reproducible workflow from data to model-fitting and management scenario analysis, which can be easily updated as new data become available. Models in **salmonIPM** are implemented in [Stan](https://mc-stan.org) [@stan_development_team_stan_2019], a probabilistic programming language for Bayesian estimation that uses the cutting-edge Hamiltonian Monte Carlo (HMC) algorithm to draw samples from the posterior distribution [@monnahan_faster_2017].
 
-Development of the LCR chum IPM is an iterative process, starting with the generic spawner-to-spawner and spawner-smolt-spawner models available in **salmonIPM** and incrementally adding customizations to accommodate the complexity of population and data structures and to enable the model to more directly answer questions of management concern. In previous years these have included, e.g., external sample-based estimates of spawner and smolt observation error; using fecundity and sex structure data to estimate egg-to-smolt survival; and representing adult translocations into artificial spawning channels. In 2023 for the first time we are explicitly modeling the hatchery smolt-to-adult recruitment process, replacing the more flexible but non-mechanistic generic model of hatchery-origin spawner abundance. The new approach provides estimates of smolt-to-adult survival (SAR) for hatchery populations as well as the dispersal rates of hatchery-origin recruits to each natural population. It also allows us to evaluate alternative scenarios of future hatchery operations, and we present a preliminary set of such simulations below.
+Development of the LCR chum IPM is an iterative process, starting with the generic spawner-to-spawner and spawner-smolt-spawner models available in **salmonIPM** and incrementally adding customizations to accommodate the complexity of population and data structures and to enable the model to more directly answer questions of management concern. In previous years these have included, e.g., external sample-based estimates of spawner and smolt observation error; using fecundity and sex structure data to estimate egg-to-smolt survival; and representing adult translocations into artificial spawning channels. In 2023 for the first time we explicitly modeled the hatchery smolt-to-adult recruitment process, replacing the more flexible but non-mechanistic generic model of hatchery-origin spawner abundance. The new approach provides estimates of smolt-to-adult survival (SAR) for hatchery populations as well as the dispersal rates of hatchery-origin recruits to each natural population. It also allows us to evaluate alternative scenarios of future hatchery operations, and we present a preliminary set of such simulations below.
 
 This vignette first details the structure of the LCR chum IPM, including the process model (the true underlying population dynamics), the observation model (the likelihood of data arising from field monitoring programs given the unknown true state), and the priors. We then demonstrate how to fit LCR chum models using **salmonIPM** and discuss and interpret the main results, including reporting metrics of interest to managers. We conclude by outlining our plans for further model development. The goal of the vignette is to provide an introduction to both the mathematical structure of the model and the workflow involved in fitting it in R and working with the output. To that end, we display a minimal amount of R code, but all the code used in the examples shown here can be found in the RMarkdown source used to generate this document.
 
 # LCR Chum Overview
 
-[Need to add this section to outline the structure of the ESU, some history, and a brief description of monitoring methods and data structures. Maybe even eventually a map and/or life cycle diagram? Kale, Todd and Thomas will have to do the heavy lifting here; hopefully you have some existing boilerplate as a starting point and reports we can cite for details. 
+[Need to add this section to outline the structure of the ESU, some history, and a brief description of monitoring methods and data structures. Maybe eventually a map and/or life cycle diagram? Kale, Todd and Thomas will have to do the heavy lifting here; hopefully you have some existing boilerplate as a starting point and reports we can cite for details. 
 
 This would be the place to explain the groups of chum we are modeling. They would be most accurately and historically called stocks, but **salmonIPM** is organized around "populations" so we use the terms interchangeably. In this case it's confusing because the TRT has identified ostensibly independent populations for recovery planning. I propose we change to primarily using "stock" in this document, and explain that they are likely demographically nonindependent subpopulations but that the **salmonIPM** notation uses $^\text{pop}$ and `fish_data$pop` to index the groups characterized by, e.g., different S-R parameters. We can continue to call the TRT groups "recovery populations" or perhaps "TRT populations".
 
@@ -115,7 +115,7 @@ f {\left( S_{jt} | \alpha_{jt}, M_{\text{max},j}, A_{jt} \right)} =
 \end{cases}
 $$
 
-We use a nonstandard parameterization of the Ricker by maximum smolt production or "capacity" $M_{\text{max}}$, corresponding to the peak of the dome-shaped function. This facilitates direct comparison with the Beverton-Holt (where $M_{\text{max}}$ is the asymptote) and is better-identified by data than the standard parameterization based on per capita density dependence. $M_{\text{max}}$ has units of density (fish per stream distance or area) and is then expanded to units of abundance based on habitat size $A_{jt}$. In the case of LCR chum, this is km of spawning habitat estimated using GIS.
+We use a nonstandard parameterization of the Ricker by maximum smolt production or "capacity" $M_{\text{max}}$, corresponding to the peak of the dome-shaped function. This facilitates direct comparison with the Beverton-Holt (where $M_{\text{max}}$ is the asymptote) and is better identified by data than the standard parameterization based on per capita density dependence. $M_{\text{max}}$ has units of density (fish per stream distance or area) and is then expanded to units of abundance based on habitat size $A_{jt}$. In the case of LCR chum, this is km of spawning habitat estimated using GIS.
 
 Intrinsic productivity is further parameterized by fecundity and egg-to-smolt survival. Specifically, $\alpha_{jt}$ is the weighted mean of age-specific female fecundity $\mu_{Ea}$, weighted by the spawner age distribution $q_{jta}$, multiplied by the proportion of female spawners $q_{\text{F}jt}$, discounted for the proportion of females that are not "green" (i.e. fully fecund) with discount rate $\delta_\text{NG} \in [0,1]$, and finally multiplied by the maximum egg-to-smolt survival in the absence of density dependence $\psi_j$:
 
@@ -354,8 +354,9 @@ is used to regularize autocorrelation coefficients away from the computationally
 
 ```{r prior_table, results="asis", echo=FALSE}
 prior_table <- read.csv(here("analysis","R","prior_table.csv"), check.names = FALSE)
-kable(prior_table, escape = FALSE) %>% 
-    kable_styling(bootstrap_options = c("striped","hover","condensed"), full_width = FALSE)
+#kable(prior_table, escape = FALSE) %>% 
+#    kable_styling(bootstrap_options = c("striped","hover","condensed"), full_width = FALSE)
+knitr::kable(prior_table, escape = FALSE)
 ```
 
 
@@ -367,12 +368,13 @@ User inputs needed to fit the LCR chum IPM include, first, a data frame containi
 
 ```{r print_fish_data, echo=FALSE}
 fish_data %>% filter(pop == "Grays CJ") %>% select(-fit_p_HOS) %>%
-  kable(digits = replace(rep(0, ncol(.)), 5:8, c(0,2,0,2))) %>%
-  row_spec(row = 0, bold = FALSE) %>% 
-  column_spec(column = 1, width_min = "90px") %>%
-  kable_styling(bootstrap_options = c("striped","hover","condensed"),
-                html_font = "lucida console", font_size = 12) %>%
-  scroll_box(width = "100%")
+#  kable(digits = replace(rep(0, ncol(.)), 5:8, c(0,2,0,2))) %>%
+#  row_spec(row = 0, bold = FALSE) %>% 
+#  column_spec(column = 1, width_min = "90px") %>%
+#  kable_styling(bootstrap_options = c("striped","hover","condensed"),
+#                html_font = "lucida console", font_size = 12) %>%
+#  scroll_box(width = "100%")
+knitr::kable(digits = replace(rep(0, ncol(.)), 5:8, c(0,2,0,2)))
 ```
 
 <br> Column names generally follow the mathematical notation. `A` is stream habitat length (m). `pop_type` is a factor indicating natural and hatchery populations, and `downstream_trap` gives the row index corresponding to the downstream smolt trap that captures outmigrants from the given `pop` and `year`, i.e. a simple description of stream network topology. In this case, `Grays CJ` smolts are also counted at a local trap. The origin-frequency columns are indexed by the numeric values of the factor levels corresponding to hatchery populations (e.g., `levels(fish_data$pop)[14]` is `r levels(fish_data$pop)[14]`) while `n_O0_obs` corresponds to natural spawners of unknown origin.
@@ -418,7 +420,7 @@ plot(gg)
 ```{r delta_NG_summary, echo=FALSE}
 delta_NG <- as.matrix(fit_Ricker, c("delta_NG")) %>% 
   as_draws_rvars() %>% summarize_draws() %>% 
-  mutate(mci = paste0(round(median,2), " [", round(q5,2), "%, ", round(q95,2), "]"))
+  mutate(mci = paste0(round(median,2), " [", round(q5,2), ", ", round(q95,2), "]"))
 ```
 
 As we saw in the posterior summary output, the non-green female discount is not estimated very precisely ($\delta_\text{NG}$ = `r delta_NG$mci`) but is consistent with rough estimates of the proportion of eggs remaining in the body cavity of these so-called partial spawners translocated into Duncan Channel.
@@ -484,7 +486,7 @@ sigmas <- as.matrix(fit_Ricker, c("sigma_year_MS","sigma_MS", "sigma_year_M","si
   mutate(mci = paste0(round(median,2), " [", round(q5,2), ", ", round(q95,2), "]"))
 ```
 
-Both the freshwater productivity anomalies and SAR are strongly synchronous across populations. The synchrony as well as the overall volatility are higher for SAR ($\sigma^\text{year}_{MS}$ = `r sigmas$mci[1]`, $\sigma_{MS}$ = `r sigmas$mci[2]`) than for freshwater productivity ($\sigma^\text{year}_M$ = `r sigmas$mci[3]`, $\sigma_M$ = `r sigmas$mci[4]`). The common trend and residual errors in freshwater productivity have similar scales, whereas for SAR the shared component dominates. Although the smolt process errors are on the log scale and SAR errors on the logit scale, the two transformations are nearly identical over the range of SAR (i.e., close to zero) and both are simply multiplicative factors affecting adult recruitment, so their variance components are directly comparable. The latter are over twice the former, meaning marine survival is responsible for most of the interannual fluctuations in recruitment. The data cannot rule out very large volatility in the shared component of SAR, which has implications for forecasting. This can be seen in the initial 3 years (corresponding to "orphan" cohorts) and final 4 years (corresponding to cohorts that have not yet fully returned as adults), which are informed more by the process model than by data and are very uncertain. 
+Both the freshwater productivity anomalies and SAR are strongly synchronous across populations. The synchrony as well as the overall volatility are higher for SAR ($\sigma^\text{year}_{MS}$ = `r sigmas$mci[1]`, $\sigma_{MS}$ = `r sigmas$mci[2]`) than for freshwater productivity ($\sigma^\text{year}_M$ = `r sigmas$mci[3]`, $\sigma_M$ = `r sigmas$mci[4]`). The common trend and residual errors in freshwater productivity have similar scales, whereas for SAR the shared component dominates. Although the smolt process errors are on the log scale and SAR errors on the logit scale, the two transformations are nearly identical over the range of SAR (i.e., close to zero) and both are simply multiplicative factors affecting adult recruitment, so their variance components are directly comparable. The latter are more than twice the former, meaning marine survival is responsible for most of the interannual fluctuations in recruitment. The data cannot rule out very large volatility in the shared component of SAR, which has implications for forecasting. This can be seen in the initial 3 years (corresponding to "orphan" cohorts) and final 4 years (corresponding to cohorts that have not yet fully returned as adults), which are informed more by the process model than by data and are very uncertain. 
 
 [TO ADD: Report actual estimates of synchrony and variance components w/in and b/w smolt and SAR. Cite our Idaho snorkel survey paper w/ Thorson.]
 
@@ -633,9 +635,9 @@ This table shows pre-season forecasts of total spawners for `r year(Sys.Date())`
 
 ```{r spawner_forecast_table, echo = FALSE, message=FALSE}
 <<forecast_df>>
-knitr::kable(forecast_df, escape = FALSE, align = "l") %>% 
+knitr::kable(forecast_df, escape = FALSE, align = "l") #%>% 
   # column_spec(column = 4:5, width = "130px") %>%
-  kable_styling(bootstrap_options = c("striped","hover"))
+  # kable_styling(bootstrap_options = c("striped","hover"))
 ```
 
 # Reporting Metrics
@@ -665,6 +667,6 @@ The LCR chum IPM remains under active development, with an ultimate goal of prov
 
 4. *Include habitat and environmental drivers.* Incorporate covariates (e.g., freshwater habitat quality, oceanographic factors) into the IPM to estimate effects on stage-specific productivity, capacity, or survival and identify potential limiting factors. For example, initial exploratory analysis suggests winter flow may drive variation in egg-to-fry survival. Such relationships could be used to examine population viability under future climate change scenarios. Likewise, predictors of marine survival could reduce the unexplained process noise associated with SAR and improve the precision and accuracy of short-term forecasts.
 
-5. *Scenario analyses to evaluate restoration strategies.* The features implemented in the LCR chum IPM to date or proposed for FFY2023-24 will enable us to simulate a range of realistic management interventions, in particular population enhancement (hatchery supplementation and adult translocation) and habitat restoration. Some population enhancement simulations are possible already, as described above --- namely, varying the broodstock removal rate and number of smolts released. However, since the operational management action is the transfer of broodstock into hatcheries, completing the adult-to-smolt stage of the hatchery life cycle will provide a more relevant “dial” in the model. Habitat-related simulations could take two forms. First, we could explore future ranges of empirically fitted environmental drivers, e.g. winter flows under climate change. Second, we could simulate freshwater habitat restoration or enhancement strategies such as the construction of artificial channels, in a simplistic way, by increasing egg-to-smolt survival or capacity in specific populations. In any of these scenario analyses, outcomes could be evaluated based on metrics such as abundance, productivity, $p\text{HOS}$, $p_\text{NOB}$, PQE, and recovery probability. Furthermore, we could examine the time needed to reach management reference points. For instance, following habitat restoration, does hatchery supplementation or adult translocation significantly reduce the time it takes a population to achieve an abundance target with a given probability, relative to natural recovery?
+5. *Scenario analyses to evaluate restoration strategies.* The features implemented in the LCR chum IPM to date or proposed for FFY2023-24 will enable us to simulate a range of realistic management interventions, in particular population enhancement (hatchery supplementation and adult translocation) and habitat restoration. Some population enhancement simulations are possible already, as described above --- namely, varying the broodstock removal rate and number of smolts released. However, since the operational management action is the transfer of broodstock into hatcheries, completing the adult-to-smolt stage of the hatchery life cycle will provide a more relevant “dial” in the model. Habitat-related simulations could take two forms. First, we could explore future ranges of empirically fitted environmental drivers, e.g. winter flows under climate change. Second, we could simulate freshwater habitat restoration or enhancement strategies such as the construction of artificial channels, in a simplistic way, by increasing egg-to-smolt survival or capacity in specific populations. In any of these scenario analyses, outcomes could be evaluated based on metrics such as abundance, productivity, $p_\text{HOS}$, $p_\text{NOB}$, PQE, and recovery probability. Furthermore, we could examine the time needed to reach management reference points. For instance, following habitat restoration, does hatchery supplementation or adult translocation significantly reduce the time it takes a population to achieve an abundance target with a given probability, relative to natural recovery?
 
 # References
