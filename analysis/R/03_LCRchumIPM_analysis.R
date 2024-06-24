@@ -246,7 +246,7 @@ if(save_plot) {
 #-------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_M_anomaly_SAR
 gg <- smolt_SAR_ts(mod = get(mod_name), fish_data = fish_data)
@@ -286,8 +286,8 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-life_stage <- "S"   # "S" = spawners, "M" = smolts
-save_plot <- FALSE
+life_stage <- "M"   # "S" = spawners, "M" = smolts
+save_plot <- TRUE
 
 ## @knitr smolt_spawner_ts
 gg <- smolt_spawner_ts(mod = get(mod_name), life_stage = life_stage, 
