@@ -1,11 +1,11 @@
 Species,LifeStage,Brood.Year,Outmigration.Year,Strata,Location.Reach,Origin,TrapType,Analysis,Partial.Spawners,RawCatch,Abund_Mean,Abund_Median,Abund_SD,Abund_L95,Abund_U95,Abund_CV,Comments
-Chum,Fry.Smolt,2010,2011,Coastal,Big_Creek,Hatchery_Grays,NA,NA,N,NA,106960,106960,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries)
-Chum,Fry.Smolt,2011,2012,Coastal,Big_Creek,Hatchery_Grays,NA,NA,N,NA,123686,123686,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries)
-Chum,Fry.Smolt,2012,2013,Coastal,Big_Creek,Hatchery_Grays,NA,NA,N,NA,132193,132193,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries)
-Chum,Fry.Smolt,2013,2014,Coastal,Big_Creek,Hatchery_Grays,NA,NA,N,NA,103368,103368,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries)
-Chum,Fry.Smolt,2014,2015,Coastal,Big_Creek,Hatchery_Grays,NA,NA,N,NA,111144,111144,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries)
-Chum,Fry.Smolt,2018,2019,Coastal,Big_Creek,Hatchery_Grays,NA,NA,N,NA,45399,45399,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries)
-Chum,Fry.Smolt,2019,2020,Coastal,Big_Creek,Hatchery_Grays,NA,NA,N,NA,49512,49512,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries)
+Chum,Eggs,2010,2011,Coastal,Big_Creek,Hatchery_Grays,NA,NA,N,NA,106960,106960,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries)
+Chum,Eggs,2011,2012,Coastal,Big_Creek,Hatchery_Grays,NA,NA,N,NA,123686,123686,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries)
+Chum,Eggs,2012,2013,Coastal,Big_Creek,Hatchery_Grays,NA,NA,N,NA,132193,132193,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries)
+Chum,Eggs,2013,2014,Coastal,Big_Creek,Hatchery_Grays,NA,NA,N,NA,103368,103368,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries)
+Chum,Eggs,2014,2015,Coastal,Big_Creek,Hatchery_Grays,NA,NA,N,NA,111144,111144,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries)
+Chum,Eggs,2018,2019,Coastal,Big_Creek,Hatchery_Grays,NA,NA,N,NA,45399,45399,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries)
+Chum,Eggs,2019,2020,Coastal,Big_Creek,Hatchery_Grays,NA,NA,N,NA,49512,49512,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries)
 Chum,Fry.Smolt,2001,2002,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,N,NA,45046,45046,NA,NA,NA,NA,
 Chum,Fry.Smolt,2002,2003,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,N,NA,217436,217436,NA,NA,NA,NA,
 Chum,Fry.Smolt,2003,2004,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,N,NA,75995,75995,NA,NA,NA,NA,
@@ -187,9 +187,9 @@ Chum,Fry.Smolt,2019,2020,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,NA,NA,1013
 Chum,Fry.Smolt,2020,2021,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,NA,NA,101430,101430,NA,NA,NA,NA,
 Chum,Fry.Smolt,2021,2022,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,NA,NA,110502,110502,NA,NA,NA,NA,
 Chum,Fry.Smolt,2022,2023,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,NA,NA,116387,116387,NA,NA,NA,NA,
-Chum,Fry.Smolt,2018,2019,Coastal,Peterson_RSI,Hatchery_Grays,NA,NA,N,NA,41739,41739,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries)
-Chum,Fry.Smolt,2019,2020,Coastal,Peterson_RSI,Hatchery_Grays,NA,NA,N,NA,40580,40580,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries)
-Chum,Fry.Smolt,2020,2021,Coastal,Peterson_RSI,Hatchery_Grays,NA,NA,N,NA,52845,52845,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries); not listed in FishBooks under plants
-Chum,Fry.Smolt,2021,2022,Coastal,Peterson_RSI,Hatchery_Grays,NA,NA,N,NA,42356,42356,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries); not listed in FishBooks under plants
+Chum,Eggs,2018,2019,Coastal,Peterson_RSI,Hatchery_Grays,NA,NA,N,NA,41739,41739,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries)
+Chum,Eggs,2019,2020,Coastal,Peterson_RSI,Hatchery_Grays,NA,NA,N,NA,40580,40580,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries)
+Chum,Eggs,2020,2021,Coastal,Peterson_RSI,Hatchery_Grays,NA,NA,N,NA,52845,52845,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries); not listed in FishBooks under plants
+Chum,Eggs,2021,2022,Coastal,Peterson_RSI,Hatchery_Grays,NA,NA,N,NA,42356,42356,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries); not listed in FishBooks under plants
 Chum,Fry.Smolt,2019,2020,Coastal,Skamokawa,Hatchery_Grays,NA,NA,N,NA,53658,53658,NA,NA,NA,NA,fry plant near the entrance to spawning channel
-Chum,Fry.Smolt,2022,2023,Coastal,Peterson_RSI,Hatchery_Grays,NA,NA,N,NA,45839,45839,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries); not listed in FishBooks under plants
+Chum,Eggs,2022,2023,Coastal,Peterson_RSI,Hatchery_Grays,NA,NA,N,NA,45839,45839,NA,NA,NA,NA,These numbers represent egg transfers (NOT fry releases like all other entries); not listed in FishBooks under plants
