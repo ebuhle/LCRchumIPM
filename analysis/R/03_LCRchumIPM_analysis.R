@@ -204,7 +204,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 ## @knitr plot_psi_Mmax
 gg <- psi_Mmax_plot(mod = get(mod_name), fish_data)
@@ -246,7 +246,7 @@ if(save_plot) {
 #-------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 ## @knitr plot_M_anomaly_SAR
 gg <- smolt_SAR_ts(mod = get(mod_name), fish_data = fish_data)
@@ -286,8 +286,8 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-life_stage <- "M"   # "S" = spawners, "M" = smolts
-save_plot <- TRUE
+life_stage <- "S"   # "S" = spawners, "M" = smolts
+save_plot <- FALSE
 
 ## @knitr smolt_spawner_ts
 gg <- smolt_spawner_ts(mod = get(mod_name), life_stage = life_stage, 
@@ -331,7 +331,7 @@ if(save_plot) dev.off()
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 ## @knitr plot_spawner_age_ts
 gg <- age_timeseries(mod = get(mod_name), fish_data = fish_data)
@@ -371,7 +371,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 ## @knitr plot_p_HOS
 gg <- p_HOS_timeseries(mod = get(mod_name), fish_data = fish_data)
