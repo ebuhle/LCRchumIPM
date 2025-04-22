@@ -83,23 +83,17 @@ Chum,Adult,2008,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,88,NA,
 Chum,Adult,2008,Coastal,Grays_MS,Grays_MS,NA,Carc tagging,721,134.1,
 Chum,Adult,2009,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,108,NA,
 Chum,Adult,2009,Coastal,Grays_MS,Grays_MS,NA,Carc tagging,NA,NA,
-Chum,Adult,2010,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,287,NA,
 Chum,Adult,2010,Coastal,Grays_MS,Grays_MS,NA,Carc tagging,3701,850.61,
-Chum,Adult,2011,Coastal,Grays_MS,Grays_Hatchery,TBD,Census,294,NA,eggs transferred to Big Creek (106960); will need to reduce value in column Abund.Mean for Spawned == TRUE and add a second row for Spawned == FALSE to represent back-calculated adults transferred to Big Creek
 Chum,Adult,2011,Coastal,Grays_MS,Grays_MS,NA,Carc tagging,2509,573.7,
-Chum,Adult,2012,Coastal,Grays_MS,Grays_Hatchery,TBD,Census,219,NA,eggs transferred to Big Creek (123686); will need to reduce value in column Abund.Mean for Spawned == TRUE and add a second row for Spawned == FALSE to represent back-calculated adults transferred to Big Creek
 Chum,Adult,2012,Coastal,Grays_MS,Grays_MS,NA,Carc tagging,1717,599.07,
-Chum,Adult,2013,Coastal,Grays_MS,Grays_Hatchery,TBD,Census,250,NA,eggs transferred to Big Creek (132193); will need to reduce value in column Abund.Mean for Spawned == TRUE and add a second row for Spawned == FALSE to represent back-calculated adults transferred to Big Creek
 Chum,Adult,2013,Coastal,Grays_MS,Grays_MS,NA,Carc tagging,1352,271.03,
-Chum,Adult,2014,Coastal,Grays_MS,Grays_Hatchery,TBD,Census,246,NA,eggs transferred to Big Creek (103368); will need to reduce value in column Abund.Mean for Spawned == TRUE and add a second row for Spawned == FALSE to represent back-calculated adults transferred to Big Creek
 Chum,Adult,2014,Coastal,Grays_MS,Grays_MS,NA,Carc tagging,2107,489.79,
-Chum,Adult,2015,Coastal,Grays_MS,Grays_Hatchery,TBD,Census,128,NA,eggs transferred to Big Creek (111144); will need to reduce value in column Abund.Mean for Spawned == TRUE and add a second row for Spawned == FALSE to represent back-calculated adults transferred to Big Creek
+Chum,Adult,2015,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,128,NA,
 Chum,Adult,2015,Coastal,Grays_MS,Grays_MS,NA,Carc tagging,1091,118.66,
 Chum,Adult,2016,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,126,NA,
 Chum,Adult,2016,Coastal,Grays_MS,Grays_MS,NA,Carc tagging,6129,995.32,
 Chum,Adult,2017,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,118,NA,
 Chum,Adult,2017,Coastal,Grays_MS,Grays_MS,NA,Carc tagging,1051,145.7,
-Chum,Adult,2018,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,250,NA,
 Chum,Adult,2018,Coastal,Grays_MS,Grays_MS,NA,Carc tagging,3010,609,
 Chum,Adult,2002,Coastal,Grays_WF,Grays_WF,NA,NA,NA,NA,
 Chum,Adult,2003,Coastal,Grays_WF,Grays_WF,NA,NA,NA,NA,
@@ -462,7 +456,6 @@ Chum,Adult,2019,Cascade,I205,Duncan_Channel,NA,Census,0,NA,
 Chum,Adult,2019,Cascade,I205,I205,NA,Live tagging,1339,30.81,
 Chum,Adult,2019,Cascade,I205,Lewis_Hatchery,TRUE,Census,82,NA,
 Chum,Adult,2019,Coastal,Grays_CJ,Grays_CJ,NA,Carc tagging,72,123.11,
-Chum,Adult,2019,Coastal,Grays_MS,Grays_Hatchery,TBD,Census,222,NA,eggs transferred to Big Creek (111144) & Peterson RSI (41739); will need to reduce value in column Abund.Mean for Spawned == TRUE and add a second row for Spawned == FALSE to represent back-calculated adults transferred to Big Creek & Peterson RSI
 Chum,Adult,2019,Coastal,Grays_MS,Grays_MS,NA,Carc tagging,3990,469.41,
 Chum,Adult,2019,Coastal,Grays_WF,Grays_WF,NA,Carc tagging,3406,458.38,
 Chum,Adult,2019,Gorge,Duncan_Creek,Duncan_Channel,NA,Census,76,NA,
@@ -489,7 +482,6 @@ Chum,Adult,2020,Cascade,I205,Duncan_Channel,NA,Census,0,NA,
 Chum,Adult,2020,Cascade,I205,I205,NA,Live tagging,2242,50.7182,
 Chum,Adult,2020,Cascade,I205,Lewis_Hatchery,TRUE,Census,82,NA,
 Chum,Adult,2020,Coastal,Grays_CJ,Grays_CJ,NA,Carc tagging,2863,286.067,
-Chum,Adult,2020,Coastal,Grays_MS,Grays_Hatchery,TBD,Census,195,NA,"eggs transferred to Big Creek (49512) & Peterson RSI (40580) plus fry outplanted to Skamokawa (53658) ; will need to reduce value in column Abund.Mean for Spawned == TRUE and add a second row for Spawned == FALSE to represent back-calculated adults transferred to Big Creek, Peterson RSI, & Skamokawa."
 Chum,Adult,2020,Coastal,Grays_MS,Grays_MS,NA,Carc tagging,7528,1332.788,
 Chum,Adult,2020,Coastal,Grays_WF,Grays_WF,NA,Carc tagging,3055,137.931,
 Chum,Adult,2020,Gorge,Duncan_Creek,Duncan_Channel,NA,Census,78,NA,
@@ -513,7 +505,6 @@ Chum,Adult,2020,Gorge,St_Cloud,Duncan_Channel,NA,Census,0,NA,
 Chum,Adult,2020,Gorge,St_Cloud,Duncan_Hatchery,TRUE,Census,0,NA,
 Chum,Adult,2020,Gorge,St_Cloud,St_Cloud,NA,Live tagging,90,40.312,
 Chum,Adult,2021,Coastal,Grays_CJ,Grays_CJ,NA,Carc tagging,6279.363,599.563,
-Chum,Adult,2021,Coastal,Grays_MS,Grays_Hatchery,TBD,Census,192,NA,eggs transferred to Peterson RSI (52485); will need to reduce value in column Abund.Mean for Spawned == TRUE and add a second row for Spawned == FALSE to represent back-calculated adults transferred to Peterson RSI
 Chum,Adult,2021,Coastal,Grays_MS,Grays_MS,NA,Carc tagging,3842,531.32,
 Chum,Adult,2021,Coastal,Grays_WF,Grays_WF,NA,Carc tagging,7293,531.32,
 Chum,Adult,2021,Gorge,Duncan_Creek,Duncan_Channel,NA,Census,488,NA,
@@ -540,7 +531,6 @@ Chum,Adult,2021,Gorge,St_Cloud,Duncan_Channel,NA,Census,0,NA,
 Chum,Adult,2021,Gorge,St_Cloud,Duncan_Hatchery,TRUE,Census,0,NA,
 Chum,Adult,2021,Gorge,St_Cloud,St_Cloud,NA,Live tagging,460,62.2,
 Chum,Adult,2022,Coastal,Grays_CJ,Grays_CJ,NA,Carc tagging,3318,338.83,
-Chum,Adult,2022,Coastal,Grays_MS,Grays_Hatchery,TBD,Census,194,NA,eggs transferred to Peterson RSI (42356); will need to reduce value in column Abund.Mean for Spawned == TRUE and add a second row for Spawned == FALSE to represent back-calculated adults transferred to Peterson RSI
 Chum,Adult,2022,Coastal,Grays_MS,Grays_MS,NA,Carc tagging,6055.057,1313.927,
 Chum,Adult,2022,Coastal,Grays_WF,Grays_WF,NA,Carc tagging,3655.565,263.425,
 Chum,Adult,2022,Gorge,Duncan_Creek,Duncan_Channel,NA,Census,255,NA,
@@ -567,7 +557,6 @@ Chum,Adult,2022,Gorge,St_Cloud,Duncan_Channel,NA,Census,2,NA,
 Chum,Adult,2022,Gorge,St_Cloud,Duncan_Hatchery,TRUE,Census,0,NA,
 Chum,Adult,2022,Gorge,St_Cloud,St_Cloud,NA,Live tagging,158,576.77,
 Chum,Adult,2023,Coastal,Grays_CJ,Grays_CJ,NA,Carc tagging,2755.398,341.83,
-Chum,Adult,2023,Coastal,Grays_MS,Grays_Hatchery,TBD,Census,,,eggs transferred to Peterson RSI (45839); will need to reduce value in column Abund.Mean for Spawned == TRUE and add a second row for Spawned == FALSE to represent back-calculated adults transferred to Peterson RSI
 Chum,Adult,2023,Coastal,Grays_MS,Grays_MS,NA,Carc tagging,1513,53.78,
 Chum,Adult,2023,Coastal,Grays_WF,Grays_WF,NA,Carc tagging,2278.532,199.566,
 Chum,Adult,2023,Gorge,Duncan_Creek,Duncan_Creek,NA,Census,0,NA,
@@ -593,3 +582,36 @@ Chum,Adult,2023,Gorge,Multnomah,Multnomah,NA,Live tagging,1791.822,106.168,
 Chum,Adult,2023,Gorge,St_Cloud,Duncan_Channel,NA,Census,,,
 Chum,Adult,2023,Gorge,St_Cloud,Duncan_Hatchery,NA,Census,,,
 Chum,Adult,2023,Gorge,St_Cloud,St_Cloud,NA,Live tagging,307.589,63.497,
+Chum,Adult,2023,Coastal,Grays_MS,Peterson_RSI,FALSE,Census,50,NA,"25 females and 25 males, 46,293 eyed eggs for RSI"
+Chum,Adult,2023,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,132,NA,"66 females and 66 males, 117,705 eyed eggs for Grays outplant"
+Chum,Adult,2024,Coastal,Grays_MS,Peterson_RSI,FALSE,Census,44,NA,"22 males and 22 females, 42,720 eyed eggs to RSI"
+Chum,Adult,2024,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,40,NA,"20 males and 20 females, 40,471 eyed eggs planned for Grays outplant "
+Chum,Adult,2022,Coastal,Grays_MS,Peterson_RSI,FALSE,Census,40,NA,"20 males and 20 females, eyed 45,839 eggs for RSI"
+Chum,Adult,2022,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,154,NA,"77 males and 77 females, 177,364 eyed eggs for Grays outplant"
+Chum,Adult,2021,Coastal,Grays_MS,Peterson_RSI,FALSE,Census,32,NA,"16 males and 16 females, 42,356 eyed eggs for RSI"
+Chum,Adult,2021,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,160,NA,"80 females and 80 males, 189,119 eyed eggs for Grays outplant"
+Chum,Adult,2020,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,150,NA,"75 females and 75 females, 200,654 eyed eggs for Grays outplant."
+Chum,Adult,2020,Coastal,Grays_MS,Peterson_RSI,FALSE,Census,45,NA,"23 females and 22 males, 52,845 eyed eggs for RSI"
+Chum,Adult,2019,Coastal,Grays_MS,Peterson_RSI,FALSE,Census,30,NA,"16 females and 14 males, 40,580 eyed eggs for RSI"
+Chum,Adult,2019,Coastal,Grays_MS,Grays_Hatchery,FALSE,Census,36,NA,"18 females and 18 males, 48,462 eyed eggs for Skamokawa"
+Chum,Adult,2019,Coastal,Grays_MS,Big_Creek_Hatchery,FALSE,Census,40,NA,"20 females and 20 males, 49,512 green eggs for ODFW Big Creek"
+Chum,Adult,2019,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,116,NA,"58 males and 58 females, 149,275 eyed eggs for Grays outplant"
+Chum,Adult,2018,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,176,NA,"88 Females and 88 Males, 192,801 eyed eggs for Grays outplant "
+Chum,Adult,2018,Coastal,Grays_MS,Grays_Hatchery,FALSE,Census,36,NA,"18 Females and 18 males, 41,739 eyed eggs for RSI"
+Chum,Adult,2018,Coastal,Grays_MS,Big_Creek_Hatchery,FALSE,Census,36,NA,"18 Females and 18 Males, green eggs 45,399 for ODFW Big Creek"
+Chum,Adult,2014,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,157,NA,"79 Females and 79 males, 197,504 eyed eggs for Grays outplant"
+Chum,Adult,2014,Coastal,Grays_MS,Big_Creek_Hatchery,FALSE,Census,89,NA,"44 females and 44 males, 111,144 eyed eggs to ODFW Big Creek"
+Chum,Adult,2010,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,201,NA,"102 females and 99 males, 263,629 eyed eggs for grays outplant"
+Chum,Adult,2010,Coastal,Grays_MS,Big_Creek_Hatchery,FALSE,Census,86,NA,"44 females and 42 males, 113,550 eyed eggs to odfw big creek"
+Chum,Adult,2011,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,188,NA,"97 females and 91 males, 213,137 eyed eggs for grays outplant"
+Chum,Adult,2011,Coastal,Grays_MS,Big_Creek_Hatchery,FALSE,Census,106,NA,"55 females and 51 males, 119,839 eyed eggs to odfw big creek"
+Chum,Adult,2012,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,131,NA,"68 females and 64 males, 164,884 eyed eggs for grays outplant"
+Chum,Adult,2012,Coastal,Grays_MS,Big_Creek_Hatchery,FALSE,Census,88,NA,"45 females and 42 males, 109,920 eyed eggs for odfw big creek"
+Chum,Adult,2013,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,149,NA,"73 females and 76 males, 159,120 eyed eggs for Grays outplant"
+Chum,Adult,2013,Coastal,Grays_MS,Big_Creek_Hatchery,FALSE,Census,97,NA,"48 females and 49 males, 103,368 eyed egss to ODDW Big Creek"
+Chum,Adult,2002,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,325,NA,"164 females and 161 males, 412,733 eyed eggs for grays outplant"
+Chum,Adult,2002,Coastal,Chinook_River,Sea Resources,FALSE,Census,NA,NA,"These fry were from chum salmon that had returned to the Chinook River in 2002. They were spawned at the Sea Resources Hatchery, but their eggs were fertilized and incubated at the Grays River Hatchery. Once the fry reached the ponding stage, they were returned to Sea Resources for rearing. They were released at the mouth of the Chinook River on April 15, 2003"
+Chum,Adult,2003,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,305,NA,"153 females and 152 males, 377250 eyed eggs for grays outplant"
+Chum,Adult,2003,Coastal,Chinook_River,Sea Resources,FALSE,Census,NA,NA,"In 2003, Sea Resources collected and spawned chum salmon at their Chinook River facility. The eggs and milt from these fish were transported to Grays River, where they were fertilized, incubated, and thermally marked. Once the fry reached the ponding stage, they were returned to Sea Resources for rearing. In 2004, the fry were released at the mouth of the Chinook River. The exact number of fry released, their size at the time of release, and their survival rate during rearing are unknown. However, this information is likely recorded in a data book at the Sea Resources Hatchery"
+Chum,Adult,2004,Coastal,Grays_MS,Grays_Hatchery,TRUE,Census,296,NA,"148 femalesand 148 males, 333,304 eyed eggs for Grays outplant"
+Chum,Adult,2004,Coastal,Chinook_River,Sea Resources,FALSE,Census,NA,NA,"In 2004, Sea Resources collected and spawned chum salmon at their Chinook River facility. The eggs and milt from these fish were transported to Grays River, where they were fertilized, incubated, and thermally marked. Once the fry reached the ponding stage, they were returned to Sea Resources for rearing. In 2005, the fry were released at the mouth of the Chinook River. The exact number of fry released, their size at the time of release, and their survival rate during rearing are unknown. However, this information is likely recorded in a data book at the Sea Resources Hatchery"
