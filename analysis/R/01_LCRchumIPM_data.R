@@ -59,13 +59,14 @@ habitat_data <- read.csv(here("data","Data_Habitat_Spawning_Linear.csv"),
 spawner_data <- read.csv(here("data","Data_Abundance_Spawners_Chum.csv"), 
                          header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(year = Return.Yr., strata = Strata, location = Location.Reach, 
-         disposition = Disposition, method = Method, S_obs = Abund.Mean, SD = Abund.SD) %>% 
+         disposition = Disposition, spawned = Spawned, method = Method, 
+         S_obs = Abund.Mean, SD = Abund.SD) %>% 
   mutate(disposition = gsub("I205", "I-205", gsub("_", " ", disposition)),
          location = gsub("I205", "I-205", gsub("_", " ", location)),
          strata = replace(strata, disposition == "Duncan Channel", "Gorge"),
          S_obs = replace(S_obs, is.na(S_obs) & grepl("Hatchery|Duncan", disposition), 0),
          tau_S_obs = sqrt(log((SD/S_obs)^2 + 1))) %>% 
-  select(year:location, disposition, method, S_obs, SD, tau_S_obs) %>% 
+  select(year:location, disposition, spawned, method, S_obs, SD, tau_S_obs) %>% 
   arrange(strata, location, year)
 
 # broodstock take: 
@@ -79,25 +80,33 @@ broodstock_data <- spawner_data %>% group_by(strata, location, year) %>%
   rename(pop = location) %>% as.data.frame()
 
 # added (translocated) spawners:
-# all spawners brought to a given disposition from a different location
-# unless disposition is Duncan Channel and location is Duncan Creek,
+# all spawners brought from a given return location to a different disposition
+# unless location is Duncan Creek and disposition is Duncan Channel,
 # which is considered natural recruitment
-# (summarized by *disposition*)
-translocation_data <- spawner_data %>% group_by(strata, disposition, year) %>% 
-  summarize(S_add_obs = sum(S_obs[disposition != location & 
-                                    !(location == "Duncan Creek" & disposition == "Duncan Channel")])) %>% 
-  rename(pop = disposition) %>% as.data.frame()
+# (summarized by *location*)
+translocation_data <- spawner_data %>% 
+  mutate(location = replace(location, location == "Duncan Creek", "Duncan Channel"),
+         disposition = replace(disposition, disposition == "Duncan Creek", "Duncan Channel"),
+         spawned = as.logical(replace(spawned, spawned == "TBD", TRUE))) %>% # TEMP: assume all spawned 
+  filter(disposition != location) %>% 
+  group_by(strata, location, disposition, year) %>% summarize(S_obs = sum(S_obs)) %>% 
+  dcast(strata + location + year ~ disposition, value.var = "S_obs", fun.aggregate = sum) %>% 
+  rename(pop = location) %>% 
+  select(strata, pop, year, `Duncan Channel`, `Duncan Hatchery`, `Lewis Hatchery`, `Grays Hatchery`)
 
 # total spawners:
 # all spawners with a given disposition, regardless of original return location
 # (summarized by *disposition*)
-spawner_data_agg <- spawner_data %>% group_by(strata, disposition, year) %>% 
+# drop Duncan Creek
+spawner_data_agg <- spawner_data %>% 
+  rename(pop = disposition) %>% filter(pop != "Duncan Creek") %>% 
+  group_by(strata, pop, year) %>% 
   summarize(S_obs = sum(S_obs), tau_S_obs = unique(tau_S_obs)) %>% 
-  rename(pop = disposition) %>% 
   left_join(broodstock_data, by = c("strata","pop","year")) %>% 
   left_join(translocation_data, by = c("strata","pop","year")) %>% 
-  mutate(B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0),
-         S_add_obs = replace(S_add_obs, is.na(S_add_obs), 0)) %>% 
+  mutate(B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0)) %>% 
+  mutate(across(matches("Channel|Hatchery"), ~replace_na(.x, 0))) %>% 
+  rename_at(vars(matches("Channel|Hatchery")), list(~paste0("n_B", .x, "_obs"))) %>% 
   as.data.frame()
 
 # Spawner age-, sex-, and origin-frequency (aka BioData)
@@ -126,8 +135,8 @@ bio_data <- read.csv(here("data","Data_BioData_Spawners_Chum.csv"),
   select(year:location, disposition, origin, HW, sex:count) %>%
   arrange(strata, location, year, origin, age, sex)
 
-# age of wild (i.e., potentially local) spawners only
-bio_data_age <- bio_data %>% filter(HW == "W") %>%
+# spawner age structure
+bio_data_age <- bio_data %>% 
   dcast(year + disposition ~ age, value.var = "count", fun.aggregate = sum) %>% 
   rename(pop = disposition)
 
@@ -142,7 +151,9 @@ bio_data_HW <- bio_data %>%
 bio_data_origin <- bio_data %>% 
   mutate(pop = replace(location, location == "Duncan Creek", "Duncan Channel")) %>% 
   dcast(year + pop ~ origin, value.var = "count", fun.aggregate = sum) %>% 
-  select(year, pop, `Natural spawner`, `Duncan Hatchery`, `Lewis Hatchery`, `Grays Hatchery`)
+  select(year, pop, `Natural spawner`, `Duncan Channel`, `Duncan Hatchery`, 
+         `Lewis Hatchery`, `Grays Hatchery`) %>% 
+  rename_at(vars(matches("Channel|Hatchery")), list(~paste0("n_O", .x, "_obs")))
 
 # sex composition of spawners, regardless of origin
 bio_data_sex <- bio_data %>% 
@@ -240,7 +251,7 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
             by = c("pop","year")) %>% 
   left_join(habitat_data, by = c("pop","year")) %>% 
   left_join(green_female_data, by = c("pop","year")) %>% 
-  rename_at(vars(contains("Age-")), list(~ paste0(sub("Age-","n_age",.), "_obs"))) %>% 
+  rename_at(vars(contains("Age-")), list(~paste0(sub("Age-","n_age",.), "_obs"))) %>% 
   select(-c(n_age2_obs, n_age6_obs)) %>% 
   filter(pop != "Duncan Creek") %>% 
   mutate(pop = droplevels(factor(pop, levels = pop_names$pop)), # order E-W
@@ -249,21 +260,24 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
          M_obs = replace(M_obs, grepl("Hatchery", pop) & is.na(M_obs), 0), 
          tau_S_obs = replace(tau_S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0),
-         S_add_obs = replace(S_add_obs, is.na(S_add_obs), 0),
          p_G_obs = replace(p_G_obs, is.na(p_G_obs), 1), fit_p_HOS = 0, F_rate = 0) %>%
-  # rename(A = m, n_H_obs = H, n_W_obs = W, n_M_obs = M, n_F_obs= `F`) %>% ## put w/ data sets
   rename(A = m, n_O0_obs = `Natural spawner`, n_M_obs = M, n_F_obs= `F`) %>% 
   do({ 
     lev <- levels(.$pop)
-    rename_with(., .cols = contains("Hatchery"), 
-                .fn = ~ paste0("n_O", match(.x, lev), "_obs"))
+    .cols <- grepl("Hatchery|Channel", names(.))
+    .fn <- function(.x) {
+      rgx <- "n_[O|B](.*)_obs"
+      streplace <- sub(rgx, "\\1", grep(rgx, .x, value = TRUE))
+      sub(streplace, match(streplace, lev), .x)
+    }
+    setNames(., replace(names(.), .cols, sapply(names(.)[.cols], .fn)))
   }) %>% 
-  mutate_at(vars(contains("n_")), ~ replace(., is.na(.), 0)) %>%
+  mutate_at(vars(contains("n_")), ~replace(., is.na(.), 0)) %>%
   mutate(n_W_obs = n_O0_obs, 
          n_H_obs = rowSums(across(contains("n_O"))) - n_O0_obs,
          .before = n_O0_obs) %>% 
   select(pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_F_obs, 
-         p_G_obs, fit_p_HOS, B_take_obs, S_add_obs, F_rate) %>% 
+         p_G_obs, fit_p_HOS, B_take_obs, starts_with("n_B"), F_rate) %>% 
   arrange(pop, year) 
 
 # fill in fit_p_HOS
