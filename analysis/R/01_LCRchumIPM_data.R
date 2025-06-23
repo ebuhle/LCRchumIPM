@@ -49,7 +49,7 @@ habitat_data <- read.csv(here("data","Data_Habitat_Spawning_Linear.csv"),
 
 # Spawner abundance data
 # Assumptions:
-# (0) Fix coding error in data that assigns some Duncan Creek rows to Cascade stratum
+# (0) Assign all rows with Duncan Channel disposition to Gorge stratum
 # (1) NAs in hatchery dispositions are really zeros
 # (2) NAs in Duncan Creek and Duncan Channel are really zeros
 # (3) All other NAs are real missing observations
@@ -59,18 +59,18 @@ habitat_data <- read.csv(here("data","Data_Habitat_Spawning_Linear.csv"),
 spawner_data <- read.csv(here("data","Data_Abundance_Spawners_Chum.csv"), 
                          header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(year = Return.Yr., strata = Strata, location = Location.Reach, 
-         disposition = Disposition, spawned = Spawned, method = Method, 
+         disposition = Disposition, method = Method, 
          S_obs = Abund.Mean, SD = Abund.SD) %>% 
   mutate(disposition = gsub("I205", "I-205", gsub("_", " ", disposition)),
          location = gsub("I205", "I-205", gsub("_", " ", location)),
          strata = replace(strata, disposition == "Duncan Channel", "Gorge"),
          S_obs = replace(S_obs, is.na(S_obs) & grepl("Hatchery|Duncan", disposition), 0),
          tau_S_obs = sqrt(log((SD/S_obs)^2 + 1))) %>% 
-  select(year:location, disposition, spawned, method, S_obs, SD, tau_S_obs) %>% 
+  select(year:location, disposition, method, S_obs, SD, tau_S_obs) %>% 
   arrange(strata, location, year)
 
-# broodstock take: 
-# all spawners taken from a given location to a different disposition
+# total broodstock translocations: 
+# total spawners taken from a given return location to any other disposition
 # unless location is Duncan Creek and disposition is Duncan Channel,
 # which is considered natural recruitment
 # (summarized by *location*)
@@ -79,15 +79,14 @@ broodstock_data <- spawner_data %>% group_by(strata, location, year) %>%
                                      !(location == "Duncan Creek" & disposition == "Duncan Channel")])) %>% 
   rename(pop = location) %>% as.data.frame()
 
-# added (translocated) spawners:
-# all spawners brought from a given return location to a different disposition
+# distribution of translocated spawners:
+# spawners taken from a given return location to each specific disposition
 # unless location is Duncan Creek and disposition is Duncan Channel,
-# which is considered natural recruitment
+# or the disposition is not a population included in the model
 # (summarized by *location*)
 translocation_data <- spawner_data %>% 
   mutate(location = replace(location, location == "Duncan Creek", "Duncan Channel"),
-         disposition = replace(disposition, disposition == "Duncan Creek", "Duncan Channel"),
-         spawned = as.logical(replace(spawned, spawned == "TBD", TRUE))) %>% # TEMP: assume all spawned 
+         disposition = replace(disposition, disposition == "Duncan Creek", "Duncan Channel")) %>% 
   filter(disposition != location) %>% 
   group_by(strata, location, disposition, year) %>% summarize(S_obs = sum(S_obs)) %>% 
   dcast(strata + location + year ~ disposition, value.var = "S_obs", fun.aggregate = sum) %>% 
@@ -97,31 +96,21 @@ translocation_data <- spawner_data %>%
 # total spawners:
 # all spawners with a given disposition, regardless of original return location
 # (summarized by *disposition*)
-# drop Duncan Creek
+# drop Duncan Creek, Big Creek Hatchery, Peterson RSI, Sea Resources, Skamokawa
 spawner_data_agg <- spawner_data %>% 
-  rename(pop = disposition) %>% filter(pop != "Duncan Creek") %>% 
+  rename(pop = disposition) %>% 
+  filter(!pop %in% c("Duncan Creek","Big Creek Hatchery","Peterson RSI","Sea Resources","Skamokawa")) %>% 
   group_by(strata, pop, year) %>% 
   summarize(S_obs = sum(S_obs), tau_S_obs = unique(tau_S_obs)) %>% 
   left_join(broodstock_data, by = c("strata","pop","year")) %>% 
-  left_join(translocation_data, by = c("strata","pop","year")) %>% 
+  left_join(translocation_data, by = c("strata","pop","year")) %>%
   mutate(B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0)) %>% 
   mutate(across(matches("Channel|Hatchery"), ~replace_na(.x, 0))) %>% 
   rename_at(vars(matches("Channel|Hatchery")), list(~paste0("n_B", .x, "_obs"))) %>% 
   as.data.frame()
 
 # Spawner age-, sex-, and origin-frequency (aka BioData)
-# Assumptions:
-# (1) The first generation of salmonIPM models treated any known nonlocal-origin
-#     spawner as "hatchery-origin" to avoid counting as local recruitment, so "H"
-#     included true hatchery fish based on origin *plus* any whose known origin 
-#     or return location do not match their disposition *unless* they are NOR or
-#     Duncan Channel fish returning to Duncan Creek and disposed to Duncan Channel,
-#     which are in fact local recruitment.
-# (1b) The current version of IPM_LCRchum_pp allows S_add_obs to represent 
-#     nonlocal natural spawners (of known or unknown origin) translocated from
-#     return location to another disposition (i.e., Duncan Channel).
-#     So "H" now includes true hatchery fish based on origin *plus* any others whose
-#     known origin (i.e., Duncan Channel) does not match the disposition.
+# Spawners from Duncan Channel or unknown natural origin are considered "W", all others "H"
 bio_data <- read.csv(here("data","Data_BioData_Spawners_Chum.csv"), 
                      header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(year = Return.Yr., strata = Strata, location = Location.Reach, 
@@ -130,8 +119,7 @@ bio_data <- read.csv(here("data","Data_BioData_Spawners_Chum.csv"),
          location = gsub("I205", "I-205", gsub("_", " ", location)),
          origin = gsub("_", " ", origin),
          count = replace(count, is.na(count), 0), sex = substring(sex,1,1),
-         HW = ifelse((grepl("Hatchery", origin) | !(origin %in% c(disposition, "Natural spawner"))), 
-                     "H", "W")) %>% 
+         HW = ifelse((grepl("Natural spawner|Duncan Channel", origin)), "W", "H")) %>% 
   select(year:location, disposition, origin, HW, sex:count) %>%
   arrange(strata, location, year, origin, age, sex)
 
@@ -140,7 +128,7 @@ bio_data_age <- bio_data %>%
   dcast(year + disposition ~ age, value.var = "count", fun.aggregate = sum) %>% 
   rename(pop = disposition)
 
-# H/W (nonlocal/potentially local)  
+# H/W
 bio_data_HW <- bio_data %>%
   dcast(year + disposition ~ HW, value.var = "count", fun.aggregate = sum) %>% 
   rename(pop = disposition)
@@ -163,7 +151,7 @@ bio_data_sex <- bio_data %>%
 # Proportion of "green" females in Duncan Channel
 # Non-green (ripe or partial) females are assumed to have lower fecundity
 # Proportion green females outside Duncan Channel assumed to = 1
-# https://github.com/mdscheuerell/chumIPM/issues/5
+# https://github.com/ebuhle/chumIPM/issues/5
 green_female_data <- read.csv(here("data","Data_Duncan_Females_by_Condition.csv"),
                               header = TRUE, stringsAsFactors = FALSE) %>% 
   rename(year = BY, disposition = Channel_Disposition, sex = Sex, condition = Condition,
@@ -175,10 +163,12 @@ green_female_data <- read.csv(here("data","Data_Duncan_Females_by_Condition.csv"
 # Assumptions:
 # (1) Duncan North + Duncan South = Duncan Channel, so the former two are redundant 
 #     (not really an assumption, although the equality isn't perfect in all years)
-# (2) When calculating the observation error of log(M_obs), tau_M_obs, assume
+# (2) Drop Big Creek (note that this is coded "Big Creek Hatchery" in other datasets)
+#     and Peterson RSI
+# (3) When calculating the observation error of log(M_obs), tau_M_obs, assume
 #     Abund_Median and Abund_SD are the median and SD of a lognormal posterior 
 #     distribution of smolt abundance based on the sample
-# (3) If Abund_SD == 0 (when Analysis=="Census": some years in Duncan_Channel and 
+# (4) If Abund_SD == 0 (when Analysis=="Census": some years in Duncan_Channel and 
 #     Hamilton_Channel) treat as NA
 juv_data <- read.csv(here("data","Data_Abundance_Juveniles_Chum.csv"), 
                      header = TRUE, stringsAsFactors = FALSE) %>% 
@@ -191,13 +181,14 @@ juv_data <- read.csv(here("data","Data_Abundance_Juveniles_Chum.csv"),
          origin = sapply(gsub("_", " ", origin), function(x)
            paste(rev(strsplit(x, " ")[[1]]), collapse = " ")), # names inconsistent w/ bio_data 
          tau_M_obs = replace(sqrt(log((SD/mean)^2 + 1)), SD==0, NA)) %>% 
+  filter(!grepl("Big Creek|Peterson RSI", location)) %>% 
   select(strata, location, year, brood_year, origin:CV, tau_M_obs, comments) %>% 
   arrange(strata, location, year)
 
 # drop redundant pops and cases with leading or trailing NAs in M_obs
 # use only pooled Duncan Channel data for now, not North / South
 # drop final year if it contains only hatchery releases
-#   (kludge to avoid rows with only hatchery M_obs in fish_data as of 2023-06-26)
+#   (kludge to avoid rows with only hatchery M_obs in fish_data)
 head_noNA <- function(x) { cumsum(!is.na(x)) > 0 }
 juv_data_incl <- juv_data %>% 
   mutate(pop = ifelse(grepl("Hatchery", origin), origin, location), .after = strata) %>% 
@@ -237,7 +228,7 @@ dist_mouth_data <- pairwise_data %>% filter(pop1 == "Columbia Mouth") %>% select
 # Drop age-2 and age-6 samples (each is < 0.1% of aged spawners)
 # Drop Duncan Creek
 # Change S_obs and tau_S_obs to NA in Hamilton Channel 2011-2012 based on
-# https://github.com/mdscheuerell/chumIPM/issues/6#issuecomment-807885445
+# https://github.com/ebuhle/chumIPM/issues/6#issuecomment-807885445
 # Pad data as necessary so Grays_MS, Grays_WF, and Grays_CJ have the same set of years
 # (since their estimated smolts will be summed)  
 # Pad data as necessary so hatchery populations are represented in all years
@@ -260,7 +251,7 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
          M_obs = replace(M_obs, grepl("Hatchery", pop) & is.na(M_obs), 0), 
          tau_S_obs = replace(tau_S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0),
-         p_G_obs = replace(p_G_obs, is.na(p_G_obs), 1), fit_p_HOS = 0, F_rate = 0) %>%
+         p_G_obs = replace(p_G_obs, is.na(p_G_obs), 1), F_rate = 0) %>%
   rename(A = m, n_O0_obs = `Natural spawner`, n_M_obs = M, n_F_obs= `F`) %>% 
   do({ 
     lev <- levels(.$pop)
@@ -277,18 +268,18 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
          n_H_obs = rowSums(across(contains("n_O"))) - n_O0_obs,
          .before = n_O0_obs) %>% 
   select(pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_F_obs, 
-         p_G_obs, fit_p_HOS, B_take_obs, starts_with("n_B"), F_rate) %>% 
+         p_G_obs, B_take_obs, starts_with("n_B"), F_rate) %>% 
   arrange(pop, year) 
 
-# fill in fit_p_HOS
-for(i in 1:nrow(fish_data_all)) {
-  pop_i <- as.character(fish_data_all$pop[i])
-  start_year <- ifelse(pop_i %in% hatcheries$pop,
-                       min(hatcheries$start_brood_year[hatcheries$pop == pop_i]) + 1,
-                       NA)
-  fish_data_all$fit_p_HOS[i] <- ifelse((!is.na(start_year) & fish_data_all$year[i] >= start_year) |
-                                         fish_data_all$n_H_obs[i] > 0, 1, 0)
-}
+# # fill in fit_p_HOS
+# for(i in 1:nrow(fish_data_all)) {
+#   pop_i <- as.character(fish_data_all$pop[i])
+#   start_year <- ifelse(pop_i %in% hatcheries$pop,
+#                        min(hatcheries$start_brood_year[hatcheries$pop == pop_i]) + 1,
+#                        NA)
+#   fish_data_all$fit_p_HOS[i] <- ifelse((!is.na(start_year) & fish_data_all$year[i] >= start_year) |
+#                                          fish_data_all$n_H_obs[i] > 0, 1, 0)
+# }
 
 # drop cases with initial NAs in both S_obs and M_obs
 # (except hatchery populations, which must be present in every year)
@@ -312,13 +303,13 @@ fish_data_fore <- fish_data %>% group_by(pop) %>%
   slice(rep(n(), max(fish_data$year) + N_year_fore - max(year))) %>%
   reframe(year = (unique(year) + 1):(max(fish_data$year) + N_year_fore), forecast = TRUE,
           S_obs = NA, tau_S_obs = NA, M_obs = NA, tau_M_obs = NA, downstream_trap = NA, 
-          p_G_obs = 1, S_add_obs = 0, fit_p_HOS = 0, B_take_obs = 0, F_rate = 0) %>%
+          p_G_obs = 1, B_take_obs = 0, F_rate = 0) %>%
   full_join(mutate(fish_data, forecast = FALSE, downstream_trap = NA)) %>% 
   mutate_at(vars(starts_with("n_")), ~ replace_na(., 0)) %>%
   arrange(pop, year) %>% fill(A, pop_type, .direction = "down") %>%
   select(pop, pop_type, year, forecast, A, S_obs, tau_S_obs, M_obs, tau_M_obs,
          downstream_trap, n_age3_obs:n_F_obs, p_G_obs, 
-         fit_p_HOS, B_take_obs, S_add_obs, F_rate) %>% 
+         B_take_obs, F_rate) %>% 
   as.data.frame()
 
 # assign Grays_WF and Grays_CJ smolts to the downstream trap in Grays_MS
