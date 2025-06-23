@@ -75,8 +75,9 @@ spawner_data <- read.csv(here("data","Data_Abundance_Spawners_Chum.csv"),
 # which is considered natural recruitment
 # (summarized by *location*)
 broodstock_data <- spawner_data %>% group_by(strata, location, year) %>% 
-  summarize(B_take_obs = sum(S_obs[disposition != location & 
-                                     !(location == "Duncan Creek" & disposition == "Duncan Channel")])) %>% 
+  mutate(location = replace(location, location == "Duncan Creek", "Duncan Channel"),
+         disposition = replace(disposition, disposition == "Duncan Creek", "Duncan Channel")) %>% 
+  summarize(B_take_obs = sum(S_obs[disposition != location])) %>% 
   rename(pop = location) %>% as.data.frame()
 
 # distribution of translocated spawners:
