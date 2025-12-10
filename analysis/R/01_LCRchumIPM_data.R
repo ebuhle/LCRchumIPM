@@ -129,25 +129,25 @@ bio_data_age <- bio_data %>%
   dcast(year + disposition ~ age, value.var = "count", fun.aggregate = sum) %>% 
   rename(pop = disposition)
 
-# H/W
-bio_data_HW <- bio_data %>%
-  dcast(year + disposition ~ HW, value.var = "count", fun.aggregate = sum) %>% 
-  rename(pop = disposition)
+# spawner sex composition
+bio_data_sex <- bio_data %>% 
+  dcast(year + disposition ~ sex, value.var = "count", fun.aggregate = sum) %>% 
+  rename(pop = disposition) %>% select(year:pop, M, `F`)
 
-# origin of spawners returning to a given location, regardless of final disposition
+# spawner origin composition
 # recruits to Duncan Creek are considered as pop == "Duncan Channel"
-# ignore Duncan Channel- and Big Creek Hatchery-origin spawners for now
+# ignore Big Creek Hatchery-origin spawners for now
 bio_data_origin <- bio_data %>% 
-  mutate(pop = replace(location, location == "Duncan Creek", "Duncan Channel")) %>% 
+  mutate(pop = replace(disposition, disposition == "Duncan Creek", "Duncan Channel")) %>% 
   dcast(year + pop ~ origin, value.var = "count", fun.aggregate = sum) %>% 
   select(year, pop, `Natural spawner`, `Duncan Channel`, `Duncan Hatchery`, 
          `Lewis Hatchery`, `Grays Hatchery`) %>% 
   rename_at(vars(matches("Channel|Hatchery")), list(~paste0("n_O", .x, "_obs")))
 
-# sex composition of spawners, regardless of origin
-bio_data_sex <- bio_data %>% 
-  dcast(year + disposition ~ sex, value.var = "count", fun.aggregate = sum) %>% 
-  rename(pop = disposition) %>% select(year:pop, M, `F`)
+# # H/W
+# bio_data_HW <- bio_data %>%
+#   dcast(year + disposition ~ HW, value.var = "count", fun.aggregate = sum) %>% 
+#   rename(pop = disposition)
 
 # Proportion of "green" females in Duncan Channel
 # Non-green (ripe or partial) females are assumed to have lower fecundity
