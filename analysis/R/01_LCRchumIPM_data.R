@@ -49,7 +49,6 @@ habitat_data <- read.csv(here("data","Data_Habitat_Spawning_Linear.csv"),
 
 # Spawner abundance data
 # Assumptions:
-# (0) Assign all rows with Duncan Channel disposition to Gorge stratum
 # (1) NAs in hatchery dispositions are really zeros
 # (2) NAs in Duncan Creek and Duncan Channel are really zeros
 # (3) All other NAs are real missing observations
@@ -63,7 +62,6 @@ spawner_data <- read.csv(here("data","Data_Abundance_Spawners_Chum.csv"),
          S_obs = Abund.Mean, SD = Abund.SD) %>% 
   mutate(disposition = gsub("I205", "I-205", gsub("_", " ", disposition)),
          location = gsub("I205", "I-205", gsub("_", " ", location)),
-         strata = replace(strata, disposition == "Duncan Channel", "Gorge"),
          S_obs = replace(S_obs, is.na(S_obs) & grepl("Hatchery|Duncan", disposition), 0),
          tau_S_obs = sqrt(log((SD/S_obs)^2 + 1))) %>% 
   select(year:location, disposition, method, S_obs, SD, tau_S_obs) %>% 
@@ -74,7 +72,7 @@ spawner_data <- read.csv(here("data","Data_Abundance_Spawners_Chum.csv"),
 # unless location is Duncan Creek and disposition is Duncan Channel,
 # which is considered natural recruitment
 # (summarized by *location*)
-broodstock_data <- spawner_data %>% group_by(strata, location, year) %>% 
+broodstock_data <- spawner_data %>% group_by(location, year) %>% 
   mutate(location = replace(location, location == "Duncan Creek", "Duncan Channel"),
          disposition = replace(disposition, disposition == "Duncan Creek", "Duncan Channel")) %>% 
   summarize(B_take_obs = sum(S_obs[disposition != location])) %>% 
@@ -89,10 +87,10 @@ translocation_data <- spawner_data %>%
   mutate(location = replace(location, location == "Duncan Creek", "Duncan Channel"),
          disposition = replace(disposition, disposition == "Duncan Creek", "Duncan Channel")) %>% 
   filter(disposition != location) %>% 
-  group_by(strata, location, disposition, year) %>% summarize(S_obs = sum(S_obs)) %>% 
-  dcast(strata + location + year ~ disposition, value.var = "S_obs", fun.aggregate = sum) %>% 
+  group_by(location, disposition, year) %>% summarize(S_obs = sum(S_obs)) %>% 
+  dcast(location + year ~ disposition, value.var = "S_obs", fun.aggregate = sum) %>% 
   rename(pop = location) %>% 
-  select(strata, pop, year, `Duncan Channel`, `Duncan Hatchery`, `Lewis Hatchery`, `Grays Hatchery`)
+  select(pop, year, `Duncan Channel`, `Duncan Hatchery`, `Lewis Hatchery`, `Grays Hatchery`)
 
 # total spawners:
 # all spawners with a given disposition, regardless of original return location
@@ -101,14 +99,14 @@ translocation_data <- spawner_data %>%
 spawner_data_agg <- spawner_data %>% 
   rename(pop = disposition) %>% 
   filter(!pop %in% c("Duncan Creek","Big Creek Hatchery","Peterson RSI","Sea Resources","Skamokawa")) %>% 
-  group_by(strata, pop, year) %>% 
+  group_by(pop, year) %>% 
   summarize(S_obs = sum(S_obs), tau_S_obs = unique(tau_S_obs)) %>% 
-  left_join(broodstock_data, by = c("strata","pop","year")) %>% 
-  left_join(translocation_data, by = c("strata","pop","year")) %>%
-  mutate(B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0)) %>% 
-  mutate(across(matches("Channel|Hatchery"), ~replace_na(.x, 0))) %>% 
-  rename_at(vars(matches("Channel|Hatchery")), list(~paste0("n_B", .x, "_obs"))) %>% 
-  as.data.frame()
+  full_join(broodstock_data, by = c("pop","year")) %>%
+  full_join(translocation_data, by = c("pop","year")) %>%
+  mutate(B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0)) %>%
+  mutate(across(matches("Channel|Hatchery"), ~replace_na(.x, 0))) %>%
+  rename_at(vars(matches("Channel|Hatchery")), list(~paste0("n_B", .x, "_obs"))) %>%
+  arrange(pop, year) %>% as.data.frame()
 
 # Spawner age-, sex-, and origin-frequency (aka BioData)
 # Spawners from Duncan Channel or unknown natural origin are considered "W", all others "H"
@@ -143,11 +141,6 @@ bio_data_origin <- bio_data %>%
   select(year, pop, `Natural spawner`, `Duncan Channel`, `Duncan Hatchery`, 
          `Lewis Hatchery`, `Grays Hatchery`) %>% 
   rename_at(vars(matches("Channel|Hatchery")), list(~paste0("n_O", .x, "_obs")))
-
-# # H/W
-# bio_data_HW <- bio_data %>%
-#   dcast(year + disposition ~ HW, value.var = "count", fun.aggregate = sum) %>% 
-#   rename(pop = disposition)
 
 # Proportion of "green" females in Duncan Channel
 # Non-green (ripe or partial) females are assumed to have lower fecundity
@@ -195,7 +188,7 @@ head_noNA <- function(x) { cumsum(!is.na(x) & x > 0) > 0 }
 juv_data_incl <- juv_data %>% 
   mutate(pop = ifelse(grepl("Hatchery", origin), origin, location), .after = strata,
          M_obs = replace(M_obs, is.na(M_obs) & grepl("Hatchery", pop), 0)) %>% 
-  filter(!(pop %in% c("Duncan North","Duncan South","Big Creek Hatchery"))) %>% 
+  filter(!pop %in% c("Duncan North","Duncan South","Big Creek Hatchery")) %>% 
   select(pop, year, M_obs, tau_M_obs) %>% arrange(pop, year) %>% 
   group_by(pop, year) %>% summarize(M_obs = sum(M_obs), tau_M_obs = unique(tau_M_obs)) %>%
   ungroup() %>% group_by(pop) %>% filter(head_noNA(M_obs) & rev(head_noNA(rev(M_obs)))) %>%
