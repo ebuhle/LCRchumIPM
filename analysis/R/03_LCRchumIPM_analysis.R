@@ -48,8 +48,7 @@ fit_exp <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "exp", ages = list(
                      control = list(max_treedepth = 15))
 
 ## @knitr print_fit_exp
-print(fit_exp, prob = c(0.05,0.5,0.95), pars = stan_pars("IPM_LCRchum_pp","hyper"), 
-      use_cache = FALSE)
+print(fit_exp)
 ## @knitr
 
 # Beverton-Holt
@@ -61,8 +60,7 @@ fit_BH <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "BH", ages = list(M 
                     control = list(max_treedepth = 15))
 
 ## @knitr print_fit_BH
-print(fit_BH, prob = c(0.05,0.5,0.95), pars = stan_pars("IPM_LCRchum_pp","hyper"), 
-      use_cache = FALSE)
+print(fit_BH)
 ## @knitr
 
 # Ricker
@@ -74,8 +72,7 @@ fit_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", ages =
                         control = list(max_treedepth = 15))
 
 ## @knitr print_fit_Ricker
-print(fit_Ricker, prob = c(0.05,0.5,0.95), pars = stan_pars("IPM_LCRchum_pp","hyper"), 
-      use_cache = FALSE)
+print(fit_Ricker)
 ## @knitr
 
 
@@ -127,8 +124,7 @@ foreH0_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", age
                            control = list(max_treedepth = 15))
 
 ## @knitr print_foreH0_Ricker
-print(foreH0_Ricker, prob = c(0.05,0.5,0.95), pars = stan_pars("IPM_LCRchum_pp","hyper"),
-      use_cache = FALSE)
+print(foreH0_Ricker)
 ## @knitr
 
 # Ricker
@@ -141,15 +137,14 @@ foreHmax_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", a
                              control = list(max_treedepth = 15))
 
 ## @knitr print_foreHmax_Ricker
-print(foreHmax_Ricker, prob = c(0.05,0.5,0.95), pars = stan_pars("IPM_LCRchum_pp","hyper"),
-      use_cache = FALSE)
+print(foreHmax_Ricker)
 ## @knitr
 
 #--------------------------------------------------------------
 # Save stanfit objects
 #--------------------------------------------------------------
 
-save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "stanfit"], 
+save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "salmonIPMfit"], 
      file = here("analysis","results","LCRchumIPM.RData"))
 
 
@@ -165,7 +160,7 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 #--------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 if(save_plot) {
   png(filename = here("analysis","results", 
@@ -266,15 +261,15 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 ## @knitr plot_P_D
-gg <- P_D_plot(mod = get(mod_name), fish_data = fish_data)
+gg <- p_D_plot(mod = get(mod_name), fish_data = fish_data)
 ## @knitr
 
 if(save_plot) {
   ggsave(filename = here("analysis","results",
-                         paste0("P_D_", strsplit(mod_name, "_")[[1]][2], ".png")), 
+                         paste0("p_D_", strsplit(mod_name, "_")[[1]][2], ".png")), 
          width=11, height=7, units="in", dpi=300)
 } else {
   dev.new(width=11, height=7)
@@ -300,9 +295,9 @@ gg <- smolt_spawner_ts(mod = get(mod_name), life_stage = life_stage,
 if(save_plot) {
   ggsave(filename = here("analysis","results",
                          paste0(life_stage, "_fit_", strsplit(mod_name, "_")[[1]][2], ".png")), 
-         width=12, height=7, units="in", dpi=300)
+         width=12, height=6, units="in", dpi=300)
 } else {
-  dev.new(width=12,height=7)
+  dev.new(width=12,height=6)
   plot(gg)
 }
 
@@ -351,7 +346,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 ## @knitr plot_sex_ratio
 gg <- plot_sex_ratio(mod = get(mod_name), fish_data = fish_data)
@@ -371,7 +366,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_p_HOS
 gg <- p_HOS_timeseries(mod = get(mod_name), fish_data = fish_data)
@@ -380,9 +375,9 @@ gg <- p_HOS_timeseries(mod = get(mod_name), fish_data = fish_data)
 if(save_plot) {
   ggsave(filename = here("analysis","results",
                          paste0("p_HOS_fit_", strsplit(mod_name, "_")[[1]][2], ".png")), 
-         width=11, height=7, units="in", dpi=300)
+         width=12, height=6, units="in", dpi=300)
 } else {
-  dev.new(width=11, height=7)
+  dev.new(width=12, height=6)
   plot(gg)
 }
 

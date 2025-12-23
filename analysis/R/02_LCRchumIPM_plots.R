@@ -288,8 +288,9 @@ psi_Mmax_plot <- function(mod, fish_data)
                         "Smolt ~ capacity ~ (italic(M)[max] ~ '['*10^6 ~ km^-1*']')"), 
                       each = length(levels(pop))),
            fill = ifelse(pop == "ESU hyper-mean", "dark", ifelse(has_M_obs, "light", "none")),
-           .value = draws$.value) %>% 
-    filter(!grepl("Hatchery", pop))
+           .value = replace(draws$.value, 
+                            grepl("Hatchery", pop) & grepl("capacity", pars),
+                            NA))
   
   gg <- dat %>% 
     ggplot(aes(xdist = .value, y = pop, fill = fill)) +
@@ -482,22 +483,25 @@ smolt_SAR_ts <- function(mod, fish_data)
 # Straying matrix: probability of dispersal from each origin to each population
 #--------------------------------------------------------------------------------
 
-P_D_plot <- function(mod, fish_data)
+p_D_plot <- function(mod, fish_data)
 {
-  P_D <- as_draws_rvars(as.array(mod, "P_D"))
+  p_D <- as_draws_rvars(as.array(mod, "p_D"))
+  which_O_pop <- sapply(strsplit(grep("n_O", names(fish_data), value = TRUE)[-1], "_"), 
+                        function(x) as.numeric(substring(x[2], 2)))
   
-  dat <- data.frame(P_D = P_D) %>% 
+  dat <- data.frame(p_D = p_D) %>% 
     setNames(unique(fish_data$pop[fish_data$pop_type == "natural"])) %>% 
-    cbind(origin = unique(fish_data$pop[fish_data$pop_type == "hatchery"])) %>% 
-    pivot_longer(cols = -origin, names_to = "pop", values_to = "P_D") %>% 
+    cbind(origin = factor(levels(fish_data$pop)[which_O_pop],
+                          levels = levels(fish_data$pop))) %>%
+    pivot_longer(cols = -origin, names_to = "pop", values_to = "p_D") %>% 
     mutate(pop = factor(pop, levels = levels(fish_data$pop)))
     
   gg <- dat %>% 
-    ggplot(aes(xdist = P_D, y = pop)) +
+    ggplot(aes(xdist = p_D, y = pop)) +
     stat_eye(.width = c(0.5, 0.9), normalize = "groups", 
              color = "slategray4", fill = alpha("slategray4", 0.5)) + 
     scale_y_discrete(limits = rev) + labs(x = "Dispersal probability", y = "") + 
-    facet_wrap(vars(origin)) + 
+    facet_wrap(vars(origin), nrow = 1) + 
     theme(panel.grid.minor = element_blank(), strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
   
@@ -511,22 +515,20 @@ P_D_plot <- function(mod, fish_data)
 smolt_spawner_ts <- function(mod, life_stage = c("M","S"), fish_data)
 {
   year <- fish_data$year
-  draws <- as_draws_rvars(as.matrix(fit_Ricker, c(life_stage, paste0("tau_", life_stage)))) %>% 
+  draws <- as_draws_rvars(as.matrix(mod, c(life_stage, paste0("tau_", life_stage)))) %>% 
     rename_variables(N = !!life_stage, tau_N = !!paste0("tau_", life_stage))
   
   dat <- fish_data %>% 
     rename(N_obs = !!paste0(life_stage, "_obs"),
            tau_N_obs = !!paste0("tau_", life_stage, "_obs")) %>% 
-    mutate(N = draws$N) %>% 
+    mutate(N_obs = replace(N_obs, N_obs == 0, NA), N = draws$N) %>% 
     group_by(downstream_trap) %>% mutate(N_downstream = rvar_sum(N)) %>% ungroup() %>% 
     mutate(N_upstream = replace(as_rvar(rep(0, n())), na.omit(downstream_trap),
                                 N_downstream[!is.na(downstream_trap)]),
            N = if(life_stage == "M") N + N_upstream else N,
            tau_N = draws$tau_N, N_ppd = rvar_rng(rlnorm, n(), log(N), tau_N),
            N_obs_prior = dist_lognormal(
-             log(N_obs), ifelse(is.na(tau_N_obs), mean(tau_N), tau_N_obs))
-           ) %>% 
-    filter(pop_type == "natural")
+             log(N_obs), ifelse(is.na(tau_N_obs), mean(tau_N), tau_N_obs)))
   
   gg <- dat %>% 
     ggplot(aes(x = year, ydist = N_obs_prior)) +
@@ -542,7 +544,8 @@ smolt_spawner_ts <- function(mod, life_stage = c("M","S"), fish_data)
     scale_x_continuous(minor_breaks = unique(fish_data$year), expand = expansion(0.01)) +
     scale_y_log10(breaks = function(l) maglab(na.omit(l), log = TRUE)$tickat,
                   labels = label_log()) +
-    facet_wrap(vars(pop), ncol = 4, scales = "free_y") + 
+    facet_wrap(vars(pop), ncol = 5, scales = "free_y") + 
+    theme_bw(base_size = 13) + 
     theme(panel.grid.minor = element_blank(), 
           strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
@@ -686,7 +689,7 @@ p_HOS_timeseries <- function(mod, fish_data)
            p_HOS_ppd = n_H_ppd/n_HW_obs,
            p_HOS_obs = binconf(n_H_obs, n_HW_obs, alpha = 0.1)) %>% 
     do.call(data.frame, .) %>% # unpack col with nested data frame
-    filter(!grepl("Hatchery", pop)) %>% 
+    # filter(!grepl("Hatchery", pop)) %>% 
     ggplot(aes(x = year)) +
     geom_ribbon(aes(ymin = t(quantile(p_HOS, 0.05)), ymax = t(quantile(p_HOS, 0.95))), 
                 fill = "slategray4", alpha = 0.5) +
@@ -697,8 +700,8 @@ p_HOS_timeseries <- function(mod, fish_data)
     geom_errorbar(aes(ymin = p_HOS_obs.Lower, ymax = p_HOS_obs.Upper), width = 0) +
     scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5,
                        minor_breaks = sort(unique(year))) +
-    coord_cartesian(ylim = c(0, 0.5)) + labs(x = "Year", y = bquote(italic(p)[HOS])) +
-    facet_wrap(vars(pop), ncol = 4) + 
+    coord_cartesian(ylim = c(0, 1)) + labs(x = "Year", y = bquote(italic(p)[HOS])) +
+    facet_wrap(vars(pop), ncol = 5) + 
     theme(panel.grid.minor.y = element_blank(), strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
   
