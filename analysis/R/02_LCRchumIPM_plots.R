@@ -689,7 +689,6 @@ p_HOS_timeseries <- function(mod, fish_data)
            p_HOS_ppd = n_H_ppd/n_HW_obs,
            p_HOS_obs = binconf(n_H_obs, n_HW_obs, alpha = 0.1)) %>% 
     do.call(data.frame, .) %>% # unpack col with nested data frame
-    # filter(!grepl("Hatchery", pop)) %>% 
     ggplot(aes(x = year)) +
     geom_ribbon(aes(ymin = t(quantile(p_HOS, 0.05)), ymax = t(quantile(p_HOS, 0.95))), 
                 fill = "slategray4", alpha = 0.5) +
@@ -702,6 +701,7 @@ p_HOS_timeseries <- function(mod, fish_data)
                        minor_breaks = sort(unique(year))) +
     coord_cartesian(ylim = c(0, 1)) + labs(x = "Year", y = bquote(italic(p)[HOS])) +
     facet_wrap(vars(pop), ncol = 5) + 
+    theme_bw(base_size = 13) + 
     theme(panel.grid.minor.y = element_blank(), strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
   
