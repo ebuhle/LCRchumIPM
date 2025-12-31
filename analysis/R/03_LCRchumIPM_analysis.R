@@ -39,34 +39,35 @@ if(file.exists(here("analysis","results","LCRchumIPM.RData")))
 # FIT RETROSPECTIVE MODELS
 #===========================================================================
 
-# Density-independent
-## @knitr fit_exp
-fit_exp <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "exp", ages = list(M = 1), 
-                     par_models = list(s_MS ~ pop_type), center = FALSE, scale = FALSE, 
-                     fish_data = fish_data, fecundity_data = fecundity_data,
-                     chains = 4, iter = 1500, warmup = 500,
-                     control = list(max_treedepth = 15))
-
-## @knitr print_fit_exp
-print(fit_exp)
-## @knitr
-
-# Beverton-Holt
-## @knitr fit_BH
-fit_BH <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "BH", ages = list(M = 1), 
-                    par_models = list(s_MS ~ pop_type), center = FALSE, scale = FALSE, 
-                    fish_data = fish_data, fecundity_data = fecundity_data,
-                    chains = 4, iter = 1500, warmup = 500,
-                    control = list(max_treedepth = 15))
-
-## @knitr print_fit_BH
-print(fit_BH)
-## @knitr
+# # Density-independent
+# ## @knitr fit_exp
+# fit_exp <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "exp", ages = list(M = 1), 
+#                      par_models = list(s_MS ~ pop_type), center = FALSE, scale = FALSE, 
+#                      fish_data = fish_data, fecundity_data = fecundity_data,
+#                      chains = 4, iter = 1500, warmup = 500,
+#                      control = list(max_treedepth = 15))
+# 
+# ## @knitr print_fit_exp
+# print(fit_exp)
+# ## @knitr
+# 
+# # Beverton-Holt
+# ## @knitr fit_BH
+# fit_BH <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "BH", ages = list(M = 1), 
+#                     par_models = list(s_MS ~ pop_type), center = FALSE, scale = FALSE, 
+#                     fish_data = fish_data, fecundity_data = fecundity_data,
+#                     chains = 4, iter = 1500, warmup = 500,
+#                     control = list(max_treedepth = 15))
+# 
+# ## @knitr print_fit_BH
+# print(fit_BH)
+# ## @knitr
 
 # Ricker
 ## @knitr fit_Ricker
 fit_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", ages = list(M = 1), 
-                        par_models = list(s_MS ~ pop_type), center = FALSE, scale = FALSE, 
+                        par_models = list(psi ~ pop_type, s_MS ~ pop_type), 
+                        center = FALSE, scale = FALSE, 
                         fish_data = fish_data, fecundity_data = fecundity_data,
                         chains = 4, iter = 1500, warmup = 500,
                         control = list(max_treedepth = 15))
@@ -110,35 +111,35 @@ print(fit_Ricker)
 # ## @knitr
 
 
-#===========================================================================
-# FIT PROSPECTIVE FORECASTING MODELS
-#===========================================================================
-
-# Ricker
-# no broodstock removals or hatchery smolt releases
-# @knitr fit_foreH0_Ricker
-foreH0_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", ages = list(M = 1), 
-                           par_models = list(s_MS ~ pop_type), center = FALSE, scale = FALSE, 
-                           fish_data = fish_data_foreH0, fecundity_data = fecundity_data,
-                           chains = 4, iter = 1500, warmup = 500,
-                           control = list(max_treedepth = 15))
-
-## @knitr print_foreH0_Ricker
-print(foreH0_Ricker)
-## @knitr
-
-# Ricker
-# broodstock removal rates and hatchery smolt releases at maximum observed
-## @knitr fit_foreHmax_Ricker
-foreHmax_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", ages = list(M = 1), 
-                             par_models = list(s_MS ~ pop_type), center = FALSE, scale = FALSE, 
-                             fish_data = fish_data_foreHmax, fecundity_data = fecundity_data,
-                             chains = 4, iter = 1500, warmup = 500,
-                             control = list(max_treedepth = 15))
-
-## @knitr print_foreHmax_Ricker
-print(foreHmax_Ricker)
-## @knitr
+# #===========================================================================
+# # FIT PROSPECTIVE FORECASTING MODELS
+# #===========================================================================
+# 
+# # Ricker
+# # no broodstock removals or hatchery smolt releases
+# # @knitr fit_foreH0_Ricker
+# foreH0_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", ages = list(M = 1), 
+#                            par_models = list(s_MS ~ pop_type), center = FALSE, scale = FALSE, 
+#                            fish_data = fish_data_foreH0, fecundity_data = fecundity_data,
+#                            chains = 4, iter = 1500, warmup = 500,
+#                            control = list(max_treedepth = 15))
+# 
+# ## @knitr print_foreH0_Ricker
+# print(foreH0_Ricker)
+# ## @knitr
+# 
+# # Ricker
+# # broodstock removal rates and hatchery smolt releases at maximum observed
+# ## @knitr fit_foreHmax_Ricker
+# foreHmax_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", ages = list(M = 1), 
+#                              par_models = list(s_MS ~ pop_type), center = FALSE, scale = FALSE, 
+#                              fish_data = fish_data_foreHmax, fecundity_data = fecundity_data,
+#                              chains = 4, iter = 1500, warmup = 500,
+#                              control = list(max_treedepth = 15))
+# 
+# ## @knitr print_foreHmax_Ricker
+# print(foreHmax_Ricker)
+# ## @knitr
 
 #--------------------------------------------------------------
 # Save stanfit objects
@@ -160,7 +161,7 @@ save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "
 #--------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 if(save_plot) {
   png(filename = here("analysis","results", 
@@ -199,7 +200,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_psi_Mmax
 gg <- psi_Mmax_plot(mod = get(mod_name), fish_data)
@@ -220,7 +221,7 @@ if(save_plot) {
 
 mod_name <- "fit_Ricker"
 life_stage <- "M"   # "M" = smolts, "R" = adult recruits
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr SR_plot
 gg <- SR_plot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2],
@@ -241,7 +242,7 @@ if(save_plot) {
 #-------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_M_anomaly_SAR
 gg <- smolt_SAR_ts(mod = get(mod_name), fish_data = fish_data)
@@ -261,7 +262,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_P_D
 gg <- p_D_plot(mod = get(mod_name), fish_data = fish_data)
@@ -282,7 +283,7 @@ if(save_plot) {
 
 mod_name <- "fit_Ricker"
 life_stage <- "S"   # "S" = spawners, "M" = smolts
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr smolt_spawner_ts
 gg <- smolt_spawner_ts(mod = get(mod_name), life_stage = life_stage, 
@@ -326,7 +327,7 @@ if(save_plot) dev.off()
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_spawner_age_ts
 gg <- age_timeseries(mod = get(mod_name), fish_data = fish_data)
@@ -335,9 +336,9 @@ gg <- age_timeseries(mod = get(mod_name), fish_data = fish_data)
 if(save_plot) {
   ggsave(filename = here("analysis","results",
                          paste0("q_fit_", strsplit(mod_name, "_")[[1]][2], ".png")), 
-         width=12, height=7, units="in", dpi=300)
+         width=12, height=6, units="in", dpi=300)
 } else {
-  dev.new(width=12,height=7)
+  dev.new(width=12,height=6)
   plot(gg)
 }
 
@@ -346,7 +347,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- FALSE
+save_plot <- TRUE
 
 ## @knitr plot_sex_ratio
 gg <- plot_sex_ratio(mod = get(mod_name), fish_data = fish_data)
@@ -355,9 +356,9 @@ gg <- plot_sex_ratio(mod = get(mod_name), fish_data = fish_data)
 if(save_plot) {
   ggsave(filename = here("analysis", "results", 
                          paste0("q_F_fit_", strsplit(mod_name, "_")[[1]][2], ".png")),
-         width=11, height=7, units="in", dpi=300)
+         width=12, height=6, units="in", dpi=300)
 } else {
-  dev.new(width=11,height=7)
+  dev.new(width=12,height=6)
   plot(gg)
 }
 
@@ -381,179 +382,179 @@ if(save_plot) {
   plot(gg)
 }
 
-#--------------------------------------------------------------------------------
-# Conditioning forecast trajectories on time-averaged SAR anomalies
-#--------------------------------------------------------------------------------
-
-mod_name <- "foreH0_Ricker"
-save_plot <- TRUE
-
-if(save_plot) {
-  png(filename = here("analysis","results",
-                      paste0("SAR_fore_", strsplit(mod_name, "_")[[1]][2], ".png")), 
-      width=7, height=7, units="in", res=300, type = "cairo-png")
-} else dev.new(width=7,height=7)
-
-## @knitr plot_SAR_fore
-set.seed(321)
-SAR_fore_plot(mod = get(mod_name), fish_data_fore = fish_data_fore, example_pop = "Hardy Creek")
-## @knitr
-
-if(save_plot) dev.off()
-
-#--------------------------------------------------------------------------------
-# Distributions of forecast spawner abundance under alternative scenarios
-#--------------------------------------------------------------------------------
-
-modH0_name <- "foreH0_Ricker"
-modHmax_name <- "foreHmax_Ricker"
-save_plot <- TRUE
-
-## @knitr plot_S_fore
-gg <- S_fore_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
-                  fish_data_foreH0 = fish_data_foreH0, 
-                  fish_data_foreHmax = fish_data_foreHmax,
-                  pop_names = pop_names)
-## @knitr
-
-if(save_plot) {
-  ggsave(filename = here("analysis","results",
-                         paste0("S_fore_", strsplit(modH0_name, "_")[[1]][2], ".png")), 
-         width=12, height=4, units="in", dpi=300)
-} else {
-  dev.new(width=12, height=4)
-  plot(gg)
-}
-
-#------------------------------------------------------------------------------------------
-# Distributions of forecast final : initial spawner abundance under alternative scenarios
-#------------------------------------------------------------------------------------------
-
-modH0_name <- "foreH0_Ricker"
-modHmax_name <- "foreHmax_Ricker"
-save_plot <- TRUE
-
-## @knitr plot_StS0_fore
-gg <- StS0_fore_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name),
-                     fish_data_foreH0 = fish_data_foreH0,
-                     fish_data_foreHmax = fish_data_foreHmax,
-                     pop_names = pop_names)
-## @knitr
-
-if(save_plot) {
-  ggsave(filename = here("analysis","results",
-                         paste0("StS0_fore_", strsplit(modH0_name, "_")[[1]][2], ".png")),
-         width=12, height=4, units="in", dpi=300)
-} else {
-  dev.new(width=12, height=4)
-  plot(gg)
-}
-
-#--------------------------------------------------------------------------------
-# Distributions of forecast p_HOS under alternative scenarios
-#--------------------------------------------------------------------------------
-
-modH0_name <- "foreH0_Ricker"
-modHmax_name <- "foreHmax_Ricker"
-save_plot <- TRUE
-
-## @knitr plot_p_HOS_fore
-gg <- p_HOS_fore_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
-                      fish_data_foreH0 = fish_data_foreH0, 
-                      fish_data_foreHmax = fish_data_foreHmax,
-                      pop_names = pop_names)
-## @knitr
-
-if(save_plot) {
-  ggsave(filename = here("analysis","results",
-                         paste0("p_HOS_fore_", strsplit(modH0_name, "_")[[1]][2], ".png")), 
-         width=12, height=4, units="in", dpi=300)
-} else {
-  dev.new(width=12, height=4)
-  plot(gg)
-}
-
-#--------------------------------------------------------------------------------
-# Probability of quasi-extinction under alternative scenarios
-#--------------------------------------------------------------------------------
-
-modH0_name <- "foreH0_Ricker"
-modHmax_name <- "foreHmax_Ricker"
-save_plot <- TRUE
-
-## @knitr plot_PQE_fore
-gg <- PQE_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
-               fish_data_foreH0 = fish_data_foreH0, 
-               fish_data_foreHmax = fish_data_foreHmax,
-               pop_names = pop_names, QET = 50)
-## @knitr
-
-if(save_plot) {
-  ggsave(filename = here("analysis","results",
-                         paste0("PQE_", strsplit(modH0_name, "_")[[1]][2], ".png")), 
-         width=12, height=4, units="in", dpi=300)
-} else {
-  dev.new(width=12, height=4)
-  plot(gg)
-}
-
-#--------------------------------------------------------------------------------
-# Probability of recovery under alternative scenarios
-#--------------------------------------------------------------------------------
-
-modH0_name <- "foreH0_Ricker"
-modHmax_name <- "foreHmax_Ricker"
-save_plot <- TRUE
-
-## @knitr plot_Precovery_fore
-gg <- Precovery_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
-                     fish_data_foreH0 = fish_data_foreH0, 
-                     fish_data_foreHmax = fish_data_foreHmax,
-                     pop_names = pop_names, recovery_targets = recovery_targets)
-## @knitr
-
-if(save_plot) {
-  ggsave(filename = here("analysis","results",
-                         paste0("Precovery_", strsplit(modH0_name, "_")[[1]][2], ".png")), 
-         width=12, height=4, units="in", dpi=300)
-} else {
-  dev.new(width=12, height=4)
-  plot(gg)
-}
+# #--------------------------------------------------------------------------------
+# # Conditioning forecast trajectories on time-averaged SAR anomalies
+# #--------------------------------------------------------------------------------
+# 
+# mod_name <- "foreH0_Ricker"
+# save_plot <- TRUE
+# 
+# if(save_plot) {
+#   png(filename = here("analysis","results",
+#                       paste0("SAR_fore_", strsplit(mod_name, "_")[[1]][2], ".png")), 
+#       width=7, height=7, units="in", res=300, type = "cairo-png")
+# } else dev.new(width=7,height=7)
+# 
+# ## @knitr plot_SAR_fore
+# set.seed(321)
+# SAR_fore_plot(mod = get(mod_name), fish_data_fore = fish_data_fore, example_pop = "Hardy Creek")
+# ## @knitr
+# 
+# if(save_plot) dev.off()
+# 
+# #--------------------------------------------------------------------------------
+# # Distributions of forecast spawner abundance under alternative scenarios
+# #--------------------------------------------------------------------------------
+# 
+# modH0_name <- "foreH0_Ricker"
+# modHmax_name <- "foreHmax_Ricker"
+# save_plot <- TRUE
+# 
+# ## @knitr plot_S_fore
+# gg <- S_fore_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
+#                   fish_data_foreH0 = fish_data_foreH0, 
+#                   fish_data_foreHmax = fish_data_foreHmax,
+#                   pop_names = pop_names)
+# ## @knitr
+# 
+# if(save_plot) {
+#   ggsave(filename = here("analysis","results",
+#                          paste0("S_fore_", strsplit(modH0_name, "_")[[1]][2], ".png")), 
+#          width=12, height=4, units="in", dpi=300)
+# } else {
+#   dev.new(width=12, height=4)
+#   plot(gg)
+# }
+# 
+# #------------------------------------------------------------------------------------------
+# # Distributions of forecast final : initial spawner abundance under alternative scenarios
+# #------------------------------------------------------------------------------------------
+# 
+# modH0_name <- "foreH0_Ricker"
+# modHmax_name <- "foreHmax_Ricker"
+# save_plot <- TRUE
+# 
+# ## @knitr plot_StS0_fore
+# gg <- StS0_fore_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name),
+#                      fish_data_foreH0 = fish_data_foreH0,
+#                      fish_data_foreHmax = fish_data_foreHmax,
+#                      pop_names = pop_names)
+# ## @knitr
+# 
+# if(save_plot) {
+#   ggsave(filename = here("analysis","results",
+#                          paste0("StS0_fore_", strsplit(modH0_name, "_")[[1]][2], ".png")),
+#          width=12, height=4, units="in", dpi=300)
+# } else {
+#   dev.new(width=12, height=4)
+#   plot(gg)
+# }
+# 
+# #--------------------------------------------------------------------------------
+# # Distributions of forecast p_HOS under alternative scenarios
+# #--------------------------------------------------------------------------------
+# 
+# modH0_name <- "foreH0_Ricker"
+# modHmax_name <- "foreHmax_Ricker"
+# save_plot <- TRUE
+# 
+# ## @knitr plot_p_HOS_fore
+# gg <- p_HOS_fore_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
+#                       fish_data_foreH0 = fish_data_foreH0, 
+#                       fish_data_foreHmax = fish_data_foreHmax,
+#                       pop_names = pop_names)
+# ## @knitr
+# 
+# if(save_plot) {
+#   ggsave(filename = here("analysis","results",
+#                          paste0("p_HOS_fore_", strsplit(modH0_name, "_")[[1]][2], ".png")), 
+#          width=12, height=4, units="in", dpi=300)
+# } else {
+#   dev.new(width=12, height=4)
+#   plot(gg)
+# }
+# 
+# #--------------------------------------------------------------------------------
+# # Probability of quasi-extinction under alternative scenarios
+# #--------------------------------------------------------------------------------
+# 
+# modH0_name <- "foreH0_Ricker"
+# modHmax_name <- "foreHmax_Ricker"
+# save_plot <- TRUE
+# 
+# ## @knitr plot_PQE_fore
+# gg <- PQE_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
+#                fish_data_foreH0 = fish_data_foreH0, 
+#                fish_data_foreHmax = fish_data_foreHmax,
+#                pop_names = pop_names, QET = 50)
+# ## @knitr
+# 
+# if(save_plot) {
+#   ggsave(filename = here("analysis","results",
+#                          paste0("PQE_", strsplit(modH0_name, "_")[[1]][2], ".png")), 
+#          width=12, height=4, units="in", dpi=300)
+# } else {
+#   dev.new(width=12, height=4)
+#   plot(gg)
+# }
+# 
+# #--------------------------------------------------------------------------------
+# # Probability of recovery under alternative scenarios
+# #--------------------------------------------------------------------------------
+# 
+# modH0_name <- "foreH0_Ricker"
+# modHmax_name <- "foreHmax_Ricker"
+# save_plot <- TRUE
+# 
+# ## @knitr plot_Precovery_fore
+# gg <- Precovery_plot(modH0 = get(modH0_name), modHmax = get(modHmax_name), 
+#                      fish_data_foreH0 = fish_data_foreH0, 
+#                      fish_data_foreHmax = fish_data_foreHmax,
+#                      pop_names = pop_names, recovery_targets = recovery_targets)
+# ## @knitr
+# 
+# if(save_plot) {
+#   ggsave(filename = here("analysis","results",
+#                          paste0("Precovery_", strsplit(modH0_name, "_")[[1]][2], ".png")), 
+#          width=12, height=4, units="in", dpi=300)
+# } else {
+#   dev.new(width=12, height=4)
+#   plot(gg)
+# }
 
 
 #===========================================================================
 # TABLES
 #===========================================================================
 
-#--------------------------------------------------------------------------------
-# Summary of 1-year ahead escapement forecasts by pop
-#   (use current calendar year, i.e. pre-season forecast)
-#--------------------------------------------------------------------------------
-
-## @knitr forecast_df
-draws <- as_draws_rvars(as.matrix(foreH0_Ricker, c("psi","Mmax","S")))
-forecast_df <- fish_data_fore %>% 
-  mutate(A = round(A/1000, 1), # convert to km
-         S = draws$S, S50 = round(median(S)), 
-         S05 = round(as.vector(quantile(S, 0.05))), 
-         S95 = round(as.vector(quantile(S, 0.95))),
-         Forecast = paste0(S50, " (", S05, ", ", S95, ")")) %>% 
-  filter(year == year(Sys.Date())) %>% arrange(pop) %>% 
-  mutate(psi = draws$psi, psi50 = round(median(psi), 2), 
-         psi05 = round(as.vector(quantile(psi, 0.05)), 2), 
-         psi95 = round(as.vector(quantile(psi, 0.95)), 2),
-         psi_mci = paste0(psi50, " (", psi05, ", ", psi95, ")"),
-         Mmax = draws$Mmax/1000, Mmax50 = round(median(Mmax), 1), # smolts/m -> mil/km
-         Mmax05 = round(as.vector(quantile(Mmax, 0.05)), 1), 
-         Mmax95 = round(as.vector(quantile(Mmax, 0.95)), 1),
-         Mmax_mci = paste0(Mmax50, " (", Mmax05, ", ", Mmax95, ")")) %>% 
-  filter(pop_type == "natural") %>% 
-  select(pop, A, psi_mci, Mmax_mci, Forecast) %>% 
-  rename(Population = pop, `Habitat (km)` = A,
-         `Max egg-smolt <br> survival ($\\psi$)` = psi_mci, 
-         `Smolt capacity <br> ($M_\\text{max}$ 10^6^ km^-1^)` = Mmax_mci)
-## @knitr
+# #--------------------------------------------------------------------------------
+# # Summary of 1-year ahead escapement forecasts by pop
+# #   (use current calendar year, i.e. pre-season forecast)
+# #--------------------------------------------------------------------------------
+# 
+# ## @knitr forecast_df
+# draws <- as_draws_rvars(as.matrix(foreH0_Ricker, c("psi","Mmax","S")))
+# forecast_df <- fish_data_fore %>% 
+#   mutate(A = round(A/1000, 1), # convert to km
+#          S = draws$S, S50 = round(median(S)), 
+#          S05 = round(as.vector(quantile(S, 0.05))), 
+#          S95 = round(as.vector(quantile(S, 0.95))),
+#          Forecast = paste0(S50, " (", S05, ", ", S95, ")")) %>% 
+#   filter(year == year(Sys.Date())) %>% arrange(pop) %>% 
+#   mutate(psi = draws$psi, psi50 = round(median(psi), 2), 
+#          psi05 = round(as.vector(quantile(psi, 0.05)), 2), 
+#          psi95 = round(as.vector(quantile(psi, 0.95)), 2),
+#          psi_mci = paste0(psi50, " (", psi05, ", ", psi95, ")"),
+#          Mmax = draws$Mmax/1000, Mmax50 = round(median(Mmax), 1), # smolts/m -> mil/km
+#          Mmax05 = round(as.vector(quantile(Mmax, 0.05)), 1), 
+#          Mmax95 = round(as.vector(quantile(Mmax, 0.95)), 1),
+#          Mmax_mci = paste0(Mmax50, " (", Mmax05, ", ", Mmax95, ")")) %>% 
+#   filter(pop_type == "natural") %>% 
+#   select(pop, A, psi_mci, Mmax_mci, Forecast) %>% 
+#   rename(Population = pop, `Habitat (km)` = A,
+#          `Max egg-smolt <br> survival ($\\psi$)` = psi_mci, 
+#          `Smolt capacity <br> ($M_\\text{max}$ 10^6^ km^-1^)` = Mmax_mci)
+# ## @knitr
 
 #--------------------------------------------------------------------------------
 # Posterior summaries of retrospective reporting metrics

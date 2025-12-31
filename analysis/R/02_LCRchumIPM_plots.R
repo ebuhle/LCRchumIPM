@@ -607,20 +607,21 @@ obs_error_plot <- function(mod, fish_data)
 
 age_timeseries <- function(mod, fish_data)
 {
-  q <- as_draws_rvars(as.matrix(mod, "q"))
+  q <- as_draws_rvars(as.matrix(mod, "q")) 
   year <- fish_data$year
   
   gg <- fish_data %>% 
-    select(pop, pop_type, year, starts_with("n_age")) %>% 
+    select(pop, pop_type, year, S_obs, starts_with("n_age")) %>% 
     mutate(total = rowSums(across(starts_with("n_age"))),
            across(starts_with("n_age"), ~ binconf(.x, total, alpha = 0.1))) %>% 
     do.call(data.frame, .) %>% # unpack cols of nested data frames
-    pivot_longer(cols = -c(pop, pop_type, year, total), names_to = c("age",".value"),
-                 names_pattern = "n_age(.)_obs.(.*)") %>% 
-    mutate(q = as.vector(t(q$q)), 
+    pivot_longer(cols = -c(pop, pop_type, year, S_obs, total), 
+                 names_to = c("age",".value"), names_pattern = "n_age(.)_obs.(.*)") %>% 
+    mutate(q = replace(as.vector(t(q$q)), 
+                       pop_type == "hatchery" & S_obs %in% c(NA,0), 
+                       NA),
            n_age_ppd = rvar_rng(rbinom, n(), size = total, prob = q),
            q_ppd = n_age_ppd/total) %>% 
-    filter(pop_type == "natural") %>% 
     ggplot(aes(x = year, y = median(q), group = age, color = age, fill = age)) +
     geom_line(lwd = 1, alpha = 0.8) +
     geom_ribbon(aes(ymin = t(quantile(q, 0.05)), ymax = t(quantile(q, 0.95))), 
@@ -633,11 +634,12 @@ age_timeseries <- function(mod, fish_data)
     scale_fill_manual(values = viridis(3, end = 0.8, direction = -1)) +
     scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5) +
     labs(x = "Year", y = "Proportion at age") + 
-    facet_wrap(vars(pop), ncol = 4) + 
+    facet_wrap(vars(pop), ncol = 5) + 
+    theme_bw(base_size = 13) + 
     theme(panel.grid.minor = element_blank(), panel.grid.major.y = element_blank(), 
           strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)), 
-          legend.box.margin = margin(0,-10,0,-15))
+          legend.box.margin = margin(0,-8,0,-12))
   
   return(gg)  
 }
@@ -653,10 +655,10 @@ plot_sex_ratio <- function(mod, fish_data)
   
   gg <- cbind(fish_data, q_F = q_F) %>%
     mutate(n_MF_obs = n_M_obs + n_F_obs, 
+           q_F = replace(q_F, pop_type == "hatchery" & S_obs %in% c(NA,0), NA),
            n_F_ppd = rvar_rng(rbinom, n = n(), size = n_MF_obs, prob = q_F),
            q_F_ppd = n_F_ppd/n_MF_obs) %>% 
     cbind(., with(., binconf(x = n_F_obs, n = n_MF_obs, alpha = 0.1))) %>%
-    filter(!grepl("Hatchery", pop)) %>% 
     ggplot(aes(x = year, y = PointEst, ymin = Lower, ymax = Upper)) + 
     geom_ribbon(aes(ymin = t(quantile(q_F, 0.05)), ymax = t(quantile(q_F, 0.95))), 
                 fill = "slategray4", alpha = 0.5) +
@@ -667,7 +669,8 @@ plot_sex_ratio <- function(mod, fish_data)
     scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5,
                        minor_breaks = sort(unique(year))) +
     labs(x = "Year", y = "Proportion female") +
-    facet_wrap(vars(pop), ncol = 4) + 
+    facet_wrap(vars(pop), ncol = 5) + 
+    theme_bw(base_size = 13) + 
     theme(panel.grid.minor.y = element_blank(), strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
   
