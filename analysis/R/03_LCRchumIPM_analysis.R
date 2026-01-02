@@ -70,7 +70,7 @@ fit_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", ages =
                         center = FALSE, scale = FALSE, 
                         fish_data = fish_data, fecundity_data = fecundity_data,
                         chains = 4, iter = 1500, warmup = 500,
-                        control = list(max_treedepth = 15))
+                        control = list(max_treedepth = 13))
 
 ## @knitr print_fit_Ricker
 print(fit_Ricker)

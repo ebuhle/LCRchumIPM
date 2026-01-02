@@ -238,16 +238,20 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
   #           by = c("pop","year")) %>% 
   left_join(habitat_data, by = c("pop","year")) %>% 
   left_join(green_female_data, by = c("pop","year")) %>% 
+  rename(A = m, n_O0_obs = `Natural spawner`, n_M_obs = M, n_F_obs= `F`) %>% 
   rename_at(vars(contains("Age-")), list(~paste0(sub("Age-","n_age",.), "_obs"))) %>% 
   select(-c(n_age2_obs, n_age6_obs)) %>% 
   filter(!(pop %in% c("Duncan Creek", "Sea Resources Hatchery"))) %>% 
   mutate(pop = droplevels(factor(pop, levels = pop_names$pop)), # order E-W
-         m = replace(m, grepl("Hatchery", pop), 1),
+         A = replace(A, grepl("Hatchery", pop), 1),
          S_obs = replace(S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          tau_S_obs = replace(tau_S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0),
          p_G_obs = replace(p_G_obs, is.na(p_G_obs), 1), F_rate = 0) %>%
-  rename(A = m, n_O0_obs = `Natural spawner`, n_M_obs = M, n_F_obs= `F`) %>% 
+  mutate(n_W_obs = n_O0_obs, 
+         n_H_obs = rowSums(across(matches("n_O.*Hatchery_obs"))),
+         .before = n_O0_obs) %>% 
+  mutate_at(vars(contains("n_")), ~replace(., is.na(.), 0)) %>%
   do({ 
     lev <- levels(.$pop)
     .cols <- grepl("Hatchery|Channel", names(.))
@@ -258,10 +262,6 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
     }
     setNames(., replace(names(.), .cols, sapply(names(.)[.cols], .fn)))
   }) %>% 
-  mutate_at(vars(contains("n_")), ~replace(., is.na(.), 0)) %>%
-  mutate(n_W_obs = n_O0_obs, 
-         n_H_obs = rowSums(across(contains("n_O"))) - n_O0_obs,
-         .before = n_O0_obs) %>% 
   select(pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_F_obs, 
          p_G_obs, B_take_obs, starts_with("n_B"), F_rate) %>% 
   arrange(pop, year) 
