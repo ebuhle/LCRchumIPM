@@ -145,8 +145,9 @@ print(fit_Ricker)
 # Save stanfit objects
 #--------------------------------------------------------------
 
-save(list = ls()[sapply(ls(), function(x) do.call(class, list(as.name(x)))) == "salmonIPMfit"], 
-     file = here("analysis","results","LCRchumIPM.RData"))
+save(list = ls()[sapply(ls(), function(x) {
+  "salmonIPMfit" %in% do.call(class, list(as.name(x))) })], 
+  file = here("analysis","results","LCRchumIPM.RData"))
 
 
 #===========================================================================

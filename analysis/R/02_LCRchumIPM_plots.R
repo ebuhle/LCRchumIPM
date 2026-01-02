@@ -671,7 +671,7 @@ plot_sex_ratio <- function(mod, fish_data)
     labs(x = "Year", y = "Proportion female") +
     facet_wrap(vars(pop), ncol = 5) + 
     theme_bw(base_size = 13) + 
-    theme(panel.grid.minor.y = element_blank(), strip.background = element_rect(fill = NA),
+    theme(panel.grid.minor = element_blank(), strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
   
   return(gg)
