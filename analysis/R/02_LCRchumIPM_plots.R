@@ -688,6 +688,7 @@ p_HOS_timeseries <- function(mod, fish_data)
   
   gg <- fish_data %>% cbind(p_HOS = p_HOS) %>% 
     mutate(n_HW_obs = n_H_obs + n_W_obs,
+           p_HOS = replace(p_HOS, pop_type == "hatchery" & S_obs %in% c(NA,0), NA),
            n_H_ppd = rvar_rng(rbinom, n = n(), size = n_HW_obs, prob = p_HOS),
            p_HOS_ppd = n_H_ppd/n_HW_obs,
            p_HOS_obs = binconf(n_H_obs, n_HW_obs, alpha = 0.1)) %>% 
@@ -705,7 +706,7 @@ p_HOS_timeseries <- function(mod, fish_data)
     coord_cartesian(ylim = c(0, 1)) + labs(x = "Year", y = bquote(italic(p)[HOS])) +
     facet_wrap(vars(pop), ncol = 5) + 
     theme_bw(base_size = 13) + 
-    theme(panel.grid.minor.y = element_blank(), strip.background = element_rect(fill = NA),
+    theme(panel.grid.minor = element_blank(), strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
   
   return(gg)
