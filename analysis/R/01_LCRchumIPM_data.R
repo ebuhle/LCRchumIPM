@@ -17,6 +17,11 @@ library(here)
 #===========================================================================
 
 ## @knitr data
+
+#---------------------------------------------------------------------------
+# Basic population info 
+#---------------------------------------------------------------------------
+
 # Population names
 pop_names <- read.csv(here("data","pop_names.csv"), header = TRUE, stringsAsFactors = FALSE) %>% 
   arrange(east_to_west) %>% 
@@ -47,7 +52,21 @@ habitat_data <- read.csv(here("data","Data_Habitat_Spawning_Linear.csv"),
          m = mi*1609) %>%  # convert to m
   select(strata, pop, year, m) %>% arrange(strata, pop, year)
 
+# Proportion of "green" females in Duncan Channel
+# Non-green (ripe or partial) females are assumed to have lower fecundity
+# Proportion green females outside Duncan Channel assumed to = 1
+# https://github.com/ebuhle/chumIPM/issues/5
+green_female_data <- read.csv(here("data","Data_Duncan_Females_by_Condition.csv"),
+                              header = TRUE, stringsAsFactors = FALSE) %>% 
+  rename(year = BY, disposition = Channel_Disposition, sex = Sex, condition = Condition,
+         N = Qty, comment = Comment) %>% 
+  dcast(year ~ condition, value.var = "N", fun.aggregate = sum) %>% 
+  mutate(pop = "Duncan Channel", p_G_obs = Green / (Green + Ripe + Partial))
+
+#---------------------------------------------------------------------------
 # Spawner abundance data
+#---------------------------------------------------------------------------
+
 # Assumptions:
 # (1) NAs in hatchery dispositions are really zeros
 # (2) NAs in Duncan Creek and Duncan Channel are really zeros
@@ -108,7 +127,10 @@ spawner_data_agg <- spawner_data %>%
   rename_at(vars(matches("Channel|Hatchery")), list(~paste0("n_B", .x, "_obs"))) %>%
   arrange(pop, year) %>% as.data.frame()
 
-# Spawner age-, sex-, and origin-frequency (aka BioData)
+#---------------------------------------------------------------------------
+# Spawner age, sex, and origin frequencies (BioData)
+#---------------------------------------------------------------------------
+
 # Spawners from Duncan Channel or unknown natural origin are considered "W", all others "H"
 bio_data <- read.csv(here("data","Data_BioData_Spawners_Chum.csv"), 
                      header = TRUE, stringsAsFactors = FALSE) %>% 
@@ -133,7 +155,7 @@ bio_data_sex <- bio_data %>%
   rename(pop = disposition) %>% select(year:pop, M, `F`)
 
 # spawner origin composition
-# recruits to Duncan Creek are considered as pop == "Duncan Channel"
+# Duncan Creek escapement is considered as pop == "Duncan Channel"
 # ignore Big Creek Hatchery-origin spawners for now
 bio_data_origin <- bio_data %>% 
   mutate(pop = replace(disposition, disposition == "Duncan Creek", "Duncan Channel")) %>% 
@@ -142,18 +164,10 @@ bio_data_origin <- bio_data %>%
          `Lewis Hatchery`, `Grays Hatchery`) %>% 
   rename_at(vars(matches("Channel|Hatchery")), list(~paste0("n_O", .x, "_obs")))
 
-# Proportion of "green" females in Duncan Channel
-# Non-green (ripe or partial) females are assumed to have lower fecundity
-# Proportion green females outside Duncan Channel assumed to = 1
-# https://github.com/ebuhle/chumIPM/issues/5
-green_female_data <- read.csv(here("data","Data_Duncan_Females_by_Condition.csv"),
-                              header = TRUE, stringsAsFactors = FALSE) %>% 
-  rename(year = BY, disposition = Channel_Disposition, sex = Sex, condition = Condition,
-         N = Qty, comment = Comment) %>% 
-  dcast(year ~ condition, value.var = "N", fun.aggregate = sum) %>% 
-  mutate(pop = "Duncan Channel", p_G_obs = Green / (Green + Ripe + Partial))
-
+#---------------------------------------------------------------------------
 # Juvenile abundance data
+#---------------------------------------------------------------------------
+
 # Assumptions:
 # (1) Duncan North + Duncan South = Duncan Channel, so the former two are redundant 
 #     (not really an assumption, although the equality isn't perfect in all years)
@@ -195,32 +209,10 @@ juv_data_incl <- juv_data %>%
   group_by(year) %>% mutate(all_H = all(grepl("Hatchery", pop))) %>% ungroup() %>% 
   filter(!(year == max(year) & all_H)) %>% select(-all_H) %>% as.data.frame()
 
-# Pairwise distance data
-# convert ft to km
-# add missing populations: 
-#  Duncan Channel, Duncan Hatchery (same location as Duncan Creek)
-#  Grays Hatchery (same location as Grays MS)
-# extract lower triangle to a tidy data frame
-pairwise_dist <- read.csv(here("data","Chum_Pairwise_Points_Mat_Final.csv"), 
-                          header = TRUE, row.names = 1) * 0.0003048
-rownames(pairwise_dist) <- pop_names$pop[match(rownames(pairwise_dist), pop_names$pairwise_dist_name)]
-colnames(pairwise_dist) <- rownames(pairwise_dist)
-newcols <- pairwise_dist[,c("Duncan Creek", "Duncan Creek", "Grays MS")]
-colnames(newcols) <- c("Duncan Channel", "Duncan Hatchery", "Grays Hatchery")
-pairwise_dist <- cbind(pairwise_dist, newcols)
-newrows <- pairwise_dist[c("Duncan Creek", "Duncan Creek", "Grays MS"),]
-rownames(newrows) <- c("Duncan Channel", "Duncan Hatchery", "Grays Hatchery")
-pairwise_dist <- rbind(pairwise_dist, newrows)
-indx <- which(lower.tri(pairwise_dist, diag = FALSE), arr.ind = TRUE)
-pairwise_data <- data.frame(pop1 = droplevels(factor(rownames(pairwise_dist)[indx[,2]],
-                                                     levels = pop_names$pop)),
-                            pop2 = droplevels(factor(rownames(pairwise_dist)[indx[,1]],
-                                                     levels = pop_names$pop)),
-                            dist = pairwise_dist[indx])
-dist_mouth_data <- pairwise_data %>% filter(pop1 == "Columbia Mouth") %>% select(-pop1) %>% 
-  rename(pop = pop2, dist_mouth = dist) %>% mutate(dist_mouth_std = scale(dist_mouth))
-
+#---------------------------------------------------------------------------
 # Fish data formatted for salmonIPM
+#---------------------------------------------------------------------------
+
 # Drop age-2 and age-6 samples (each is < 0.1% of aged spawners)
 # Drop Duncan Creek
 # Change S_obs and tau_S_obs to NA in Hamilton Channel 2011-2012 based on
@@ -248,8 +240,8 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
          tau_S_obs = replace(tau_S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0),
          p_G_obs = replace(p_G_obs, is.na(p_G_obs), 1), F_rate = 0) %>%
-  mutate(n_W_obs = n_O0_obs, 
-         n_H_obs = rowSums(across(matches("n_O.*Hatchery_obs"))),
+  mutate(n_H_obs = rowSums(across(matches("n_O.*Hatchery_obs"))),
+         n_W_obs = rowSums(across(starts_with("n_O"))) - n_H_obs, 
          .before = n_O0_obs) %>% 
   mutate_at(vars(contains("n_")), ~replace(., is.na(.), 0)) %>%
   do({ 
@@ -265,16 +257,6 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
   select(pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_F_obs, 
          p_G_obs, B_take_obs, starts_with("n_B"), F_rate) %>% 
   arrange(pop, year) 
-
-# # fill in fit_p_HOS
-# for(i in 1:nrow(fish_data_all)) {
-#   pop_i <- as.character(fish_data_all$pop[i])
-#   start_year <- ifelse(pop_i %in% hatcheries$pop,
-#                        min(hatcheries$start_brood_year[hatcheries$pop == pop_i]) + 1,
-#                        NA)
-#   fish_data_all$fit_p_HOS[i] <- ifelse((!is.na(start_year) & fish_data_all$year[i] >= start_year) |
-#                                          fish_data_all$n_H_obs[i] > 0, 1, 0)
-# }
 
 # drop cases with initial NAs in both S_obs and M_obs
 # X---(except hatchery populations, which must be present in every year)---X
@@ -333,7 +315,10 @@ fish_data_foreHmax <- fish_data_fore %>% group_by(pop) %>%
                          ifelse(all(is.na(M_obs)), NA, max(M_obs, na.rm = TRUE)))) %>% 
   ungroup() %>% select(-B_rate_obs) %>% as.data.frame()
 
+#---------------------------------------------------------------------------
 # Fecundity data
+#---------------------------------------------------------------------------
+
 # Note that L95% and U95% are reversed
 fecundity <- read.csv(here("data","Data_ChumFecundity_fromHatcheryPrograms.csv"),
                       header = TRUE, stringsAsFactors = FALSE) %>% 
@@ -350,7 +335,38 @@ fecundity_data <- fecundity %>% filter(age_E %in% 3:5 & !is.na(E_obs) &
   mutate(strata = recode(stock, Grays = "Coastal", `I-205` = "Cascade", `Lower Gorge` = "Gorge")) %>% 
   select(strata, year, ID, age_E, E_obs) %>% arrange(strata, year, age_E) 
 
+#---------------------------------------------------------------------------
+# Pairwise distance data
+#---------------------------------------------------------------------------
+
+# convert ft to km
+# add missing populations: 
+#  Duncan Channel, Duncan Hatchery (same location as Duncan Creek)
+#  Grays Hatchery (same location as Grays MS)
+# extract lower triangle to a tidy data frame
+pairwise_dist <- read.csv(here("data","Chum_Pairwise_Points_Mat_Final.csv"), 
+                          header = TRUE, row.names = 1) * 0.0003048
+rownames(pairwise_dist) <- pop_names$pop[match(rownames(pairwise_dist), pop_names$pairwise_dist_name)]
+colnames(pairwise_dist) <- rownames(pairwise_dist)
+newcols <- pairwise_dist[,c("Duncan Creek", "Duncan Creek", "Grays MS")]
+colnames(newcols) <- c("Duncan Channel", "Duncan Hatchery", "Grays Hatchery")
+pairwise_dist <- cbind(pairwise_dist, newcols)
+newrows <- pairwise_dist[c("Duncan Creek", "Duncan Creek", "Grays MS"),]
+rownames(newrows) <- c("Duncan Channel", "Duncan Hatchery", "Grays Hatchery")
+pairwise_dist <- rbind(pairwise_dist, newrows)
+indx <- which(lower.tri(pairwise_dist, diag = FALSE), arr.ind = TRUE)
+pairwise_data <- data.frame(pop1 = droplevels(factor(rownames(pairwise_dist)[indx[,2]],
+                                                     levels = pop_names$pop)),
+                            pop2 = droplevels(factor(rownames(pairwise_dist)[indx[,1]],
+                                                     levels = pop_names$pop)),
+                            dist = pairwise_dist[indx])
+dist_mouth_data <- pairwise_data %>% filter(pop1 == "Columbia Mouth") %>% select(-pop1) %>% 
+  rename(pop = pop2, dist_mouth = dist) %>% mutate(dist_mouth_std = scale(dist_mouth))
+
+# #---------------------------------------------------------------------------
 # # Environmental covariates
+# #---------------------------------------------------------------------------
+#
 # # PDO
 # PDO_data <- read.csv(file = "https://www.ncdc.noaa.gov/teleconnections/pdo/data.csv",
 #                      header = TRUE, skip = 1, stringsAsFactors = FALSE) %>% 
