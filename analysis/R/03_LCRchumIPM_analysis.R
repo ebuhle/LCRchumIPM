@@ -76,6 +76,14 @@ fit_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", ages =
 print(fit_Ricker)
 ## @knitr
 
+## @knitr prior_summary_Ricker
+prior_summary(fit_Ricker)
+## @knitr
+
+## @knitr plot_prior_posterior_Ricker
+plot_prior_posterior(fit_Ricker, pars = "p_D", include = FALSE)
+## @knitr
+
 
 # #--------------------------------------------------------------
 # # Model selection using LOO
