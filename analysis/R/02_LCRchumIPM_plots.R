@@ -527,8 +527,9 @@ smolt_spawner_ts <- function(mod, life_stage = c("M","S"), fish_data)
                                 N_downstream[!is.na(downstream_trap)]),
            N = if(life_stage == "M") N + N_upstream else N,
            tau_N = draws$tau_N, N_ppd = rvar_rng(rlnorm, n(), log(N), tau_N),
-           N_obs_prior = dist_lognormal(
-             log(N_obs), ifelse(is.na(tau_N_obs), mean(tau_N), tau_N_obs)))
+           N_obs_prior = dist_lognormal(log(N_obs), 
+                                        ifelse(is.na(tau_N_obs), 
+                                               mean(tau_N), tau_N_obs)))
   
   gg <- dat %>% 
     ggplot(aes(x = year, ydist = N_obs_prior)) +

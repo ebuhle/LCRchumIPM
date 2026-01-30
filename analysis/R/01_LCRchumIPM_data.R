@@ -217,17 +217,18 @@ juv_data_incl <- juv_data %>%
 # Drop Duncan Creek
 # Change S_obs and tau_S_obs to NA in Hamilton Channel 2011-2012 based on
 # https://github.com/ebuhle/chumIPM/issues/6#issuecomment-807885445
+# Replace unknown tau_S_obs in hatchery pops and Duncan Channel with 0.01 
+#  (nearly smallest value from natural pops)
+# Replace unknown tau_M_obs in hatchery pops with 0.01 
+#  (nearly smallest value from smolt traps)
 # Pad data as necessary so Grays_MS, Grays_WF, and Grays_CJ have the same set of years
 # (since their estimated smolts will be summed)  
-# X---Pad data as necessary so hatchery populations are represented in all years---X
 fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year")) %>% 
   full_join(bio_data_origin, by = c("pop","year")) %>% 
   full_join(bio_data_sex, by = c("pop","year")) %>% 
   full_join(juv_data_incl, by = c("pop","year")) %>%
   full_join({ complete(select(filter(., grepl("Grays", pop)), c(pop,year)), pop, year) },
             by = c("pop","year")) %>%
-  # full_join({ complete(select(filter(., grepl("Hatchery", pop)), c(pop,year)), pop, year) },
-  #           by = c("pop","year")) %>% 
   left_join(habitat_data, by = c("pop","year")) %>% 
   left_join(green_female_data, by = c("pop","year")) %>% 
   rename(A = m, n_O0_obs = `Natural spawner`, n_M_obs = M, n_F_obs= `F`) %>% 
@@ -238,6 +239,8 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
          A = replace(A, grepl("Hatchery", pop), 1),
          S_obs = replace(S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          tau_S_obs = replace(tau_S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
+         tau_S_obs = replace(tau_S_obs, grepl("Hatchery|Duncan", pop), 0.01), # kludge
+         tau_M_obs = replace(tau_M_obs, grepl("Hatchery", pop), 0.01), # kludge
          B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0),
          p_G_obs = replace(p_G_obs, is.na(p_G_obs), 1), F_rate = 0) %>%
   mutate(n_H_obs = rowSums(across(matches("n_O.*Hatchery_obs"))),
@@ -259,12 +262,10 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
   arrange(pop, year) 
 
 # drop cases with initial NAs in both S_obs and M_obs
-# X---(except hatchery populations, which must be present in every year)---X
 # drop Grays Hatchery before 2004 when Grays MS time series starts
 #   (kludge to avoid modeling initial Grays MS states and broodstock to Grays Hatchery
 #    in the absence of observed spawner and broodstock transfer data)
 fish_data <- fish_data_all %>% group_by(pop) %>% 
-  # filter(head_noNA(S_obs) | head_noNA(M_obs) | grepl("Hatchery", pop)) %>% 
   filter(head_noNA(S_obs) | head_noNA(M_obs)) %>% 
   filter(pop != "Grays Hatchery" | year > 2003) %>% 
   add_column(downstream_trap = NA, .after = "tau_M_obs")  %>% as.data.frame()
