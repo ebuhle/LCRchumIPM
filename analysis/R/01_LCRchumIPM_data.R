@@ -281,7 +281,7 @@ fish_data <- fish_data %>%
          .after = pop)
 
 # pad data with future years to generate forecasts
-N_year_fore <- 20
+N_year_fore <- 2
 fish_data_fore <- fish_data %>% group_by(pop) %>%
   slice(rep(n(), max(fish_data$year) + N_year_fore - max(year))) %>%
   reframe(year = (unique(year) + 1):(max(fish_data$year) + N_year_fore), forecast = TRUE,
@@ -291,8 +291,8 @@ fish_data_fore <- fish_data %>% group_by(pop) %>%
   mutate_at(vars(starts_with("n_")), ~ replace_na(., 0)) %>%
   arrange(pop, year) %>% fill(A, pop_type, .direction = "down") %>%
   select(pop, pop_type, year, forecast, A, S_obs, tau_S_obs, M_obs, tau_M_obs,
-         downstream_trap, n_age3_obs:n_F_obs, p_G_obs, 
-         B_take_obs, F_rate) %>% 
+         downstream_trap, n_age3_obs:n_F_obs, p_G_obs, B_take_obs, 
+         starts_with("n_B"), F_rate) %>% 
   as.data.frame()
 
 # assign Grays_WF and Grays_CJ smolts to the downstream trap in Grays_MS

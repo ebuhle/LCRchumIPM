@@ -65,10 +65,12 @@ if(file.exists(here("analysis","results","LCRchumIPM.RData")))
 
 # Ricker
 ## @knitr fit_Ricker
-fit_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", ages = list(M = 1), 
+fit_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", 
+                        SR_fun = "Ricker", ages = list(M = 1), 
                         par_models = list(psi ~ pop_type, s_MS ~ pop_type), 
                         center = FALSE, scale = FALSE, 
-                        fish_data = fish_data, fecundity_data = fecundity_data,
+                        fish_data = fish_data, 
+                        fecundity_data = fecundity_data,
                         chains = 4, iter = 1500, warmup = 500,
                         control = list(max_treedepth = 15))
 
@@ -119,23 +121,26 @@ plot_prior_posterior(fit_Ricker, pars = "p_D", include = FALSE)
 # ## @knitr
 
 
-# #===========================================================================
-# # FIT PROSPECTIVE FORECASTING MODELS
-# #===========================================================================
-# 
-# # Ricker
-# # no broodstock removals or hatchery smolt releases
-# # @knitr fit_foreH0_Ricker
-# foreH0_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", SR_fun = "Ricker", ages = list(M = 1), 
-#                            par_models = list(s_MS ~ pop_type), center = FALSE, scale = FALSE, 
-#                            fish_data = fish_data_foreH0, fecundity_data = fecundity_data,
-#                            chains = 4, iter = 1500, warmup = 500,
-#                            control = list(max_treedepth = 15))
-# 
-# ## @knitr print_foreH0_Ricker
-# print(foreH0_Ricker)
-# ## @knitr
-# 
+#===========================================================================
+# FIT PROSPECTIVE FORECASTING MODELS
+#===========================================================================
+
+# Ricker
+# no broodstock removals or hatchery smolt releases
+# @knitr fit_foreH0_Ricker
+foreH0_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", 
+                           SR_fun = "Ricker", ages = list(M = 1), 
+                           par_models = list(psi ~ pop_type, s_MS ~ pop_type), 
+                           center = FALSE, scale = FALSE, 
+                           fish_data = fish_data_foreH0, 
+                           fecundity_data = fecundity_data,
+                           chains = 4, iter = 1500, warmup = 500,
+                           control = list(max_treedepth = 15))
+
+## @knitr print_foreH0_Ricker
+print(foreH0_Ricker)
+## @knitr
+
 # # Ricker
 # # broodstock removal rates and hatchery smolt releases at maximum observed
 # ## @knitr fit_foreHmax_Ricker
@@ -234,7 +239,7 @@ save_plot <- TRUE
 
 ## @knitr SR_plot
 gg <- SR_plot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2],
-                         life_stage = life_stage, fish_data = fish_data)
+              life_stage = life_stage, fish_data = fish_data)
 ## @knitr
 
 if(save_plot) {
@@ -536,34 +541,41 @@ if(save_plot) {
 # TABLES
 #===========================================================================
 
-# #---------------------------------------------------------
-# # Summary of 1-year ahead escapement forecasts by pop
-# #   (use current calendar year, i.e. pre-season forecast)
-# #---------------------------------------------------------
-# 
-# ## @knitr forecast_df
-# draws <- as_draws_rvars(as.matrix(foreH0_Ricker, c("psi","Mmax","S")))
-# forecast_df <- fish_data_fore %>% 
-#   mutate(A = round(A/1000, 1), # convert to km
-#          S = draws$S, S50 = round(median(S)), 
-#          S05 = round(as.vector(quantile(S, 0.05))), 
-#          S95 = round(as.vector(quantile(S, 0.95))),
-#          Forecast = paste0(S50, " (", S05, ", ", S95, ")")) %>% 
-#   filter(year == year(Sys.Date())) %>% arrange(pop) %>% 
-#   mutate(psi = draws$psi, psi50 = round(median(psi), 2), 
-#          psi05 = round(as.vector(quantile(psi, 0.05)), 2), 
-#          psi95 = round(as.vector(quantile(psi, 0.95)), 2),
-#          psi_mci = paste0(psi50, " (", psi05, ", ", psi95, ")"),
-#          Mmax = draws$Mmax/1000, Mmax50 = round(median(Mmax), 1), # smolts/m -> mil/km
-#          Mmax05 = round(as.vector(quantile(Mmax, 0.05)), 1), 
-#          Mmax95 = round(as.vector(quantile(Mmax, 0.95)), 1),
-#          Mmax_mci = paste0(Mmax50, " (", Mmax05, ", ", Mmax95, ")")) %>% 
-#   filter(pop_type == "natural") %>% 
-#   select(pop, A, psi_mci, Mmax_mci, Forecast) %>% 
-#   rename(Population = pop, `Habitat (km)` = A,
-#          `Max egg-smolt <br> survival ($\\psi$)` = psi_mci, 
-#          `Smolt capacity <br> ($M_\\text{max}$ 10^6^ km^-1^)` = Mmax_mci)
-# ## @knitr
+#---------------------------------------------------------
+# Summary of 1-year ahead escapement forecasts by pop
+#   (use current calendar year, i.e. pre-season forecast)
+#---------------------------------------------------------
+
+## @knitr forecast_df
+draws <- as.matrix(foreH0_Ricker, c("mu_psi","psi","mu_Mmax","Mmax","S")) %>% 
+  as_draws_rvars()
+
+forecast_df <- fish_data_fore %>%
+  mutate(S = draws$S, A = round(A/1000, 1)) %>%  # convert to km
+  filter(year == year(Sys.Date())) %>% arrange(pop) %>%
+  add_row(pop = "Lower Columbia ESU", pop_type = "natural", 
+          A = sum(.$A), S = rvar_sum(.$S)) %>% 
+  mutate(S50 = round(median(S)),
+         S05 = round(as.vector(quantile(S, 0.05))),
+         S95 = round(as.vector(quantile(S, 0.95))),
+         Forecast = paste0(S50, " (", S05, ", ", S95, ")"),
+         psi = c(draws$psi, draws$mu_psi), 
+         psi50 = round(median(psi), 2),
+         psi05 = round(as.vector(quantile(psi, 0.05)), 2),
+         psi95 = round(as.vector(quantile(psi, 0.95)), 2),
+         psi_mci = paste0(psi50, " (", psi05, ", ", psi95, ")"),
+         Mmax = c(draws$Mmax, exp(draws$mu_Mmax))/1000, # smolts/m -> mil/km 
+         Mmax50 = round(median(Mmax), 1),
+         Mmax05 = round(as.vector(quantile(Mmax, 0.05)), 1),
+         Mmax95 = round(as.vector(quantile(Mmax, 0.95)), 1),
+         Mmax_mci = paste0(Mmax50, " (", Mmax05, ", ", Mmax95, ")")) %>%
+  filter(pop_type == "natural") %>% 
+  # select(pop, A, psi50:psi95, Mmax50:Mmax95, S50:S95)
+  select(pop, A, psi_mci, Mmax_mci, Forecast) %>%
+  rename(Population = pop, `Habitat (km)` = A,
+         `Max egg-smolt <br> survival ($\\psi$)` = psi_mci,
+         `Smolt capacity <br> ($M_\\text{max}$ 10^6^ km^-1^)` = Mmax_mci)
+## @knitr
 
 #----------------------------------------------------------
 # Posterior summaries of retrospective reporting metrics
