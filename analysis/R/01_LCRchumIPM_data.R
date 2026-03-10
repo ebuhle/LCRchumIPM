@@ -122,7 +122,7 @@ spawner_data_agg <- spawner_data %>%
   summarize(S_obs = sum(S_obs), tau_S_obs = unique(tau_S_obs)) %>% 
   full_join(broodstock_data, by = c("pop","year")) %>%
   full_join(translocation_data, by = c("pop","year")) %>%
-  mutate(B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0)) %>%
+  mutate(B_take_obs = replace_na(B_take_obs, 0)) %>%
   mutate(across(matches("Channel|Hatchery"), ~replace_na(.x, 0))) %>%
   rename_at(vars(matches("Channel|Hatchery")), list(~paste0("n_B", .x, "_obs"))) %>%
   arrange(pop, year) %>% as.data.frame()
@@ -139,7 +139,7 @@ bio_data <- read.csv(here("data","Data_BioData_Spawners_Chum.csv"),
   mutate(disposition = gsub("I205", "I-205", gsub("_", " ", disposition)),
          location = gsub("I205", "I-205", gsub("_", " ", location)),
          origin = gsub("_", " ", origin),
-         count = replace(count, is.na(count), 0), sex = substring(sex,1,1),
+         count = replace_na(count, 0), sex = substring(sex,1,1),
          HW = ifelse((grepl("Natural spawner|Duncan Channel", origin)), "W", "H")) %>% 
   select(year:location, disposition, origin, HW, sex:count) %>%
   arrange(strata, location, year, origin, age, sex)
@@ -189,7 +189,7 @@ juv_data <- read.csv(here("data","Data_Abundance_Juveniles_Chum.csv"),
   mutate(location = gsub("I205", "I-205", gsub("_", " ", location)),
          origin = sapply(gsub("_", " ", origin), function(x)
            paste(rev(strsplit(x, " ")[[1]]), collapse = " ")), # names inconsistent w/ bio_data 
-         tau_M_obs = replace(sqrt(log((SD/mean)^2 + 1)), SD==0, NA)) %>% 
+         tau_M_obs = replace(sqrt(log((SD/mean)^2 + 1)), SD == 0, NA)) %>% 
   select(strata, location, year, brood_year, origin:CV, tau_M_obs, comments) %>% 
   arrange(strata, location, year)
 
@@ -221,8 +221,9 @@ juv_data_incl <- juv_data %>%
 #  (nearly smallest value from natural pops)
 # Replace unknown tau_M_obs in hatchery pops with 0.01 
 #  (nearly smallest value from smolt traps)
-# Pad data as necessary so Grays_MS, Grays_WF, and Grays_CJ have the same set of years
-# (since their estimated smolts will be summed)  
+# Pad data as necessary so Grays MS, Grays WF, and Grays CJ have the same set of years
+#  (since their estimated smolts will be summed)  
+# Assign unknown 1998-2001 Grays MS B_take_obs the corresponding Grays Hatchery S_obs
 fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year")) %>% 
   full_join(bio_data_origin, by = c("pop","year")) %>% 
   full_join(bio_data_sex, by = c("pop","year")) %>% 
@@ -241,12 +242,14 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
          tau_S_obs = replace(tau_S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          tau_S_obs = replace(tau_S_obs, grepl("Hatchery|Duncan", pop), 0.01), # kludge
          tau_M_obs = replace(tau_M_obs, grepl("Hatchery", pop), 0.01), # kludge
-         B_take_obs = replace(B_take_obs, is.na(B_take_obs), 0),
-         p_G_obs = replace(p_G_obs, is.na(p_G_obs), 1), F_rate = 0) %>%
+         B_take_obs = replace(B_take_obs, pop == "Grays MS" & year < 2001,
+                              S_obs[pop == "Grays Hatchery" & year < 2001]),
+         B_take_obs = replace_na(B_take_obs, 0),
+         p_G_obs = replace_na(p_G_obs, 1), F_rate = 0) %>%
   mutate(n_H_obs = rowSums(across(matches("n_O.*Hatchery_obs"))),
          n_W_obs = rowSums(across(starts_with("n_O"))) - n_H_obs, 
          .before = n_O0_obs) %>% 
-  mutate_at(vars(contains("n_")), ~replace(., is.na(.), 0)) %>%
+  mutate_at(vars(contains("n_")), ~replace_na(., 0)) %>%
   do({ 
     lev <- levels(.$pop)
     .cols <- grepl("Hatchery|Channel", names(.))
@@ -262,12 +265,13 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
   arrange(pop, year) 
 
 # drop cases with initial NAs in both S_obs and M_obs
-# drop Grays Hatchery before 2004 when Grays MS time series starts
-#   (kludge to avoid modeling initial Grays MS states and broodstock to Grays Hatchery
-#    in the absence of observed spawner and broodstock transfer data)
+#  (except in Grays basin where initial states are needed for Grays Hatchery broodstock)
+#X drop Grays Hatchery before 2004 when Grays MS time series starts
+#X  (kludge to avoid modeling initial Grays MS states and broodstock to Grays Hatchery
+#X   in the absence of observed spawner and broodstock transfer data)
 fish_data <- fish_data_all %>% group_by(pop) %>% 
-  filter(head_noNA(S_obs) | head_noNA(M_obs)) %>% 
-  filter(pop != "Grays Hatchery" | year > 2003) %>% 
+  filter(head_noNA(S_obs) | head_noNA(M_obs) | grepl("Grays", pop)) %>% 
+  #X filter(pop != "Grays Hatchery" | year > 2003) %>% 
   add_column(downstream_trap = NA, .after = "tau_M_obs")  %>% as.data.frame()
 
 # assign Grays WF and Grays CJ smolts to the downstream trap in Grays MS
