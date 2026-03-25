@@ -22,7 +22,7 @@ Chum,Fry.Smolt,2013,2014,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,N,NA,46002,4
 Chum,Fry.Smolt,2014,2015,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,N,NA,88217,88217,NA,NA,NA,NA,
 Chum,Fry.Smolt,2015,2016,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,N,NA,87802,87802,NA,NA,NA,NA,
 Chum,Fry.Smolt,2016,2017,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,N,NA,111209,111209,NA,NA,NA,NA,
-Chum,Fry.Smolt,2017,2018,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,N,NA,105986,105986,NA,NA,NA,NA,
+Chum,Fry.Smolt,2017,2018,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,N,NA,105986,105986,NA,NA,NA,NA,"Fishbooks says release location was ""COL R @ BONNEVILLE DAM"" but all other years it was ""DUNCAN CR 28.0296"""
 Chum,Fry.Smolt,2018,2019,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,N,NA,105452,105452,NA,NA,NA,NA,
 Chum,Fry.Smolt,2019,2020,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,NA,NA,110471,110471,NA,NA,NA,NA,
 Chum,Fry.Smolt,2020,2021,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,NA,NA,103250,103250,NA,NA,NA,NA,
@@ -133,6 +133,8 @@ Chum,Fry.Smolt,2020,2021,Coastal,Grays_MS,Hatchery_Grays,NA,NA,N,NA,187063,18706
 Chum,Fry.Smolt,2021,2022,Coastal,Grays_MS,Hatchery_Grays,NA,NA,N,NA,166562,166562,NA,NA,NA,NA,
 Chum,Fry.Smolt,2022,2023,Coastal,Grays_MS,Hatchery_Grays,NA,NA,N,NA,154754,154754,NA,NA,NA,NA,
 Chum,Fry.Smolt,2023,2024,Coastal,Grays_MS,Hatchery_Grays,NA,NA,N,NA,117898,NA,NA,NA,NA,NA,"four different release groups listed in fishbooks (Beaver Creek., Fish Reports, Planting Summary, CH:NA:GRAY:2023)"
+Chum,Fry.Smolt,2024,2025,Coastal,Grays_MS,Hatchery_Grays,NA,NA,N,NA,40186,NA,NA,NA,NA,NA,"pulled from Fishbooks, brood code ""CH:NA:GRAY:2024:M""; only one release into Grays in 2025 (3/25); lower release than normal"
+Chum,Fry.Smolt,2025,2026,Coastal,Grays_MS,Hatchery_Grays,NA,NA,N,NA,120952,NA,NA,NA,NA,NA,"pulled from Fishbooks; three different releases into Grays (3/9, 3/17, 3/24); all have same brood code ""CH:NA:GRAY:2025:M""; several small releases (~500 each) into Elochoman for M-R trials above smolt trap"
 Chum,Fry.Smolt,2007,2008,Coastal,Grays_MS,Wild,Rotary Screw,BTSPAS,N,36700,1921866,1866291,441146,1564362,2594287,0.23,
 Chum,Fry.Smolt,2008,2009,Coastal,Grays_MS,Wild,Rotary Screw,BTSPAS,N,72448,1291038,1288376,60136,1181625,1413801,0.05,
 Chum,Fry.Smolt,2009,2010,Coastal,Grays_MS,Wild,Rotary Screw,BTSPAS,N,121192,2895723,2882565,140147,2660208,3213390,0.05,
@@ -178,13 +180,12 @@ Chum,Fry.Smolt,2002,2003,Gorge,Hardy_Creek,Wild,Fyke,SPAS,N,NA,79147,79147,8346.
 Chum,Fry.Smolt,2003,2004,Gorge,Hardy_Creek,Wild,Fyke,SPAS,N,NA,231958,231958,5679.591837,220826,243090,0.024485432,
 Chum,Fry.Smolt,2004,2005,Gorge,Hardy_Creek,Wild,Fyke,SPAS,N,NA,43914,43914,3656.122449,36748,51080,0.08325642,
 Chum,Fry.Smolt,2005,2006,Gorge,Hardy_Creek,Wild,Fyke,SPAS,N,NA,103979,103979,15346.93878,69639,134059,0.147596522,
-Chum,Fry.Smolt,2010,2011,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,N,NA,101562,101562,NA,NA,NA,NA,
-Chum,Fry.Smolt,2011,2012,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,N,NA,105935,105935,NA,NA,NA,NA,
-Chum,Fry.Smolt,2012,2013,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,N,NA,98540,98540,NA,NA,NA,NA,
-Chum,Fry.Smolt,2013,2014,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,N,NA,105586,105586,NA,NA,NA,NA,
+Chum,Fry.Smolt,2011,2012,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,N,NA,109396,105935,NA,NA,NA,NA,
+Chum,Fry.Smolt,2012,2013,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,N,NA,89698,98540,NA,NA,NA,NA,
+Chum,Fry.Smolt,2013,2014,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,N,NA,108586,105586,NA,NA,NA,NA,
 Chum,Fry.Smolt,2014,2015,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,N,NA,96932,96932,NA,NA,NA,NA,
 Chum,Fry.Smolt,2015,2016,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,N,NA,74756,74756,NA,NA,NA,NA,
-Chum,Fry.Smolt,2016,2017,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,N,NA,102291,102291,NA,NA,NA,NA,
+Chum,Fry.Smolt,2016,2017,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,N,NA,102291,102291,NA,NA,NA,NA,"Fishbooks has Release Site as ""LEWIS R  27.0168"" but all other years it is listed as ""LEWIS R -EF 27.0173"""
 Chum,Fry.Smolt,2017,2018,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,N,NA,83181,83181,NA,NA,NA,NA,
 Chum,Fry.Smolt,2018,2019,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,N,NA,103722,103722,NA,NA,NA,NA,
 Chum,Fry.Smolt,2019,2020,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,NA,NA,101379,101379,NA,NA,NA,NA,
@@ -204,6 +205,9 @@ Chum,Fry.Smolt,2023,2024,Gorge,Duncan_North,Wild,Weir,NA,not sure,9428,NA,NA,NA,
 Chum,Fry.Smolt,2023,2024,Gorge,Duncan_South,Wild,Weir,NA,not sure,35981,NA,NA,NA,NA,NA,NA,did not run estimate for each individual channel
 Chum,Fry.Smolt,2023,2024,Coastal,Grays_MS,Wild,Rotary Screw,BTSPAS,NA,29819,1361725.054,1345072.5,160127.548,1099347.45,1714721.199,0.118,
 Chum,Fry.Smolt,2023,2024,Gorge,Hamilton_Channel,Wild,Weir,P-Spline,NA,368543,747675.468,745408.5,34966.733,686264.575,821012.249,0.047,
-Chum,Fry.Smolt,2023,2024,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,NA,NA,97656,97656,NA,NA,NA,NA,"From Fishbooks (Vancouver H., Fish Reports, Planting Summary, CH:NA:I205)"
+Chum,Fry.Smolt,2023,2024,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,NA,NA,97656,97656,NA,NA,NA,NA,"From Fishbooks (Vancouver H., Fish Reports, Planting Summary, CH:NA:I205:2023:W)"
 Chum,Eggs,2023,2024,Coastal,Peterson_RSI,Hatchery_Grays,NA,NA,N,NA,41530,41530,NA,NA,NA,NA,"egg transfers (not fry releases); found in Fishbooks (Beaver Ck, Incubation, Ship-Receive)"
 Chum,Eggs,2024,2025,Coastal,Peterson_RSI,Hatchery_Grays,NA,NA,N,NA,34396,34396,NA,NA,NA,NA,"egg transfers (not fry releases); found in Fishbooks (Beaver Ck, Incubation, Ship-Receive)"
+Chum,Fry.Smolt,2024,2025,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,NA,NA,88735,88735,NA,NA,NA,NA,"From Fishbooks (Vancouver H., Fish Reports, Planting Summary, CH:NA:I205:2024:W)"
+Chum,Fry.Smolt,2024,2025,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,NA,NA,58624,58624,NA,NA,NA,NA,"From Fishbooks (Vancouver H., Fish Reports, Planting Summary, CH:NA:COLU:2024:W)"
+Chum,Eggs,2025,2026,Coastal,Peterson_RSI,Hatchery_Grays,NA,NA,N,NA,16656,34396,NA,NA,NA,NA,"egg transfers (not fry releases); found in Fishbooks (Beaver Ck, Incubation, Ship-Receive)"
