@@ -451,12 +451,14 @@ smolt_SAR_ts <- function(mod, fish_data)
   
   cols <- c(natural = "slategray4", hatchery = "salmon")
   
-  gg <- fish_data %>% 
+  dd <- fish_data %>% 
     cbind(.value = c(draws$exp_error_M, draws$SAR), 
           pars = rep(c("Smolt productivity anomaly","SAR (%)"), each = nrow(.))) %>% 
     mutate(brood_year = ifelse(grepl("SAR", pars), year - 1, year),
            .value = replace(.value, grepl("Smolt", pars) & pop_type == "hatchery", NA),
-           pars = factor(pars, levels = unique(pars))) %>% 
+           pars = factor(pars, levels = unique(pars))) 
+  
+  gg <- dd %>% 
     ggplot(aes(x = brood_year, y = median(.value), group = pop, color = pop_type, fill = pop_type)) +
     geom_line(linewidth = 0.7, alpha = 0.5) + 
     geom_lineribbon(data = hyper, 
