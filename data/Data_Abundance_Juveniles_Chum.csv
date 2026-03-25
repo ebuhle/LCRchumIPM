@@ -28,6 +28,7 @@ Chum,Fry.Smolt,2019,2020,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,NA,NA,110471
 Chum,Fry.Smolt,2020,2021,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,NA,NA,103250,103250,NA,NA,NA,NA,
 Chum,Fry.Smolt,2021,2022,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,NA,NA,117572,117572,NA,NA,NA,NA,
 Chum,Fry.Smolt,2022,2023,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,NA,NA,94015,94015,NA,NA,NA,NA,
+Chum,Fry.Smolt,2001,2002,Gorge,Duncan_Channel,Wild,Fyke,Unk,N,NA,8483,6362,0,NA,NA,NA,"Estimate of unknown quality; no SD provided; therefore, I made up SD value of 6362 assuming a %CV of 0.75"
 Chum,Fry.Smolt,2002,2003,Gorge,Duncan_Channel,Wild,Weir,Census,N,25478,25478,25478,0,25478,25478,0,
 Chum,Fry.Smolt,2003,2004,Gorge,Duncan_Channel,Wild,Weir,Census,N,45450,45450,45450,0,45450,45450,0,
 Chum,Fry.Smolt,2004,2005,Gorge,Duncan_Channel,Wild,Weir,Census,N,27814,27814,27814,0,27814,27814,0,
