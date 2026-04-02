@@ -299,7 +299,7 @@ fish_data_fore <- fish_data %>% group_by(pop) %>%
 # (need to do this again b/c row indices have changed)
 fish_data_fore <- fish_data_fore %>%
   mutate(downstream_trap = replace(downstream_trap, pop %in% c("Grays WF","Grays CJ"),
-                                   which(pop == "Grays MS")))
+                                   which(pop == "Grays MS" & year > 2000)))
 
 # forecast scenario 1:
 # no broodstock removals or hatchery smolt releases
