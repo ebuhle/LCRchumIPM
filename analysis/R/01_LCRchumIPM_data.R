@@ -263,11 +263,10 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
          p_G_obs, B_take_obs, starts_with("n_B"), F_rate) %>% 
   arrange(pop, year) 
 
-# drop cases with initial NAs in S_obs and M_obs and zero n_B[x]_obs
+# drop cases with initial NAs in S_obs and M_obs
 fish_data <- fish_data_all %>% group_by(pop) %>% 
-  mutate(n_B_obs = rowSums(across(starts_with("n_B")))) %>% 
-  filter(head_noNA(S_obs) | head_noNA(M_obs) | n_B_obs > 0) %>%
-  select(-n_B_obs) %>% as.data.frame()
+  filter(head_noNA(S_obs) | head_noNA(M_obs)) %>%
+  as.data.frame()
 
 # assign Grays WF and Grays CJ smolts to the downstream trap in Grays MS
 # where they will be counted (or double-counted, in the case of Grays CJ),
