@@ -275,11 +275,24 @@ fecundity_plot <- function(mod, fish_data, fecundity_data)
 
 psi_Mmax_plot <- function(mod, fish_data)
 {
-  draws <- as.matrix(mod, c("psi","mu_psi","Mmax","mu_Mmax")) %>% as_draws_rvars() %>% 
-    mutate_variables(log10_Mmax = log10(Mmax) - 3,           # units of mil / km
+  logit <- function(x) log(x) - log(1 - x)
+  ilogit <- function(x) exp(x) / (1 + exp(x))
+  
+  dd <- stan_data('IPM_LCRchum_pp', ages = list(M = 1), 
+                 par_models = mod$par_models, center = FALSE, scale = FALSE,
+                 fish_data = fish_data, fecundity_data = fecundity_data)
+  N_pop <- max(dd$pop)
+  which_H_pop <- dd$which_H_pop
+
+  draws <- as.matrix(mod, c("psi","mu_psi","beta_psi","Mmax","mu_Mmax")) %>%
+    as_draws_rvars() %>%
+    mutate_variables(logit_psi = logit(psi),
+                     Xbeta_psi = replace(rep(rvar(0), N_pop), which_H_pop, beta_psi),
+                     psi = ilogit(logit_psi + Xbeta_psi),
+                     log10_Mmax = log10(Mmax) - 3,           # units of mil / km
                      mu_Mmax = mu_Mmax * log10(exp(1)) - 3,  # convert to base 10, mil/km
                      .value = c(psi, mu_psi, log10_Mmax, mu_Mmax))
-  
+
   dat <- fish_data %>% group_by(pop) %>% 
     summarize(has_M_obs = any(!is.na(M_obs) | !is.na(downstream_trap))) %>% 
     add_row(pop = "ESU hyper-mean", has_M_obs = FALSE) %>% rbind(., .) %>% 
@@ -291,6 +304,8 @@ psi_Mmax_plot <- function(mod, fish_data)
            .value = replace(draws$.value, 
                             grepl("Hatchery", pop) & grepl("capacity", pars),
                             NA))
+  
+  cols <- c(natural = "slategray4", hatchery = "salmon")
   
   gg <- dat %>% 
     ggplot(aes(xdist = .value, y = pop, fill = fill)) +
@@ -334,12 +349,21 @@ SR_plot <- function(mod, SR_fun, life_stage, fish_data)
   
   logit <- function(x) log(x) - log(1 - x)
   ilogit <- function(x) exp(x) / (1 + exp(x))
+  rifelse <- rfun(ifelse)
+  
+  dd <- stan_data('IPM_LCRchum_pp', ages = list(M = 1), 
+                 par_models = mod$par_models, center = FALSE, scale = FALSE,
+                 fish_data = fish_data, fecundity_data = fecundity_data)
+  N_pop <- max(dd$pop)
+  which_H_pop <- dd$which_H_pop
   
   # S-R parameters, states and observations including reconstructed recruits
-  
-  draws <- as.matrix(mod, c("mu_E", "q", "q_F", "psi", "S", "M", "s_MS")) %>% 
+  draws <- as.matrix(mod, c("mu_E","q","q_F","psi","beta_psi","S","M","s_MS")) %>% 
     as_draws_rvars() %>% 
-    mutate_variables(alpha = (q %**% mu_E) * q_F * psi[fish_data$pop], 
+    mutate_variables(logit_psi = logit(psi),
+                     Xbeta_psi = replace(rep(rvar(0), N_pop), which_H_pop, beta_psi),
+                     psi = ilogit(logit_psi + Xbeta_psi),
+                     alpha = (q %**% mu_E) * q_F * psi[fish_data$pop], 
                      R = M * s_MS,
                      N = switch(life_stage, M = M, R = R))
   
@@ -360,7 +384,7 @@ SR_plot <- function(mod, SR_fun, life_stage, fish_data)
   
   # spawner densities at which to evaluate S-R function
   S_grid <- states_obs %>% group_by(pop) %>% 
-    reframe(A = mean(A), alpha = rvar_mean(alpha), 
+    reframe(pop_type = unique(pop_type), A = mean(A), alpha = rvar_mean(alpha), 
             S = seq(0, max(S_upper, S_obs, na.rm = TRUE), length = n_grid))
   
   # posteriors of S-R fit with total process and proc + obs error (PPD)
@@ -369,7 +393,9 @@ SR_plot <- function(mod, SR_fun, life_stage, fish_data)
     as_draws_rvars() %>% 
     mutate_variables(A = as_rvar(S_grid$A), S = S_grid$S,
                      alpha = S_grid$alpha, Mmax = rep(Mmax, each = n_grid),
-                     M_hat = SR(SR_fun = SR_fun, alpha = alpha, Rmax = Mmax, S = S, A = A),
+                     M_hat = rifelse(S_grid$pop_type == "natural",
+                                     SR(SR_fun, alpha = alpha, Rmax = Mmax, S = S, A = A),
+                                     SR("exp", alpha = alpha, Rmax = Mmax, S = S, A = A)),
                      sd_year_M = sigma_year_M / sqrt(1 - rho_M^2),
                      sd_proc_M = sqrt(sd_year_M^2 + sigma_M^2),
                      sd_ppd_M = sqrt(sd_proc_M^2 + tau_M^2),
@@ -386,10 +412,8 @@ SR_plot <- function(mod, SR_fun, life_stage, fish_data)
     data.frame(N_hat = switch(life_stage, M = ppdraws$M_hat, R = ppdraws$R_hat),
                N_proc = switch(life_stage, M = ppdraws$M_proc, R = ppdraws$R_proc)) 
   # N_ppd = switch(life_stage, M = ppd$M_ppd, R = ppd$R_ppd)) 
-  
-  states_obs <- filter(states_obs, pop_type == "natural")
-  
-  gg <- ppd %>% filter(!grepl("Hatchery", pop)) %>% 
+
+  gg <- ppd %>% 
     ggplot(aes(x = S/A, y = median(N_hat/A))) +
     geom_ribbon(aes(ymin = t(quantile(N_hat/A, qnt[1])), ymax = t(quantile(N_hat/A, qnt[2]))), 
                 fill = "slategray4", alpha = 0.4) +
@@ -706,7 +730,8 @@ p_HOS_timeseries <- function(mod, fish_data)
     geom_errorbar(aes(ymin = p_HOS_obs.Lower, ymax = p_HOS_obs.Upper), width = 0) +
     scale_x_continuous(breaks = round(seq(min(year), max(year), by = 5)[-1]/5)*5,
                        minor_breaks = sort(unique(year))) +
-    coord_cartesian(ylim = c(0, 1)) + labs(x = "Year", y = bquote(italic(p)[HOS])) +
+    coord_cartesian(ylim = c(0, 1)) + 
+    labs(x = "Year", y = "Proportion hatchery-origin spawners") +
     facet_wrap(vars(pop), ncol = 5) + 
     theme_bw(base_size = 13) + 
     theme(panel.grid.minor = element_blank(), strip.background = element_rect(fill = NA),
