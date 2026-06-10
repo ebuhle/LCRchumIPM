@@ -241,7 +241,7 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
          S_obs = replace(S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          tau_S_obs = replace(tau_S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          tau_S_obs = replace(tau_S_obs, grepl("Hatchery|Duncan", pop), 0.01), # kludge
-         # tau_M_obs = replace(tau_M_obs, grepl("Hatchery", pop), 0.05), # kludge
+         tau_M_obs = replace(tau_M_obs, grepl("Hatchery", pop), 0.05), # kludge
          across(starts_with("n_O"), ~ifelse(pop == "Grays Hatchery" & year < 2007, 0, .)),
          B_take_obs = replace_na(B_take_obs, 0),
          p_G_obs = replace_na(p_G_obs, 1), F_rate = 0) %>%
