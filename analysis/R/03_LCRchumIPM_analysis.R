@@ -67,7 +67,7 @@ if(file.exists(here("analysis","results","LCRchumIPM.RData")))
 ## @knitr fit_Ricker
 fit_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", 
                         SR_fun = "Ricker", ages = list(M = 1), 
-                        par_models = list(psi ~ pop_type2, s_MS ~ pop_type),
+                        par_models = list(psi ~ pop_type2, s_MS ~ pop_type2),
                         center = FALSE, scale = FALSE, 
                         fish_data = fish_data, 
                         fecundity_data = fecundity_data,
@@ -615,7 +615,6 @@ metrics <- foreH0_Ricker %>%
   as.data.frame()
 
 write.csv(metrics, file = here("analysis", "results", "reporting_metrics.csv"), row.names = FALSE)
-
 
 
 

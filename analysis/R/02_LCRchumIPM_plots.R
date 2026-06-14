@@ -278,30 +278,33 @@ psi_Mmax_plot <- function(mod, fish_data)
   logit <- function(x) log(x) - log(1 - x)
   ilogit <- function(x) exp(x) / (1 + exp(x))
   
-  dd <- stan_data('IPM_LCRchum_pp', ages = list(M = 1), 
-                 par_models = mod$par_models, center = FALSE, scale = FALSE,
-                 fish_data = fish_data, fecundity_data = fecundity_data)
-  N_pop <- max(dd$pop)
-  which_H_pop <- dd$which_H_pop
-
+  xvars <- all.vars(mod$par_models$psi)[-1]
+  X_psi <- fish_data %>% group_by(pop) %>% 
+    summarize(has_M_obs = any(!is.na(M_obs) | !is.na(downstream_trap)),
+              across(all_of(xvars), unique)) %>%  # only works for 1 factor 
+    par_model_matrix(par_models = mod$par_models["psi"], center = mod$center, 
+                     scale = mod$scale, fish_data = .) %>% 
+    .[["psi"]]
+  
   draws <- as.matrix(mod, c("psi","mu_psi","beta_psi","Mmax","mu_Mmax")) %>%
     as_draws_rvars() %>%
     mutate_variables(logit_psi = logit(psi),
-                     Xbeta_psi = replace(rep(rvar(0), N_pop), which_H_pop, beta_psi),
+                     # Xbeta_psi = replace(rep(rvar(0), N_pop), which_H_pop, beta_psi),
+                     Xbeta_psi = X_psi %*% beta_psi,
                      psi = ilogit(logit_psi + Xbeta_psi),
                      log10_Mmax = log10(Mmax) - 3,           # units of mil / km
                      mu_Mmax = mu_Mmax * log10(exp(1)) - 3,  # convert to base 10, mil/km
                      .value = c(psi, mu_psi, log10_Mmax, mu_Mmax))
-
-  dat <- fish_data %>% group_by(pop) %>% 
-    summarize(has_M_obs = any(!is.na(M_obs) | !is.na(downstream_trap))) %>% 
-    add_row(pop = "ESU hyper-mean", has_M_obs = FALSE) %>% rbind(., .) %>% 
+  
+  dat <- fish_data %>% group_by(pop) %>%
+    summarize(has_M_obs = any(!is.na(M_obs) | !is.na(downstream_trap))) %>%
+    add_row(pop = "ESU hyper-mean", has_M_obs = FALSE) %>% rbind(., .) %>%
     mutate(pop = factor(pop, levels = unique(pop)),
-           pars = rep(c("Maximum ~ egg*'-'*to*'-'*smolt ~ survival ~ (psi)", 
-                        "Smolt ~ capacity ~ (italic(M)[max] ~ '['*10^6 ~ km^-1*']')"), 
+           pars = rep(c("Maximum ~ egg*'-'*to*'-'*smolt ~ survival ~ (psi)",
+                        "Smolt ~ capacity ~ (italic(M)[max] ~ '['*10^6 ~ km^-1*']')"),
                       each = length(levels(pop))),
            fill = ifelse(pop == "ESU hyper-mean", "dark", ifelse(has_M_obs, "light", "none")),
-           .value = replace(draws$.value, 
+           .value = replace(draws$.value,
                             grepl("Hatchery", pop) & grepl("capacity", pars),
                             NA))
   
@@ -351,17 +354,26 @@ SR_plot <- function(mod, SR_fun, life_stage, fish_data)
   ilogit <- function(x) exp(x) / (1 + exp(x))
   rifelse <- rfun(ifelse)
   
-  dd <- stan_data('IPM_LCRchum_pp', ages = list(M = 1), 
-                 par_models = mod$par_models, center = FALSE, scale = FALSE,
-                 fish_data = fish_data, fecundity_data = fecundity_data)
-  N_pop <- max(dd$pop)
-  which_H_pop <- dd$which_H_pop
+  # dd <- stan_data('IPM_LCRchum_pp', ages = list(M = 1), 
+  #                 par_models = mod$par_models, center = FALSE, scale = FALSE,
+  #                 fish_data = fish_data, fecundity_data = fecundity_data)
+  # N_pop <- max(dd$pop)
+  # which_H_pop <- dd$which_H_pop
+  
+  xvars <- all.vars(mod$par_models$psi)[-1]
+  X_psi <- fish_data %>% group_by(pop) %>% 
+    summarize(has_M_obs = any(!is.na(M_obs) | !is.na(downstream_trap)),
+              across(all_of(xvars), unique)) %>%  # only works for 1 factor 
+    par_model_matrix(par_models = mod$par_models["psi"], center = mod$center, 
+                     scale = mod$scale, fish_data = .) %>% 
+    .[["psi"]]
   
   # S-R parameters, states and observations including reconstructed recruits
   draws <- as.matrix(mod, c("mu_E","q","q_F","psi","beta_psi","S","M","s_MS")) %>% 
     as_draws_rvars() %>% 
     mutate_variables(logit_psi = logit(psi),
-                     Xbeta_psi = replace(rep(rvar(0), N_pop), which_H_pop, beta_psi),
+                     # Xbeta_psi = replace(rep(rvar(0), N_pop), which_H_pop, beta_psi),
+                     Xbeta_psi = X_psi %*% beta_psi,
                      psi = ilogit(logit_psi + Xbeta_psi),
                      alpha = (q %**% mu_E) * q_F * psi[fish_data$pop], 
                      R = M * s_MS,
@@ -412,7 +424,7 @@ SR_plot <- function(mod, SR_fun, life_stage, fish_data)
     data.frame(N_hat = switch(life_stage, M = ppdraws$M_hat, R = ppdraws$R_hat),
                N_proc = switch(life_stage, M = ppdraws$M_proc, R = ppdraws$R_proc)) 
   # N_ppd = switch(life_stage, M = ppd$M_ppd, R = ppd$R_ppd)) 
-
+  
   gg <- ppd %>% 
     ggplot(aes(x = S/A, y = median(N_hat/A))) +
     geom_ribbon(aes(ymin = t(quantile(N_hat/A, qnt[1])), ymax = t(quantile(N_hat/A, qnt[2]))), 
@@ -521,7 +533,7 @@ p_D_plot <- function(mod, fish_data)
                           levels = levels(fish_data$pop))) %>%
     pivot_longer(cols = -origin, names_to = "pop", values_to = "p_D") %>% 
     mutate(pop = factor(pop, levels = levels(fish_data$pop)))
-    
+  
   gg <- dat %>% 
     ggplot(aes(xdist = p_D, y = pop)) +
     stat_eye(.width = c(0.5, 0.9), normalize = "groups", 
@@ -885,7 +897,7 @@ S_fore_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax, po
     group_by(scenario, pop, SAR) %>% summarize(gmean_S = exp(rvar_mean(log(S))))
   
   cols <- c(all = "slategray4", low = "firebrick1", med = "gold", high = "darkgreen")
-
+  
   gg <- dat %>% 
     ggplot(aes(x = scenario, ydist = gmean_S, color = SAR, fill = SAR)) +
     stat_eye(.width = c(0.5, 0.9), normalize = "groups", position = "dodge",
@@ -1203,4 +1215,6 @@ PQE_plot <- function(modH0, modHmax, fish_data_foreH0, fish_data_foreHmax,
   
   return(gg)
 }
+
+
 
