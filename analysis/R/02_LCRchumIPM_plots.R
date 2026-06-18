@@ -10,7 +10,7 @@
 #--------------------------------------------------------------------
 
 # Plot function
-multiplot <- function(mod, SR_fun, fish_data)
+multiplot <- function(mod, fish_data)
 {
   # non-hatchery populations and cases
   which_W_pop <- which(!grepl("Hatchery", levels(fish_data$pop)))
@@ -35,9 +35,9 @@ multiplot <- function(mod, SR_fun, fish_data)
   S <- colMedians(extract1(mod, "S"))[which_W_obs]
   SA_grid <- matrix(seq(0, quantile(S/A, 0.9, na.rm = TRUE), length = 100),
                     nrow = length(mu_alpha), ncol = 100, byrow = TRUE)
-  M_ESU <- SR(SR_fun, alpha = exp(mu_alpha), Rmax = exp(mu_Mmax), S = SA_grid)/1000 # mil/km
+  M_ESU <- SR(mod$SR_fun, alpha = exp(mu_alpha), Rmax = exp(mu_Mmax), S = SA_grid)/1000 # mil/km
   M_pop <- sapply(1:ncol(Mmax), function(i) {
-    colMedians(SR(SR_fun, alpha = alpha[,i], Rmax = Mmax[,i], S = SA_grid))/1000 # mil/km
+    colMedians(SR(mod$SR_fun, alpha = alpha[,i], Rmax = Mmax[,i], S = SA_grid))/1000 # mil/km
   })
   # smolt recruitment process errors
   y <- sort(unique(fish_data$year))
@@ -344,7 +344,7 @@ psi_Mmax_plot <- function(mod, fish_data)
 # Spawner-to-smolt S-R plot with fit, states, and observations for each pop
 #--------------------------------------------------------------------------------
 
-SR_plot <- function(mod, SR_fun, life_stage, fish_data)
+SR_plot <- function(mod, life_stage, fish_data)
 {
   n_grid <- 50
   cl <- 0.8
@@ -354,16 +354,18 @@ SR_plot <- function(mod, SR_fun, life_stage, fish_data)
   ilogit <- function(x) exp(x) / (1 + exp(x))
   rifelse <- rfun(ifelse)
   
-  # dd <- stan_data('IPM_LCRchum_pp', ages = list(M = 1), 
-  #                 par_models = mod$par_models, center = FALSE, scale = FALSE,
+  # ###
+  # dd <- stan_data('IPM_LCRchum_pp', ages = list(M = 1),
+  #                 par_models = mod$par_models, center = mod$center, scale = mod$scale,
   #                 fish_data = fish_data, fecundity_data = fecundity_data)
   # N_pop <- max(dd$pop)
   # which_H_pop <- dd$which_H_pop
+  # ###
+  structural_zeros <- fish_data$pop_type == "hatchery" & fish_data$S_obs == 0
   
   xvars <- all.vars(mod$par_models$psi)[-1]
   X_psi <- fish_data %>% group_by(pop) %>% 
-    summarize(has_M_obs = any(!is.na(M_obs) | !is.na(downstream_trap)),
-              across(all_of(xvars), unique)) %>%  # only works for 1 factor 
+    summarize(across(all_of(xvars), unique)) %>%  # only works for 1 factor 
     par_model_matrix(par_models = mod$par_models["psi"], center = mod$center, 
                      scale = mod$scale, fish_data = .) %>% 
     .[["psi"]]
@@ -371,7 +373,9 @@ SR_plot <- function(mod, SR_fun, life_stage, fish_data)
   # S-R parameters, states and observations including reconstructed recruits
   draws <- as.matrix(mod, c("mu_E","q","q_F","psi","beta_psi","S","M","s_MS")) %>% 
     as_draws_rvars() %>% 
-    mutate_variables(logit_psi = logit(psi),
+    mutate_variables(S = rifelse(structural_zeros, NA, S),
+                     q_F = rifelse(structural_zeros, NA, q_F),
+                     logit_psi = logit(psi),
                      # Xbeta_psi = replace(rep(rvar(0), N_pop), which_H_pop, beta_psi),
                      Xbeta_psi = X_psi %*% beta_psi,
                      psi = ilogit(logit_psi + Xbeta_psi),
@@ -396,7 +400,7 @@ SR_plot <- function(mod, SR_fun, life_stage, fish_data)
   
   # spawner densities at which to evaluate S-R function
   S_grid <- states_obs %>% group_by(pop) %>% 
-    reframe(pop_type = unique(pop_type), A = mean(A), alpha = rvar_mean(alpha), 
+    reframe(pop_type = unique(pop_type), A = mean(A), alpha = rvar_mean(alpha, na.rm = TRUE), 
             S = seq(0, max(S_upper, S_obs, na.rm = TRUE), length = n_grid))
   
   # posteriors of S-R fit with total process and proc + obs error (PPD)
@@ -406,8 +410,8 @@ SR_plot <- function(mod, SR_fun, life_stage, fish_data)
     mutate_variables(A = as_rvar(S_grid$A), S = S_grid$S,
                      alpha = S_grid$alpha, Mmax = rep(Mmax, each = n_grid),
                      M_hat = rifelse(S_grid$pop_type == "natural",
-                                     SR(SR_fun, alpha = alpha, Rmax = Mmax, S = S, A = A),
-                                     SR("exp", alpha = alpha, Rmax = Mmax, S = S, A = A)),
+                                     SR(mod$SR_fun, alpha = alpha, Rmax = Mmax, S = S, A = A),
+                                     SR("exp", alpha = alpha, Rmax = NA, S = S, A = A)),
                      sd_year_M = sigma_year_M / sqrt(1 - rho_M^2),
                      sd_proc_M = sqrt(sd_year_M^2 + sigma_M^2),
                      sd_ppd_M = sqrt(sd_proc_M^2 + tau_M^2),

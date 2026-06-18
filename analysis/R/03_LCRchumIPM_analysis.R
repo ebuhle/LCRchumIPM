@@ -184,8 +184,7 @@ if(save_plot) {
 } else dev.new(width = 12, height = 5.5)
 
 ## @knitr multiplot
-multiplot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2], 
-          fish_data = fish_data)
+multiplot(mod = get(mod_name), fish_data = fish_data)
 ## @knitr
 if(save_plot) dev.off()
 
@@ -238,8 +237,7 @@ life_stage <- "M"   # "M" = smolts, "R" = adult recruits
 save_plot <- TRUE
 
 ## @knitr SR_plot
-gg <- SR_plot(mod = get(mod_name), SR_fun = strsplit(mod_name, "_")[[1]][2],
-              life_stage = life_stage, fish_data = fish_data)
+gg <- SR_plot(mod = get(mod_name), life_stage = life_stage, fish_data = fish_data)
 ## @knitr
 
 if(save_plot) {
