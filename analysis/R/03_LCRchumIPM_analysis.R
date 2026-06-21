@@ -67,7 +67,7 @@ if(file.exists(here("analysis","results","LCRchumIPM.RData")))
 ## @knitr fit_Ricker
 fit_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", 
                         SR_fun = "Ricker", ages = list(M = 1), 
-                        par_models = list(psi ~ pop_type2, s_MS ~ pop_type2),
+                        par_models = list(psi ~ pop_type, s_MS ~ pop_type),
                         center = FALSE, scale = FALSE, 
                         fish_data = fish_data, 
                         fecundity_data = fecundity_data,
@@ -233,19 +233,38 @@ if(save_plot) {
 #--------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-life_stage <- "M"   # "M" = smolts, "R" = adult recruits
 save_plot <- TRUE
 
 ## @knitr SR_plot
-gg <- SR_plot(mod = get(mod_name), life_stage = life_stage, fish_data = fish_data)
+gg <- SR_plot(mod = get(mod_name), fish_data = fish_data)
 ## @knitr
 
 if(save_plot) {
   ggsave(filename=here("analysis","results",
                        paste0("SR_", strsplit(mod_name, "_")[[1]][2], ".png")),
-         width=9, height=7, units="in", dpi=300)
+         width=11, height=6, units="in", dpi=300)
 } else {
-  dev.new(width=9,height=7)
+  dev.new(width=11, height=6)
+  plot(gg)
+}
+
+#-------------------------------------------------------------------
+# Scatterplot of fitted smolts vs observed and states for each pop
+#-------------------------------------------------------------------
+
+mod_name <- "fit_Ricker"
+save_plot <- TRUE
+
+## @knitr M_fitvobs
+gg <- M_fitvobs(mod = get(mod_name), fish_data = fish_data)
+## @knitr
+
+if(save_plot) {
+  ggsave(filename=here("analysis","results",
+                       paste0("M_fitvobs_", strsplit(mod_name, "_")[[1]][2], ".png")),
+         width=12, height=7, units="in", dpi=300)
+} else {
+  dev.new(width=12, height=7)
   plot(gg)
 }
 

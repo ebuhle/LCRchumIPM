@@ -344,117 +344,178 @@ psi_Mmax_plot <- function(mod, fish_data)
 # Spawner-to-smolt S-R plot with fit, states, and observations for each pop
 #--------------------------------------------------------------------------------
 
-SR_plot <- function(mod, life_stage, fish_data)
+SR_plot <- function(mod, fish_data)
 {
   n_grid <- 50
-  cl <- 0.8
-  qnt <- c((1 - cl)/2, 1 - (1 - cl)/2)
-  
+  vquantile <- function(x, ...) as.vector(quantile(x, ...))
   logit <- function(x) log(x) - log(1 - x)
   ilogit <- function(x) exp(x) / (1 + exp(x))
   rifelse <- rfun(ifelse)
   
-  # ###
-  # dd <- stan_data('IPM_LCRchum_pp', ages = list(M = 1),
-  #                 par_models = mod$par_models, center = mod$center, scale = mod$scale,
-  #                 fish_data = fish_data, fecundity_data = fecundity_data)
-  # N_pop <- max(dd$pop)
-  # which_H_pop <- dd$which_H_pop
-  # ###
-  structural_zeros <- fish_data$pop_type == "hatchery" & fish_data$S_obs == 0
+  pop <- as.numeric(fish_data$pop)
+  N_pop <- length(levels(fish_data$pop))
+  which_H_pop <- grep("Hatchery", levels(factor(fish_data$pop)))
+  p_G_obs <- fish_data$p_G_obs
+
+  # xvars <- all.vars(mod$par_models$psi)[-1]
+  # X_psi <- fish_data %>% group_by(pop) %>% 
+  #   summarize(across(all_of(xvars), unique)) %>%  # only works for 1 factor 
+  #   par_model_matrix(par_models = mod$par_models["psi"], center = mod$center, 
+  #                    scale = mod$scale, fish_data = .) %>% 
+  #   .[["psi"]]
   
-  xvars <- all.vars(mod$par_models$psi)[-1]
-  X_psi <- fish_data %>% group_by(pop) %>% 
-    summarize(across(all_of(xvars), unique)) %>%  # only works for 1 factor 
-    par_model_matrix(par_models = mod$par_models["psi"], center = mod$center, 
-                     scale = mod$scale, fish_data = .) %>% 
-    .[["psi"]]
-  
-  # S-R parameters, states and observations including reconstructed recruits
-  draws <- as.matrix(mod, c("mu_E","q","q_F","psi","beta_psi","S","M","s_MS")) %>% 
+  # S-R parameters, states and observations
+  draws <- as.matrix(mod, c("mu_E","q","q_F","delta_NG","psi","beta_psi",
+                            "S","tau_S","M","tau_M")) %>% 
     as_draws_rvars() %>% 
-    mutate_variables(S = rifelse(structural_zeros, NA, S),
-                     q_F = rifelse(structural_zeros, NA, q_F),
-                     logit_psi = logit(psi),
-                     # Xbeta_psi = replace(rep(rvar(0), N_pop), which_H_pop, beta_psi),
-                     Xbeta_psi = X_psi %*% beta_psi,
+    mutate_variables(logit_psi = logit(psi),
+                     Xbeta_psi = replace(rep(rvar(0), N_pop), which_H_pop, beta_psi),
+                     # Xbeta_psi = X_psi %*% beta_psi,
                      psi = ilogit(logit_psi + Xbeta_psi),
-                     alpha = (q %**% mu_E) * q_F * psi[fish_data$pop], 
-                     R = M * s_MS,
-                     N = switch(life_stage, M = M, R = R))
+                     p_G_obs = as_rvar(p_G_obs), p_NG_obs = 1 - p_G_obs,
+                     alpha = (q %**% mu_E)*q_F*(p_G_obs + delta_NG*p_NG_obs)*psi[pop])
   
-  states_obs <- run_recon(fish_data) %>% 
-    mutate(pop_type = fish_data$pop_type,
-           N_obs = switch(life_stage, M = fish_data$M_obs, R = R_obs)) %>% 
-    select(pop, pop_type, year, A, S_obs, N_obs) %>% 
-    data.frame(alpha = draws$alpha, S = draws$S, N = draws$N) %>% 
+  states_obs <- fish_data %>% 
+    mutate(alpha = draws$alpha, S = draws$S, tau_S = draws$tau_S,
+           M = draws$M, tau_M = draws$tau_M) %>% 
+    # kludge: adjust M_obs by estimated proportion Grays MS in RST
+    group_by(downstream_trap) %>% mutate(M_downstream = rvar_sum(M)) %>% ungroup() %>% 
+    mutate(M_upstream = replace(as_rvar(rep(0, n())), na.omit(downstream_trap),
+                                M_downstream[!is.na(downstream_trap)]),
+           M_adj = M / (M + M_upstream),
+           M_obs = M_obs * ifelse(pop == "Grays MS", median(M_adj), 1),
+           S_obs_prior = dist_lognormal(log(ifelse(S_obs == 0, NA, S_obs)), E(tau_S)),
+           M_obs_prior = dist_lognormal(log(ifelse(M_obs == 0, NA, M_obs)), E(tau_M))) %>% 
     group_by(pop) %>% 
-    mutate(S_obs = lag(S_obs, switch(life_stage, M = 1, R = 0)), # align S and M by brood year
-           S = lag(S, switch(life_stage, M = 1, R = 0)),
-           N_obs = switch(life_stage, M = lag(lead(N_obs)), R = N_obs),
-           N = switch(life_stage, M = lag(lead(N)), R = N),
-           S_q2 = t(quantile(S, qnt[2], na.rm = TRUE)), 
-           S_upper = pmin(S_q2, max(median(S), na.rm = TRUE)*1.1),
-           N_q2 = t(quantile(N, qnt[2], na.rm = TRUE)), 
-           N_upper = pmin(N_q2, max(median(N), na.rm = TRUE)*1.1))
-  
+    mutate(A = ifelse(pop_type == "hatchery", max(S_obs, na.rm = TRUE), A),
+           A = lag(A), S_obs = lag(S_obs), S = lag(S), # align S and M by brood year
+           tau_S = lag(tau_S), S_obs_prior = lag(S_obs_prior),
+           SA_max = 1.05*max(median(S/A), S_obs/A, na.rm = TRUE),
+           SA_xend = pmin(vquantile(S/A, 0.95, na.rm = TRUE), SA_max),
+           SA_obs_xend = pmin(quantile(S_obs_prior/A, 0.95), SA_max, na.rm = TRUE))
+    
   # spawner densities at which to evaluate S-R function
   S_grid <- states_obs %>% group_by(pop) %>% 
-    reframe(pop_type = unique(pop_type), A = mean(A), alpha = rvar_mean(alpha, na.rm = TRUE), 
-            S = seq(0, max(S_upper, S_obs, na.rm = TRUE), length = n_grid))
+    reframe(pop_type = unique(pop_type), A = mean(A, na.rm = TRUE), 
+            alpha = rvar_mean(alpha, na.rm = TRUE), 
+            S = A*seq(0, unique(SA_max, na.rm = TRUE), length = n_grid))
   
   # posteriors of S-R fit with total process and proc + obs error (PPD)
-  ppdraws <- as.matrix(mod, c("Mmax", "sigma_year_M", "rho_M", "sigma_M", "tau_M", "M",
-                              "mu_MS", "sigma_year_MS", "rho_MS", "sigma_MS", "tau_S")) %>% 
+  ppdraws <- as.matrix(mod, c("Mmax", "sigma_year_M", "rho_M", "sigma_M", "tau_M", "M")) %>% 
     as_draws_rvars() %>% 
     mutate_variables(A = as_rvar(S_grid$A), S = S_grid$S,
                      alpha = S_grid$alpha, Mmax = rep(Mmax, each = n_grid),
                      M_hat = rifelse(S_grid$pop_type == "natural",
                                      SR(mod$SR_fun, alpha = alpha, Rmax = Mmax, S = S, A = A),
-                                     SR("exp", alpha = alpha, Rmax = NA, S = S, A = A)),
+                                     SR("exp", alpha = alpha, S = S, A = A)),
                      sd_year_M = sigma_year_M / sqrt(1 - rho_M^2),
                      sd_proc_M = sqrt(sd_year_M^2 + sigma_M^2),
-                     sd_ppd_M = sqrt(sd_proc_M^2 + tau_M^2),
-                     M_proc = rvar_rng(rlnorm, length(M_hat), log(M_hat), sd_proc_M),
-                     # M_ppd = rvar_rng(rlnorm, length(M_hat), log(M_hat), sd_ppd_M),
-                     R_hat = M_hat * mu_MS,
-                     sd_year_MS = sigma_year_MS / sqrt(1 - rho_MS^2),
-                     sd_proc_MS = sqrt(sd_year_MS^2 + sigma_MS^2),
-                     MS_proc = ilogit(rvar_rng(rnorm, length(M_hat), logit(mu_MS), sd_proc_M)),
-                     R_proc = M_proc * MS_proc)
-  # R_ppd = rvar_rng(rlnorm, length(R_proc), log(R_proc), tau_S))
+                     M_proc = rvar_rng(rlnorm, length(M_hat), log(M_hat), sd_proc_M))
+
+  ppdat <- S_grid %>% select(pop, A, S) %>% 
+    mutate(M_hat = ppdraws$M_hat, M_proc = ppdraws$M_proc) 
   
-  ppd <- S_grid %>% select(pop, A, S) %>% 
-    data.frame(N_hat = switch(life_stage, M = ppdraws$M_hat, R = ppdraws$R_hat),
-               N_proc = switch(life_stage, M = ppdraws$M_proc, R = ppdraws$R_proc)) 
-  # N_ppd = switch(life_stage, M = ppd$M_ppd, R = ppd$R_ppd)) 
-  
-  gg <- ppd %>% 
-    ggplot(aes(x = S/A, y = median(N_hat/A))) +
-    geom_ribbon(aes(ymin = t(quantile(N_hat/A, qnt[1])), ymax = t(quantile(N_hat/A, qnt[2]))), 
+  gg <- ppdat %>% 
+    ggplot(aes(x = S/A, y = median(M_hat/A))) +
+    geom_ribbon(aes(ymin = vquantile(M_hat/A, 0.05), ymax = vquantile(M_hat/A, 0.95)), 
                 fill = "slategray4", alpha = 0.4) +
-    geom_ribbon(aes(ymin = t(quantile(N_proc/A, qnt[1])), ymax = t(quantile(N_proc/A, qnt[2]))),
+    geom_ribbon(aes(ymin = vquantile(M_proc/A, 0.05), ymax = vquantile(M_proc/A, 0.95)),
                 fill = "slategray4", alpha = 0.3) +
-    # geom_ribbon(aes(ymin = t(quantile(N_ppd/A, qnt[1])), ymax = t(quantile(N_ppd/A, qnt[2]))),
-    #             fill = "slategray4", alpha = 0.2) +
     geom_line(lwd = 1, col = "slategray4") +
-    geom_segment(aes(x = t(quantile(S/A, qnt[1])), xend = S_upper/A, 
-                     y = median(N/A), yend = median(N/A)),
-                 data = states_obs, col = "slategray4", alpha = 0.8) +
+    geom_segment(aes(x = vquantile(S/A, 0.05), xend = SA_xend, 
+                     y = median(M/A), yend = median(M/A)),
+                 data = states_obs, col = "slategray4") +
     geom_segment(aes(x = median(S/A), xend = median(S/A), 
-                     y = t(quantile(N/A, qnt[1])), yend = t(quantile(N/A, qnt[2]))),
-                 data = states_obs, col = "slategray4", alpha = 0.8) +
-    # geom_segment(aes(x = S_obs/A, xend = median(S/A), y = N_obs/A, yend = median(N/A)),
-    #              data = states_obs, col = "slategray4", alpha = 0.4) +
-    geom_point(aes(x = median(S/A), y = median(N/A)), data = states_obs,
-               pch = 21, size = 2, col = "slategray4", fill = "white") +
-    geom_point(aes(x = S_obs/A, y = N_obs/A), data = states_obs, pch = 16, size = 2, alpha = 0.6) +
+                     y = vquantile(M/A, 0.05), yend = vquantile(M/A, 0.95)),
+                 data = states_obs, col = "slategray4") +
+    # geom_segment(aes(x = S_obs/A, xend = median(S/A), y = M_obs/A, yend = median(M/A)), 
+    #              data = states_obs, alpha = 0.6, lwd = 0.5) +    
+    geom_point(aes(x = median(S/A), y = median(M/A)), data = states_obs,
+               pch = 23, size = 2, col = "slategray4", fill = "white") +
+    # geom_segment(aes(x = quantile(S_obs_prior/A, 0.05), xend = SA_obs_xend,
+    #                  y = M_obs/A, yend = M_obs/A),
+    #              data = states_obs, alpha = 0.6) +
+    # geom_segment(aes(x = S_obs/A, xend = S_obs/A,
+    #                  y = quantile(M_obs_prior/A, 0.05),
+    #                  yend = quantile(M_obs_prior/A, 0.95)),
+    #              data = states_obs, alpha = 0.6) +
+    geom_point(aes(x = S_obs/A, y = M_obs/A), data = states_obs,
+               pch = 16, size = 2, alpha = 0.6) +
     scale_x_continuous(expand = expansion(c(0.02,0))) +
-    scale_y_continuous(labels = label_number(scale = switch(life_stage, M = 1e-3, R = 1)),
-                       expand = expansion(c(0.02,0))) +
-    labs(x = "Spawners (thousands / km)", 
-         y = switch(life_stage, M = "Smolts (millions / km)", R = "Recruits (thousands / km)")) +
-    facet_wrap(vars(pop), ncol = 4, scales = "free") + theme_bw(base_size = 16) +
+    scale_y_continuous(labels = label_number(scale = 1e-3)) +
+    scale_fill_manual(values = c(`TRUE` = "black", `FALSE` = "white"), guide = "none") +
+    labs(x = bquote("Spawners (" * km^-1 * ")"), y = bquote("Smolts (" * 10^3 ~ km^-1 * ")")) +
+    facet_wrap(vars(pop), ncol = 5, scales = "free") + theme_bw(base_size = 16) +
+    theme(axis.text.x = element_text(size = 11), axis.text.y = element_text(size = 11),
+          panel.grid = element_blank(), strip.background = element_rect(fill = NA),
+          strip.text = element_text(margin = margin(b = 3, t = 3)))
+  
+  return(gg)
+}
+
+#--------------------------------------------------------------------------------
+# Scatterplot of fitted smolts vs observed and states for each pop
+#--------------------------------------------------------------------------------
+
+M_fitvobs <- function(mod, fish_data)
+{
+  logit <- function(x) log(x) - log(1 - x)
+  ilogit <- function(x) exp(x) / (1 + exp(x))
+  vquantile <- function(x, ...) as.vector(quantile(x, ...))
+  rifelse <- rfun(ifelse)
+  
+  pop <- as.numeric(fish_data$pop)
+  N_pop <- length(levels(fish_data$pop))
+  which_H_pop <- grep("Hatchery", levels(factor(fish_data$pop)))
+  p_G_obs <- fish_data$p_G_obs
+  
+  draws <- as.matrix(mod, c("mu_E","q","q_F","delta_NG",
+                            "psi","beta_psi","Mmax","S","M")) %>% 
+    as_draws_rvars() %>% 
+    mutate_variables(A = as_rvar(fish_data$A),
+                     p_G_obs = as_rvar(p_G_obs), p_NG_obs = 1 - p_G_obs,
+                     logit_psi = logit(psi),
+                     Xbeta_psi = replace(rep(rvar(0), N_pop), which_H_pop, beta_psi),
+                     psi = ilogit(logit_psi + Xbeta_psi),
+                     alpha = (q %**% mu_E)*q_F*(p_G_obs + delta_NG*p_NG_obs)*psi[pop],
+                     M_hat = rifelse(fish_data$pop_type == "natural",
+                                     SR(mod$SR_fun, alpha = alpha, Rmax = Mmax[pop], S = S, A = A),
+                                     SR("exp", alpha = alpha, S = S, A = A)))
+  
+  dat <- fish_data %>% 
+    mutate(S = draws$S, M_hat = draws$M_hat, M = draws$M) %>% 
+    group_by(pop) %>%  # align S and M by brood year
+    mutate(S = lag(S), S_obs = lag(S_obs), M_hat = lag(M_hat)) %>% 
+    ungroup() %>% group_by(downstream_trap) %>% 
+    mutate(M_hat_downstream = rvar_sum(M_hat), M_downstream = rvar_sum(M)) %>% 
+    ungroup() %>%
+    mutate(M_upstream = replace(as_rvar(rep(0, n())), na.omit(downstream_trap),
+                                M_downstream[!is.na(downstream_trap)]),
+           M = M + M_upstream,
+           M_hat_upstream = replace(as_rvar(rep(0, n())), na.omit(downstream_trap),
+                                M_hat_downstream[!is.na(downstream_trap)]),
+           M_hat = M_hat + M_hat_upstream)
+
+    gg <- dat %>% 
+    ggplot(aes(x = median(M_hat))) +
+    geom_abline(intercept = 0, slope = 1) +
+    geom_errorbar(aes(xmin = vquantile(M_hat, 0.05), 
+                      xmax = vquantile(M_hat, 0.95),
+                      y = median(M)),
+                  width = 0, col = "slategray4") +
+    geom_errorbar(aes(x = median(M_hat),
+                      ymin = vquantile(M, 0.05), 
+                      ymax = vquantile(M, 0.95)),
+                  width = 0, col = "slategray4") +
+    geom_point(aes(y = median(M)), pch = 23, size = 2, 
+               col = "slategray4", fill = "white") +
+    geom_point(aes(y = M_obs), pch = 16, size = 2, alpha = 0.6) +
+    scale_x_log10(labels = label_number(scale = 1e-3)) + 
+    scale_y_log10(labels = label_number(scale = 1e-3)) +
+    labs(x = bquote("Expected smolts (" * 10^3 * ")"), 
+         y = bquote("Observed or estimated smolts (" * 10^3 * ")")) +
+    facet_wrap(vars(pop), ncol = 5, scales = "free") + 
+    theme_bw(base_size = 16) +
     theme(axis.text.x = element_text(size = 11), axis.text.y = element_text(size = 11),
           panel.grid = element_blank(), strip.background = element_rect(fill = NA),
           strip.text = element_text(margin = margin(b = 3, t = 3)))
@@ -556,6 +617,8 @@ p_D_plot <- function(mod, fish_data)
 
 smolt_spawner_ts <- function(mod, life_stage = c("M","S"), fish_data)
 {
+  vquantile <- function(x, ...) as.vector(quantile(x, ...))
+  
   year <- fish_data$year
   draws <- as_draws_rvars(as.matrix(mod, c(life_stage, paste0("tau_", life_stage)))) %>% 
     rename_variables(N = !!life_stage, tau_N = !!paste0("tau_", life_stage))
@@ -563,26 +626,25 @@ smolt_spawner_ts <- function(mod, life_stage = c("M","S"), fish_data)
   dat <- fish_data %>% 
     rename(N_obs = !!paste0(life_stage, "_obs"),
            tau_N_obs = !!paste0("tau_", life_stage, "_obs")) %>% 
-    mutate(N_obs = replace(N_obs, N_obs == 0, NA), N = draws$N) %>% 
+    mutate(N = draws$N, N = replace(N, E(N) == 0, NA),
+           N_obs = replace(N_obs, N_obs == 0, NA)) %>% 
     group_by(downstream_trap) %>% mutate(N_downstream = rvar_sum(N)) %>% ungroup() %>% 
     mutate(N_upstream = replace(as_rvar(rep(0, n())), na.omit(downstream_trap),
                                 N_downstream[!is.na(downstream_trap)]),
            N = if(life_stage == "M") N + N_upstream else N,
            tau_N = draws$tau_N, N_ppd = rvar_rng(rlnorm, n(), log(N), tau_N),
-           N_obs_prior = dist_lognormal(log(N_obs), 
-                                        ifelse(is.na(tau_N_obs), 
-                                               mean(tau_N), tau_N_obs)))
+           N_obs_prior = dist_lognormal(log(N_obs), E(tau_N)))
   
   gg <- dat %>% 
     ggplot(aes(x = year, ydist = N_obs_prior)) +
     geom_line(aes(y = median(N)), lwd = 1, col = "slategray4") +
-    geom_ribbon(aes(ymin = t(quantile(N, 0.05)), ymax = t(quantile(N, 0.95))), 
+    geom_ribbon(aes(ymin = vquantile(N, 0.05), ymax = vquantile(N, 0.95)), 
                 fill = "slategray4", alpha = 0.5) +
-    geom_ribbon(aes(ymin = t(quantile(N_ppd, 0.05)), ymax = t(quantile(N_ppd, 0.95))),
+    geom_ribbon(aes(ymin = vquantile(N_ppd, 0.05), ymax = vquantile(N_ppd, 0.9)),
                 fill = "slategray4", alpha = 0.3) +
-    stat_pointinterval(aes(fill = is.na(tau_N_obs)), .width = 0.9, 
+    stat_pointinterval(aes(fill = !is.na(tau_N_obs)), .width = 0.9, 
                        pch = 21, point_size = 2.5, linewidth = 1) + 
-    scale_fill_manual(values = c(`TRUE` = "white", `FALSE` = "black"), guide = "none") +
+    scale_fill_manual(values = c(`TRUE` = "black", `FALSE` = "white"), guide = "none") +
     labs(x = "Year", y = switch(life_stage, M = "Smolts", S = "Spawners")) + 
     scale_x_continuous(minor_breaks = unique(fish_data$year), expand = expansion(0.01)) +
     scale_y_log10(breaks = function(l) maglab(na.omit(l), log = TRUE)$tickat,
@@ -650,6 +712,7 @@ obs_error_plot <- function(mod, fish_data)
 
 age_timeseries <- function(mod, fish_data)
 {
+  vquantile <- function(x, ...) as.vector(quantile(x, ...))
   q <- as_draws_rvars(as.matrix(mod, "q")) 
   year <- fish_data$year
   
@@ -660,16 +723,14 @@ age_timeseries <- function(mod, fish_data)
     do.call(data.frame, .) %>% # unpack cols of nested data frames
     pivot_longer(cols = -c(pop, pop_type, year, S_obs, total), 
                  names_to = c("age",".value"), names_pattern = "n_age(.)_obs.(.*)") %>% 
-    mutate(q = replace(as.vector(t(q$q)), 
-                       pop_type == "hatchery" & S_obs %in% c(NA,0), 
-                       NA),
+    mutate(q = as.vector(t(q$q)),
            n_age_ppd = rvar_rng(rbinom, n(), size = total, prob = q),
            q_ppd = n_age_ppd/total) %>% 
     ggplot(aes(x = year, y = median(q), group = age, color = age, fill = age)) +
     geom_line(lwd = 1, alpha = 0.8) +
-    geom_ribbon(aes(ymin = t(quantile(q, 0.05)), ymax = t(quantile(q, 0.95))), 
+    geom_ribbon(aes(ymin = vquantile(q, 0.05), ymax = vquantile(q, 0.95)), 
                 color = NA, alpha = 0.4) +
-    geom_ribbon(aes(ymin = t(quantile(q_ppd, 0.05)), ymax = t(quantile(q_ppd, 0.95))), 
+    geom_ribbon(aes(ymin = vquantile(q_ppd, 0.05), ymax = vquantile(q_ppd, 0.95)), 
                 color = NA, alpha = 0.2) +
     geom_point(aes(y = PointEst), pch = 16, size = 2.5, alpha = 0.8) +
     geom_errorbar(aes(ymin = Lower, ymax = Upper), width = 0, alpha = 0.8) +
@@ -693,19 +754,20 @@ age_timeseries <- function(mod, fish_data)
 
 plot_sex_ratio <- function(mod, fish_data)
 {
+  vquantile <- function(x, ...) as.vector(quantile(x, ...))
   q_F <- as_draws_rvars(as.matrix(mod, "q_F"))
   year <- fish_data$year
   
   gg <- cbind(fish_data, q_F = q_F) %>%
     mutate(n_MF_obs = n_M_obs + n_F_obs, 
-           q_F = replace(q_F, pop_type == "hatchery" & S_obs %in% c(NA,0), NA),
+           # q_F = replace(q_F, pop_type == "hatchery" & S_obs %in% c(NA,0), NA),
            n_F_ppd = rvar_rng(rbinom, n = n(), size = n_MF_obs, prob = q_F),
            q_F_ppd = n_F_ppd/n_MF_obs) %>% 
     cbind(., with(., binconf(x = n_F_obs, n = n_MF_obs, alpha = 0.1))) %>%
     ggplot(aes(x = year, y = PointEst, ymin = Lower, ymax = Upper)) + 
-    geom_ribbon(aes(ymin = t(quantile(q_F, 0.05)), ymax = t(quantile(q_F, 0.95))), 
+    geom_ribbon(aes(ymin = vquantile(q_F, 0.05), ymax = vquantile(q_F, 0.95)), 
                 fill = "slategray4", alpha = 0.5) +
-    geom_ribbon(aes(ymin = t(quantile(q_F_ppd, 0.05)), ymax = t(quantile(q_F_ppd, 0.95))), 
+    geom_ribbon(aes(ymin = vquantile(q_F_ppd, 0.05), ymax = vquantile(q_F_ppd, 0.95)), 
                 fill = "slategray4", alpha = 0.3) +
     geom_line(aes(y = median(q_F)), col = "slategray4", lwd = 1) +
     geom_point(pch = 16, size = 2.5) + geom_errorbar(width = 0) +
@@ -726,20 +788,20 @@ plot_sex_ratio <- function(mod, fish_data)
 
 p_HOS_timeseries <- function(mod, fish_data)
 {
+  vquantile <- function(x, ...) as.vector(quantile(x, ...))
   p_HOS <- as_draws_rvars(as.matrix(mod, "p_HOS"))
   year <- fish_data$year
   
   gg <- fish_data %>% cbind(p_HOS = p_HOS) %>% 
     mutate(n_HW_obs = n_H_obs + n_W_obs,
-           p_HOS = replace(p_HOS, pop_type == "hatchery" & S_obs %in% c(NA,0), NA),
            n_H_ppd = rvar_rng(rbinom, n = n(), size = n_HW_obs, prob = p_HOS),
            p_HOS_ppd = n_H_ppd/n_HW_obs,
            p_HOS_obs = binconf(n_H_obs, n_HW_obs, alpha = 0.1)) %>% 
     do.call(data.frame, .) %>% # unpack col with nested data frame
     ggplot(aes(x = year)) +
-    geom_ribbon(aes(ymin = t(quantile(p_HOS, 0.05)), ymax = t(quantile(p_HOS, 0.95))), 
+    geom_ribbon(aes(ymin = vquantile(p_HOS, 0.05), ymax = vquantile(p_HOS, 0.95)), 
                 fill = "slategray4", alpha = 0.5) +
-    geom_ribbon(aes(ymin = t(quantile(p_HOS_ppd, 0.05)), ymax = t(quantile(p_HOS_ppd, 0.95))), 
+    geom_ribbon(aes(ymin = vquantile(p_HOS_ppd, 0.05), ymax = vquantile(p_HOS_ppd, 0.95)), 
                 fill = "slategray4", alpha = 0.3) +
     geom_line(aes(y = median(p_HOS)), col = "slategray4", lwd = 1) +
     geom_point(aes(y = p_HOS_obs.PointEst), pch = 16, size = 2.5) +
