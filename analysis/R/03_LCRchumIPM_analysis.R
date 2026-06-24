@@ -34,7 +34,6 @@ if(file.exists(here("analysis","results","LCRchumIPM.RData")))
   load(here("analysis","results","LCRchumIPM.RData"))
 ## @knitr
 
-
 #===========================================================================
 # FIT RETROSPECTIVE MODELS
 #===========================================================================
@@ -67,7 +66,7 @@ if(file.exists(here("analysis","results","LCRchumIPM.RData")))
 ## @knitr fit_Ricker
 fit_Ricker <- salmonIPM(stan_model = "IPM_LCRchum_pp", 
                         SR_fun = "Ricker", ages = list(M = 1), 
-                        par_models = list(psi ~ pop_type, s_MS ~ pop_type),
+                        par_models = list(psi ~ pop_type, s_MS ~ pop_type2),
                         center = FALSE, scale = FALSE, 
                         fish_data = fish_data, 
                         fecundity_data = fecundity_data,
@@ -85,7 +84,6 @@ prior_summary(fit_Ricker)
 ## @knitr plot_prior_posterior_Ricker
 plot_prior_posterior(fit_Ricker, pars = "p_D", include = FALSE)
 ## @knitr
-
 
 # #--------------------------------------------------------------
 # # Model selection using LOO
@@ -119,7 +117,6 @@ plot_prior_posterior(fit_Ricker, pars = "p_D", include = FALSE)
 # ## Beverton-Holt vs. Ricker
 # loo_compare(LOO[c("BH","Ricker")])
 # ## @knitr
-
 
 #===========================================================================
 # FIT PROSPECTIVE FORECASTING MODELS
@@ -161,7 +158,6 @@ print(foreH0_Ricker)
 save(list = ls()[sapply(ls(), function(x) {
   "salmonIPMfit" %in% do.call(class, list(as.name(x))) })], 
   file = here("analysis","results","LCRchumIPM.RData"))
-
 
 #===========================================================================
 # FIGURES 
@@ -600,32 +596,34 @@ forecast_df <- fish_data_fore %>%
 #   - E_hat
 #   - M
 #   - M/E_hat
+#   - s_MS
+#   - R/S
+#   - b 
 #   - q
 #   - p_HOS
 #   - q_F
-#   - B_rate (skip for now b/c not monitored by default)
-#   - s_MS
-#   - R/S
 #----------------------------------------------------------
 
-metrics <- foreH0_Ricker %>% 
-  as.matrix(c("S","M","mu_E","delta_NG","q","p_HOS","q_F","s_MS")) %>% as_draws_rvars() %>% 
-  mutate_variables(S_add_obs = fish_data_fore$S_add_obs, p_local = 1 - S_add_obs/S, 
-                   p_G_obs = fish_data_fore$p_G_obs, p_NG_obs = 1 - p_G_obs,
+metrics <- fit_Ricker %>% 
+  as.matrix(c("S","M","mu_E","delta_NG","q","p_HOS","q_F","s_MS","b")) %>% as_draws_rvars() %>% 
+  mutate_variables(#S_add_obs = fish_data$S_add_obs, p_local = 1 - S_add_obs/S, 
+                   p_G_obs = fish_data$p_G_obs, p_NG_obs = 1 - p_G_obs,
                    E_hat = as.vector((q %**% mu_E) * q_F * (p_G_obs + delta_NG * p_NG_obs) * S),
-                   M0 = unsplit(sapply(split(M, fish_data_fore$pop), lead), fish_data_fore$pop),
+                   M0 = unsplit(sapply(split(M, fish_data$pop), lead), fish_data$pop),
                    `M/E_hat` = M0/E_hat, q_3 = q[,1], q_4 = q[,2], q_5 = q[,3],
-                   R0 = unsplit(sapply(split(M*s_MS, fish_data_fore$pop), lead), fish_data_fore$pop),
-                   `R/S` = R0/S) %>% 
-  subset_draws(variable = c("S","E_hat","M","M/E_hat","q_3","q_4","q_5",
-                            "p_HOS","p_local","q_F","s_MS","R/S")) %>%
+                   R0 = unsplit(sapply(split(M*s_MS, fish_data$pop), lead), fish_data$pop),
+                   `R/S` = R0/S,
+                   b = replace(rep(rvar(0), nrow(fish_data)), 
+                               fish_data$B_take_obs > 0, b)) %>% 
+  subset_draws(variable = c("S","E_hat","M","M/E_hat","s_MS","R/S","b",
+                            "q_3","q_4","q_5","p_HOS","q_F")) %>%
   summarize_draws(.med = median, "quantile2") %>% rename(`.05` = q5, `.95` = q95) %>%
-  cbind(select(fish_data_fore, c(pop, year, forecast)), .) %>%
-  filter(!forecast) %>%  select(-forecast) %>% 
+  cbind(select(fish_data, c(pop, year)), .) %>%
+  # filter(!forecast) %>%  select(-forecast) %>% 
   mutate(variable = gsub("\\[.*\\]", "", variable)) %>%
   pivot_longer(cols = c(.med, `.05`, `.95`), names_to = "summary", values_to = "value") %>%
   mutate(value = replace(value, grepl("Hatchery", pop) & variable != "s_MS", NA),
-         value = replace(value, !grepl("Duncan Channel", pop) & variable == "p_local", NA),
+         # value = replace(value, !grepl("Duncan Channel", pop) & variable == "p_local", NA),
          variable.summary = paste0(variable, summary)) %>% 
   select(-c(variable, summary)) %>%  
   pivot_wider(id_cols = c(pop, year), names_from = variable.summary, values_from = value) %>% 

@@ -356,24 +356,20 @@ SR_plot <- function(mod, fish_data)
   N_pop <- length(levels(fish_data$pop))
   which_H_pop <- grep("Hatchery", levels(factor(fish_data$pop)))
   p_G_obs <- fish_data$p_G_obs
-
-  # xvars <- all.vars(mod$par_models$psi)[-1]
-  # X_psi <- fish_data %>% group_by(pop) %>% 
-  #   summarize(across(all_of(xvars), unique)) %>%  # only works for 1 factor 
-  #   par_model_matrix(par_models = mod$par_models["psi"], center = mod$center, 
-  #                    scale = mod$scale, fish_data = .) %>% 
-  #   .[["psi"]]
+  
+  X_psi <- par_model_matrix(par_models = mod$par_models["psi"], center = mod$center,
+                            scale = mod$scale, fish_data = fish_data)[["psi"]]
   
   # S-R parameters, states and observations
   draws <- as.matrix(mod, c("mu_E","q","q_F","delta_NG","psi","beta_psi",
                             "S","tau_S","M","tau_M")) %>% 
     as_draws_rvars() %>% 
-    mutate_variables(logit_psi = logit(psi),
-                     Xbeta_psi = replace(rep(rvar(0), N_pop), which_H_pop, beta_psi),
-                     # Xbeta_psi = X_psi %*% beta_psi,
+    mutate_variables(logit_psi = logit(psi[pop]),
+                     # Xbeta_psi = replace(rep(rvar(0), N_pop), which_H_pop, beta_psi),
+                     Xbeta_psi = X_psi %*% beta_psi,
                      psi = ilogit(logit_psi + Xbeta_psi),
                      p_G_obs = as_rvar(p_G_obs), p_NG_obs = 1 - p_G_obs,
-                     alpha = (q %**% mu_E)*q_F*(p_G_obs + delta_NG*p_NG_obs)*psi[pop])
+                     alpha = (q %**% mu_E)*q_F*(p_G_obs + delta_NG*p_NG_obs)*psi)
   
   states_obs <- fish_data %>% 
     mutate(alpha = draws$alpha, S = draws$S, tau_S = draws$tau_S,
@@ -393,7 +389,7 @@ SR_plot <- function(mod, fish_data)
            SA_max = 1.05*max(median(S/A), S_obs/A, na.rm = TRUE),
            SA_xend = pmin(vquantile(S/A, 0.95, na.rm = TRUE), SA_max),
            SA_obs_xend = pmin(quantile(S_obs_prior/A, 0.95), SA_max, na.rm = TRUE))
-    
+  
   # spawner densities at which to evaluate S-R function
   S_grid <- states_obs %>% group_by(pop) %>% 
     reframe(pop_type = unique(pop_type), A = mean(A, na.rm = TRUE), 
@@ -411,7 +407,7 @@ SR_plot <- function(mod, fish_data)
                      sd_year_M = sigma_year_M / sqrt(1 - rho_M^2),
                      sd_proc_M = sqrt(sd_year_M^2 + sigma_M^2),
                      M_proc = rvar_rng(rlnorm, length(M_hat), log(M_hat), sd_proc_M))
-
+  
   ppdat <- S_grid %>% select(pop, A, S) %>% 
     mutate(M_hat = ppdraws$M_hat, M_proc = ppdraws$M_proc) 
   
@@ -469,15 +465,19 @@ M_fitvobs <- function(mod, fish_data)
   which_H_pop <- grep("Hatchery", levels(factor(fish_data$pop)))
   p_G_obs <- fish_data$p_G_obs
   
-  draws <- as.matrix(mod, c("mu_E","q","q_F","delta_NG",
-                            "psi","beta_psi","Mmax","S","M")) %>% 
+  X_psi <- par_model_matrix(par_models = mod$par_models["psi"], center = mod$center,
+                            scale = mod$scale, fish_data = fish_data)[["psi"]]
+  
+  draws <- as.matrix(mod, c("mu_E","q","q_F","delta_NG","psi","beta_psi",
+                            "Mmax","S","M")) %>%    
     as_draws_rvars() %>% 
     mutate_variables(A = as_rvar(fish_data$A),
-                     p_G_obs = as_rvar(p_G_obs), p_NG_obs = 1 - p_G_obs,
-                     logit_psi = logit(psi),
-                     Xbeta_psi = replace(rep(rvar(0), N_pop), which_H_pop, beta_psi),
+                     logit_psi = logit(psi[pop]),
+                     # Xbeta_psi = replace(rep(rvar(0), N_pop), which_H_pop, beta_psi),
+                     Xbeta_psi = X_psi %*% beta_psi,
                      psi = ilogit(logit_psi + Xbeta_psi),
-                     alpha = (q %**% mu_E)*q_F*(p_G_obs + delta_NG*p_NG_obs)*psi[pop],
+                     p_G_obs = as_rvar(p_G_obs), p_NG_obs = 1 - p_G_obs,
+                     alpha = (q %**% mu_E)*q_F*(p_G_obs + delta_NG*p_NG_obs)*psi,
                      M_hat = rifelse(fish_data$pop_type == "natural",
                                      SR(mod$SR_fun, alpha = alpha, Rmax = Mmax[pop], S = S, A = A),
                                      SR("exp", alpha = alpha, S = S, A = A)))
@@ -493,10 +493,10 @@ M_fitvobs <- function(mod, fish_data)
                                 M_downstream[!is.na(downstream_trap)]),
            M = M + M_upstream,
            M_hat_upstream = replace(as_rvar(rep(0, n())), na.omit(downstream_trap),
-                                M_hat_downstream[!is.na(downstream_trap)]),
+                                    M_hat_downstream[!is.na(downstream_trap)]),
            M_hat = M_hat + M_hat_upstream)
-
-    gg <- dat %>% 
+  
+  gg <- dat %>% 
     ggplot(aes(x = median(M_hat))) +
     geom_abline(intercept = 0, slope = 1) +
     geom_errorbar(aes(xmin = vquantile(M_hat, 0.05), 
@@ -540,13 +540,20 @@ smolt_SAR_ts <- function(mod, fish_data)
                      exp_eta_year_M = exp(eta_year_M), 
                      exp_error_M = exp(error_M),
                      SAR = 100*s_MS,
-                     SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS),
-                     SAR_H_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS + beta_MS))
+                     SAR_W_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS))
+                     # SAR_H_ESU = 100*ilogit(logit(mu_MS) + eta_year_MS + beta_MS))
+  
+  # hyper <- data.frame(year = sort(unique(fish_data$year))) %>% 
+  #   cbind(pars = rep(c("Smolt productivity anomaly","SAR (%)"), times = (1:2)*nrow(.)),
+  #         pop_type = rep(c("natural","hatchery"), times = (2:1)*nrow(.)),
+  #         .value = c(draws$exp_eta_year_M, draws$SAR_W_ESU, draws$SAR_H_ESU)) %>% 
+  #   mutate(brood_year = ifelse(grepl("SAR", pars), year - 1, year),
+  #          pars = factor(pars, levels = unique(pars)), .after = pars) 
   
   hyper <- data.frame(year = sort(unique(fish_data$year))) %>% 
-    cbind(pars = rep(c("Smolt productivity anomaly","SAR (%)"), times = (1:2)*nrow(.)),
-          pop_type = rep(c("natural","hatchery"), times = (2:1)*nrow(.)),
-          .value = c(draws$exp_eta_year_M, draws$SAR_W_ESU, draws$SAR_H_ESU)) %>% 
+    cbind(pars = rep(c("Smolt productivity anomaly","SAR (%)"), each = nrow(.)),
+          pop_type = "natural",
+          .value = c(draws$exp_eta_year_M, draws$SAR_W_ESU)) %>% 
     mutate(brood_year = ifelse(grepl("SAR", pars), year - 1, year),
            pars = factor(pars, levels = unique(pars)), .after = pars) 
   
@@ -556,7 +563,6 @@ smolt_SAR_ts <- function(mod, fish_data)
     cbind(.value = c(draws$exp_error_M, draws$SAR), 
           pars = rep(c("Smolt productivity anomaly","SAR (%)"), each = nrow(.))) %>% 
     mutate(brood_year = ifelse(grepl("SAR", pars), year - 1, year),
-           .value = replace(.value, grepl("Smolt", pars) & pop_type == "hatchery", NA),
            pars = factor(pars, levels = unique(pars))) 
   
   gg <- dd %>% 
