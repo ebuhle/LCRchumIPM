@@ -440,7 +440,7 @@ SR_plot <- function(mod, fish_data)
     scale_x_continuous(expand = expansion(c(0.02,0))) +
     scale_y_continuous(labels = label_number(scale = 1e-3)) +
     scale_fill_manual(values = c(`TRUE` = "black", `FALSE` = "white"), guide = "none") +
-    labs(x = bquote("Spawners (" * km^-1 * ")"), y = bquote("Smolts (" * 10^3 ~ km^-1 * ")")) +
+    labs(x = bquote("Spawners (" * 10^3 ~ km^-1 * ")"), y = bquote("Smolts (" * 10^6 ~ km^-1 * ")")) +
     facet_wrap(vars(pop), ncol = 5, scales = "free") + theme_bw(base_size = 16) +
     theme(axis.text.x = element_text(size = 11), axis.text.y = element_text(size = 11),
           panel.grid = element_blank(), strip.background = element_rect(fill = NA),
