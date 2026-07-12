@@ -277,8 +277,10 @@ fish_data <- fish_data %>%
                                    which(pop == "Grays MS" & year > 2000))) %>% 
   mutate(pop_type = factor(ifelse(grepl("Hatchery", pop), "hatchery", "natural"), 
                            levels = c("natural","hatchery")),
-         pop_type2 = factor(ifelse(pop_type == "natural", "natural", as.character(pop)),
-                            levels = c("natural","Duncan Hatchery","Lewis Hatchery","Grays Hatchery")),
+         pop_type2 = factor(ifelse(pop_type == "natural", "natural", 
+                                   ifelse(pop == "Lewis Hatchery", "Lewis Hatchery", 
+                                          "hatchery")),
+                            levels = c("natural","hatchery","Lewis Hatchery")),
          .after = pop)
 
 # pad data with future years to generate forecasts
