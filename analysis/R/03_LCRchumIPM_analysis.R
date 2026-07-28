@@ -320,7 +320,7 @@ if(save_plot) {
 #--------------------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-life_stage <- "M"   # "S" = spawners, "M" = smolts
+life_stage <- "S"   # "S" = spawners, "M" = smolts
 save_plot <- TRUE
 
 ## @knitr smolt_spawner_ts
