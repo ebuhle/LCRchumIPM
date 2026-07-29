@@ -212,3 +212,9 @@ Chum,Eggs,2024,2025,Coastal,Peterson_RSI,Hatchery_Grays,NA,NA,N,NA,34396,34396,N
 Chum,Fry.Smolt,2024,2025,Cascade,Lewis_East_Fork,Hatchery_Lewis,NA,NA,NA,NA,88735,88735,NA,NA,NA,NA,"From Fishbooks (Vancouver H., Fish Reports, Planting Summary, CH:NA:I205:2024:W)"
 Chum,Fry.Smolt,2024,2025,Gorge,Duncan_Channel,Hatchery_Duncan,NA,NA,NA,NA,58624,58624,NA,NA,NA,NA,"From Fishbooks (Vancouver H., Fish Reports, Planting Summary, CH:NA:COLU:2024:W)"
 Chum,Eggs,2025,2026,Coastal,Peterson_RSI,Hatchery_Grays,NA,NA,N,NA,16656,34396,NA,NA,NA,NA,"egg transfers (not fry releases); found in Fishbooks (Beaver Ck, Incubation, Ship-Receive)"
+Chum,Fry.Smolt,2024,2025,Coastal,Grays_CJ,Wild,Rotary Screw,BTSPAS,NA,,NA,NA,NA,NA,NA,NA,Could not generate estimate using standard M-R approach due to 4-5 week delay in trap install
+Chum,Fry.Smolt,2024,2025,Gorge,Duncan_Channel,Wild,Weir,P-Spline,Y,103211,103211,103211,1,103211,103211,0,
+Chum,Fry.Smolt,2024,2025,Gorge,Duncan_North,Wild,Weir,NA,not sure,65754,65754,65754,1,65754,65754,65754,
+Chum,Fry.Smolt,2024,2025,Gorge,Duncan_South,Wild,Weir,NA,not sure,37457,37457,37457,1,37457,37457,37457,
+Chum,Fry.Smolt,2024,2025,Coastal,Grays_MS,Wild,Rotary Screw,BTSPAS,NA,36356,1557937,1536697,201500,1229666,2002457,0,
+Chum,Fry.Smolt,2024,2025,Gorge,Hamilton_Channel,Wild,Weir,P-Spline,NA,351466,636006.988,632492,40935.856,566671.575,728918.625,0.064,
