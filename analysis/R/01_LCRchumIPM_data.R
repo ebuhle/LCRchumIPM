@@ -261,7 +261,8 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
   }) %>% 
   select(pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_F_obs, 
          p_G_obs, B_take_obs, starts_with("n_B"), F_rate) %>% 
-  arrange(pop, year) 
+  arrange(pop, year) %>% 
+  filter(year < 2025) # TEMP: until all hatcheries and brood sources have non-missing S_obs in 2025 
 
 # drop cases with initial NAs in S_obs and M_obs
 fish_data <- fish_data_all %>% group_by(pop) %>% 
