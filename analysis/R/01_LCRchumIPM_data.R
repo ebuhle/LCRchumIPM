@@ -254,6 +254,8 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
          # across(starts_with("n_O"), ~ifelse(grepl("Grays", pop) & year == 2019, 0, .)),
          M_obs = replace(M_obs, pop == "Grays CJ" & year == 2020, NA),
          tau_M_obs = replace(tau_M_obs, pop == "Grays CJ" & year == 2020, NA),
+         M_obs = replace(M_obs, pop == "Grays MS", NA),         ## test
+         tau_M_obs = replace(tau_M_obs, pop == "Grays MS", NA), ## test
          across(starts_with("n_O"), ~ifelse(pop == "Grays Hatchery" & year < 2007, 0, .)),
          B_take_obs = replace_na(B_take_obs, 0),
          p_G_obs = replace_na(p_G_obs, 1), F_rate = 0) %>%
