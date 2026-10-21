@@ -220,7 +220,7 @@ if(save_plot) {
 #--------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 ## @knitr plot_psi_Mmax
 gg <- psi_Mmax_plot(mod = get(mod_name), fish_data)
@@ -240,7 +240,7 @@ if(save_plot) {
 #--------------------------------------------------------------
 
 mod_name <- "fit_Ricker"
-save_plot <- TRUE
+save_plot <- FALSE
 
 ## @knitr SR_plot
 gg <- SR_plot(mod = get(mod_name), fish_data = fish_data)
