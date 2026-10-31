@@ -244,7 +244,7 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
   filter(!pop %in% c("Duncan Creek", "Sea Resources Hatchery")) %>% 
   mutate(pop = droplevels(factor(pop, levels = pop_names$pop)), # order E-W
          A = replace(A, grepl("Hatchery", pop), 1),
-         tau_S_obs = replace(tau_S_obs, grepl("Hatchery|Duncan", pop), 0.01), # kludge
+         tau_S_obs = replace(tau_S_obs, grepl("Hatchery|Duncan", pop), 0.05), # kludge
          tau_M_obs = replace(tau_M_obs, grepl("Hatchery", pop), 0.05), # kludge
          S_obs = replace(S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          tau_S_obs = replace(tau_S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
@@ -253,10 +253,6 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
          across(starts_with("n_O"), ~ifelse(pop == "Grays CJ" & year == 2019, 0, .)),
          M_obs = replace(M_obs, pop == "Grays CJ" & year == 2020, NA),
          tau_M_obs = replace(tau_M_obs, pop == "Grays CJ" & year == 2020, NA),
-         ## test
-         S_obs = replace(S_obs, pop %in% c("Grays MS", "Grays WF") & year == 2016, NA),
-         M_obs = replace(M_obs, pop == "Grays MS" & year == 2017, NA),
-         ## end test
          across(starts_with("n_O"), ~ifelse(pop == "Grays Hatchery" & year < 2007, 0, .)),
          B_take_obs = replace_na(B_take_obs, 0),
          p_G_obs = replace_na(p_G_obs, 1), F_rate = 0) %>%
