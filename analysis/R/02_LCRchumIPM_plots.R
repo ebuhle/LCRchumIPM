@@ -350,7 +350,7 @@ SR_plot <- function(mod, fish_data)
   vquantile <- function(x, ...) as.vector(quantile(x, ...))
   logit <- function(x) log(x) - log(1 - x)
   ilogit <- function(x) exp(x) / (1 + exp(x))
-  rifelse <- rfun(ifelse)
+  # rifelse <- rfun(ifelse)
   
   pop <- as.numeric(fish_data$pop)
   N_pop <- length(levels(fish_data$pop))
@@ -374,12 +374,13 @@ SR_plot <- function(mod, fish_data)
   states_obs <- fish_data %>% 
     mutate(alpha = draws$alpha, S = draws$S, tau_S = draws$tau_S,
            M = draws$M, tau_M = draws$tau_M) %>% 
-    # kludge: adjust M_obs by estimated proportion Grays MS in RST
+    # kludge: adjust M_obs by estimated proportion Grays MS or WF in RST
     group_by(downstream_trap) %>% mutate(M_downstream = rvar_sum(M)) %>% ungroup() %>% 
-    mutate(M_upstream = replace(as_rvar(rep(0, n())), na.omit(downstream_trap),
+    mutate(M_upstream = replace(as_rvar(rep(0, n())), pop %in% c("Grays MS", "Grays WF") ,
                                 M_downstream[!is.na(downstream_trap)]),
-           M_adj = M / (M + M_upstream),
-           M_obs = M_obs * ifelse(pop == "Grays MS", median(M_adj), 1),
+           M_adj = M / M_upstream,
+           M_obs = replace(M_obs, pop == "Grays WF", M_obs[pop == "Grays MS"]),
+           M_obs = M_obs * ifelse(pop %in% c("Grays MS", "Grays WF"), median(M_adj), 1),
            S_obs_prior = dist_lognormal(log(ifelse(S_obs == 0, NA, S_obs)), E(tau_S)),
            M_obs_prior = dist_lognormal(log(ifelse(M_obs == 0, NA, M_obs)), E(tau_M))) %>% 
     group_by(pop) %>% 
@@ -401,9 +402,9 @@ SR_plot <- function(mod, fish_data)
     as_draws_rvars() %>% 
     mutate_variables(A = as_rvar(S_grid$A), S = S_grid$S,
                      alpha = S_grid$alpha, Mmax = rep(Mmax, each = n_grid),
-                     M_hat = rifelse(S_grid$pop_type == "natural",
-                                     SR(mod$SR_fun, alpha = alpha, Rmax = Mmax, S = S, A = A),
-                                     SR("exp", alpha = alpha, S = S, A = A)),
+                     M_hat = rvar_ifelse(S_grid$pop_type == "natural",
+                                         SR(mod$SR_fun, alpha = alpha, Rmax = Mmax, S = S, A = A),
+                                         SR("exp", alpha = alpha, S = S, A = A)),
                      sd_year_M = sigma_year_M / sqrt(1 - rho_M^2),
                      sd_proc_M = sqrt(sd_year_M^2 + sigma_M^2),
                      M_proc = rvar_rng(rlnorm, length(M_hat), log(M_hat), sd_proc_M))
@@ -424,8 +425,8 @@ SR_plot <- function(mod, fish_data)
     geom_segment(aes(x = median(S/A), xend = median(S/A), 
                      y = vquantile(M/A, 0.05), yend = vquantile(M/A, 0.95)),
                  data = states_obs, col = "slategray4") +
-    # geom_segment(aes(x = S_obs/A, xend = median(S/A), y = M_obs/A, yend = median(M/A)), 
-    #              data = states_obs, alpha = 0.6, lwd = 0.5) +    
+    geom_segment(aes(x = S_obs/A, xend = median(S/A), y = M_obs/A, yend = median(M/A)),
+                 data = states_obs, alpha = 0.6, lwd = 0.5) +
     geom_point(aes(x = median(S/A), y = median(M/A)), data = states_obs,
                pch = 23, size = 2, col = "slategray4", fill = "white") +
     # geom_segment(aes(x = quantile(S_obs_prior/A, 0.05), xend = SA_obs_xend,

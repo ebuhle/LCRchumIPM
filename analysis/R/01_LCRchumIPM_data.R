@@ -198,14 +198,16 @@ juv_data <- read.csv(here("data","Data_Abundance_Juveniles_Chum.csv"),
 # use only pooled Duncan Channel data for now, not North / South
 # drop final year if it contains only hatchery releases
 #   (kludge to avoid rows with only hatchery M_obs in fish_data)
-head_noNA <- function(x) { cumsum(!is.na(x) & x > 0) > 0 }
+head_noNA <- function(x) cumsum(!is.na(x) & x > 0) > 0
 juv_data_incl <- juv_data %>% 
   mutate(pop = ifelse(grepl("Hatchery", origin), origin, location), .after = strata,
          M_obs = replace(M_obs, is.na(M_obs) & grepl("Hatchery", pop), 0)) %>% 
   filter(!pop %in% c("Duncan North","Duncan South","Big Creek Hatchery")) %>% 
   select(pop, year, M_obs, tau_M_obs) %>% arrange(pop, year) %>% 
-  group_by(pop, year) %>% summarize(M_obs = sum(M_obs), tau_M_obs = unique(tau_M_obs)) %>%
-  ungroup() %>% group_by(pop) %>% filter(head_noNA(M_obs) & rev(head_noNA(rev(M_obs)))) %>%
+  group_by(pop, year) %>% 
+  summarize(M_obs = sum(M_obs), tau_M_obs = unique(tau_M_obs)) %>%
+  ungroup() %>% group_by(pop) %>% 
+  filter(head_noNA(M_obs) & rev(head_noNA(rev(M_obs)))) %>%
   group_by(year) %>% mutate(all_H = all(grepl("Hatchery", pop))) %>% ungroup() %>% 
   filter(!(year == max(year) & all_H)) %>% select(-all_H) %>% as.data.frame()
 
@@ -220,16 +222,14 @@ juv_data_incl <- juv_data %>%
 # Replace unknown tau_M_obs in hatchery pops with 0.05 
 #  (37th percentile of values from smolt traps)
 # Change S_obs and tau_S_obs to NA in Hamilton Channel 2011-2012 based on
-# https://github.com/ebuhle/chumIPM/issues/6#issuecomment-807885445
-# Change S_obs and tau_S_obs to NA and compositional frequencies to 0
-#  in Grays CJ 2019, and M_obs and tau_M_obs to NA in Grays CJ 2020,
+#  https://github.com/ebuhle/chumIPM/issues/6#issuecomment-807885445
+# Change S_obs and to NA in Grays CJ 2019, and M_obs to NA in Grays CJ 2020,
 #  because blockage caused temporary spatial redistribution
 # Change origin-composition frequencies to 0 in Grays Hatchery pre-2007
 #  because Grays Hatchery-origin spawners are overrepresented relative to the
 #  assumed source Grays MS
 # Pad data as necessary so Grays MS, Grays WF, and Grays CJ have the same set of years
 #  (since their estimated smolts will be summed)  
-# Censor Grays Hatchery origin frequencies pre-2007
 fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year")) %>% 
   full_join(bio_data_origin, by = c("pop","year")) %>% 
   full_join(bio_data_sex, by = c("pop","year")) %>% 
@@ -244,31 +244,30 @@ fish_data_all <- full_join(spawner_data_agg, bio_data_age, by = c("pop","year"))
   filter(!pop %in% c("Duncan Creek", "Sea Resources Hatchery")) %>% 
   mutate(pop = droplevels(factor(pop, levels = pop_names$pop)), # order E-W
          A = replace(A, grepl("Hatchery", pop), 1),
-         tau_S_obs = replace(tau_S_obs, grepl("Hatchery|Duncan", pop), 0.01), # kludge
-         tau_M_obs = replace(tau_M_obs, grepl("Hatchery", pop), 0.05), # kludge
+         tau_S_obs = replace(tau_S_obs, grepl("Hatchery|Duncan", pop), 0.01), #? 
+         tau_M_obs = replace(tau_M_obs, grepl("Hatchery", pop), 0.05),        #?
          S_obs = replace(S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          tau_S_obs = replace(tau_S_obs, pop == "Hamilton Channel" & year %in% 2011:2012, NA),
          S_obs = replace(S_obs, pop == "Grays CJ" & year == 2019, NA),
-         tau_S_obs = replace(tau_S_obs, pop == "Grays CJ" & year == 2019, NA),
-         across(starts_with("n_"), ~ifelse(pop == "Grays CJ" & year == 2019, 0, .)),
+         across(starts_with("n_O"), ~ifelse(pop == "Grays CJ" & year == 2019, 0, .)),
          M_obs = replace(M_obs, pop == "Grays CJ" & year == 2020, NA),
-         tau_M_obs = replace(tau_M_obs, pop == "Grays CJ" & year == 2020, NA),
          across(starts_with("n_O"), ~ifelse(pop == "Grays Hatchery" & year < 2007, 0, .)),
          B_take_obs = replace_na(B_take_obs, 0),
-         p_G_obs = replace_na(p_G_obs, 1), F_rate = 0) %>%
+         p_G_obs = replace_na(p_G_obs, 1), 
+         F_rate = 0) %>%
   mutate(n_H_obs = rowSums(across(matches("n_O.*Hatchery_obs"))),
          n_W_obs = rowSums(across(starts_with("n_O"))) - n_H_obs, 
          .before = n_O0_obs) %>% 
   mutate_at(vars(contains("n_")), ~replace_na(., 0)) %>%
   do({ 
     lev <- levels(.$pop)
-    .cols <- grepl("Hatchery|Channel", names(.))
-    .fn <- function(.x) {
+    cols <- grepl("Hatchery|Channel", names(.))
+    fn <- function(.x) {
       rgx <- "n_[O|B](.*)_obs"
       streplace <- sub(rgx, "\\1", grep(rgx, .x, value = TRUE))
       sub(streplace, match(streplace, lev), .x)
     }
-    setNames(., replace(names(.), .cols, sapply(names(.)[.cols], .fn)))
+    setNames(., replace(names(.), cols, sapply(names(.)[cols], fn)))
   }) %>% 
   select(pop, year, A, S_obs, tau_S_obs, M_obs, tau_M_obs, n_age3_obs:n_F_obs, 
          p_G_obs, B_take_obs, starts_with("n_B"), F_rate) %>% 
@@ -345,7 +344,7 @@ fecundity <- read.csv(here("data","Data_ChumFecundity_fromHatcheryPrograms.csv")
 #   or with reproductive effort <= 16%
 # add strata based on stock: Grays -> Coastal, I-205 -> Cascade, Lower Gorge -> Gorge
 fecundity_data <- fecundity %>% filter(age_E %in% 3:5 & !is.na(E_obs) & 
-           !is.na(reproductive_effort) & reproductive_effort > 16) %>% 
+                                         !is.na(reproductive_effort) & reproductive_effort > 16) %>% 
   mutate(strata = recode(stock, Grays = "Coastal", `I-205` = "Cascade", `Lower Gorge` = "Gorge")) %>% 
   select(strata, year, ID, age_E, E_obs) %>% arrange(strata, year, age_E) 
 
